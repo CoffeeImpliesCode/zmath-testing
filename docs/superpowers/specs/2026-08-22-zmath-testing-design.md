@@ -52,11 +52,38 @@ Each surface gets handwritten law tests and an independent benchmark executable.
 - Oracle FFI is restricted to `test/oracle`; public zmath API and benchmark code must not expose MPFR, GMP, FLINT, or Arb types.
 - Benchmark output reports time and checked-operation count separately from oracle tests.
 
+## Differential fuzzing policy
+
+The oracle target has two complementary differential-test surfaces:
+
+- `oracle`: a deterministic, seeded campaign. It replays committed regression inputs,
+  exhausts every `f16` input when a function is enabled, and samples weighted raw-bit
+  `f32` and `f64` inputs. This is the normal CI-quality check.
+- `fuzz`: Zig's coverage-guided `std.testing.fuzz` runner. It is an explicit,
+  long-running local target, invoked with a fixed `--fuzz` budget and `--seed` for
+  reproducibility.
+
+Both surfaces use `std.testing.Smith.value(u16/u32/u64)` and `@bitCast` to generate
+IEEE inputs. They call the typed public zmath function, then the MPFR bridge. Output
+bits and class must match exactly. For finite output, Arb must certify that the MPFR
+rounded result is unique. `ERROR` and `UNCERTAIN` fail the test; only manifest-disabled
+functions may return `UNSUPPORTED`, and they must not dispatch to zmath or the bridge.
+
+Zig fuzzer crash files are preserved verbatim because Smith inputs are structured
+streams, not raw scalar bit patterns. Committed replay data embeds those files through
+`FuzzInputOptions.corpus`. A separate, generated failure sidecar records operation,
+format, input bits, runtime bits, MPFR bits, seed, and certification status. It never
+modifies the accepted oracle TSV corpus.
+
+The manifest status map is parsed once and drives dispatch. No hard-coded function
+status table may duplicate it.
+
 ## Verification
 
 After implementation:
-
 1. `zig build test` proves the sibling zmath module imports through its public package boundary.
-2. `zig build oracle` proves MPFR and Arb/FLINT adapters compile and execute their smoke checks.
-3. `zig build bench` builds benchmark executables without linking oracle libraries.
-4. The workspace status is clean after the focused Jujutsu commit.
+2. `zig build oracle` proves the deterministic MPFR/Arb differential campaign.
+3. `zig build fuzz --fuzz=100K --seed 0x1234` runs a reproducible bounded
+   coverage-guided differential campaign on supported hosts.
+4. `zig build bench` builds benchmark executables without linking oracle libraries.
+5. The workspace status is clean after the focused Jujutsu commit.
