@@ -60,8 +60,8 @@ The oracle target has two complementary differential-test surfaces:
   exhausts every `f16` input when a function is enabled, and samples weighted raw-bit
   `f32` and `f64` inputs. This is the normal CI-quality check.
 - `fuzz`: Zig's coverage-guided `std.testing.fuzz` runner. It is an explicit,
-  long-running local target, invoked with a fixed `--fuzz` budget and `--seed` for
-  reproducibility.
+  long-running local target. Reproducibility requires the same source, compiler,
+  corpus, `--fuzz` budget, and `--seed`.
 
 Both surfaces use `std.testing.Smith.value(u16/u32/u64)` and `@bitCast` to generate
 IEEE inputs. They call the typed public zmath function, then the MPFR bridge. Output
