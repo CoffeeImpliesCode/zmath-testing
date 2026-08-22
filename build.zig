@@ -24,6 +24,7 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("test/oracle/oracle_smoke.zig"),
         .target = target,
         .optimize = optimize,
+        .imports = &.{.{ .name = "zmath", .module = zmath_module }},
         .link_libc = true,
     });
     oracle_module.addCSourceFile(.{
