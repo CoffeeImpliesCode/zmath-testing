@@ -71,7 +71,8 @@ functions may return `UNSUPPORTED`, and they must not dispatch to zmath or the b
 
 Zig fuzzer crash files are preserved verbatim because Smith inputs are structured
 streams, not raw scalar bit patterns. Committed replay data embeds those files through
-`FuzzInputOptions.corpus`. A separate, generated failure sidecar records operation,
+`FuzzInputOptions.corpus`. Each fixture is valid only while its callback's request order
+and types remain unchanged. A separate, generated failure sidecar records operation,
 format, input bits, runtime bits, MPFR bits, seed, and certification status. It never
 modifies the accepted oracle TSV corpus.
 
