@@ -7,6 +7,57 @@
 
 #define ZMATH_TESTING_ORACLE_PRECISION 512
 
+/*
+ * Zig fuzz instrumentation applies sanitizer comparison callbacks to C sources,
+ * but its runtime exports them only for Zig code. The oracle is not fuzz guidance:
+ * it is a deterministic reference. Keep the callbacks no-op so bridge branches do
+ * not influence coverage while the Zig runtime retains its normal instrumentation.
+ */
+void __sanitizer_cov_trace_const_cmp1(uint8_t left, uint8_t right) {
+    (void)left;
+    (void)right;
+}
+
+void __sanitizer_cov_trace_const_cmp2(uint16_t left, uint16_t right) {
+    (void)left;
+    (void)right;
+}
+
+void __sanitizer_cov_trace_const_cmp4(uint32_t left, uint32_t right) {
+    (void)left;
+    (void)right;
+}
+
+void __sanitizer_cov_trace_const_cmp8(uint64_t left, uint64_t right) {
+    (void)left;
+    (void)right;
+}
+
+void __sanitizer_cov_trace_cmp1(uint8_t left, uint8_t right) {
+    (void)left;
+    (void)right;
+}
+
+void __sanitizer_cov_trace_cmp2(uint16_t left, uint16_t right) {
+    (void)left;
+    (void)right;
+}
+
+void __sanitizer_cov_trace_cmp4(uint32_t left, uint32_t right) {
+    (void)left;
+    (void)right;
+}
+
+void __sanitizer_cov_trace_cmp8(uint64_t left, uint64_t right) {
+    (void)left;
+    (void)right;
+}
+
+void __sanitizer_cov_trace_switch(uint64_t value, uint64_t *cases) {
+    (void)value;
+    (void)cases;
+}
+
 typedef struct zmath_testing_target_format {
     unsigned width;
     unsigned exponent_bits;
@@ -560,12 +611,22 @@ int zmath_testing_arb_prove_rounding(
     }
 
     exponent_all = (UINT64_C(1) << target.exponent_bits) - 1;
+    exponent = (input_bits[0] & target.exponent_mask) >> target.fraction_bits;
+    if (exponent == exponent_all) {
+        /*
+         * NaN propagation and operation-defined infinity mappings are exact
+         * bridge semantics. Arb cannot construct an interval for a non-finite
+         * input, so the MPFR result above is the proof for these cases.
+         */
+        *output_class = expected_class;
+        return ZMATH_TESTING_ORACLE_OK;
+    }
     exponent = (candidate_bits & target.exponent_mask) >> target.fraction_bits;
     if (exponent == exponent_all ||
         (exponent == exponent_all - 1 &&
          (candidate_bits & target.fraction_mask) == target.fraction_mask)) {
         /*
-         * Arb intervals do not carry a proof for NaN, infinity, or the
+         * Arb intervals do not carry a proof for infinity or the
          * finite-to-infinity overflow boundary.
          */
         return ZMATH_TESTING_ORACLE_UNCERTAIN;

@@ -37,13 +37,13 @@ pub const ValidationError = error{
     DuplicateCorpusRow,
 };
 
-const Operation = enum(u8) {
+pub const Operation = enum(u8) {
     exp,
     log,
     sin,
 };
 
-const Format = enum(u8) {
+pub const Format = enum(u8) {
     h,
     f,
     d,
@@ -55,6 +55,11 @@ const Format = enum(u8) {
             .d => 16,
         };
     }
+};
+
+pub const FunctionStatus = enum(u8) {
+    correct,
+    unsupported,
 };
 
 const OutputClass = enum {
@@ -84,8 +89,30 @@ const RootKey = enum(u8) {
 const Function = struct {
     operation: ?Operation = null,
     format: ?Format = null,
-    unsupported: bool = false,
-    has_status: bool = false,
+    status: ?FunctionStatus = null,
+};
+
+pub const FunctionRow = struct {
+    operation: Operation,
+    format: Format,
+    status: FunctionStatus,
+};
+
+pub const Manifest = struct {
+    functions: [9]FunctionRow,
+
+    pub fn functionStatus(
+        manifest: Manifest,
+        operation: Operation,
+        format: Format,
+    ) ?FunctionStatus {
+        for (manifest.functions) |function| {
+            if (function.operation == operation and function.format == format) {
+                return function.status;
+            }
+        }
+        return null;
+    }
 };
 
 const SortKey = struct {
@@ -94,17 +121,26 @@ const SortKey = struct {
     input_bits: []const u8,
 };
 
+pub fn parseEmbeddedManifest() ValidationError!Manifest {
+    return parseManifest(manifest_text);
+}
+
 pub fn validateEmbeddedManifest() ValidationError!void {
-    try validateManifest(manifest_text);
+    _ = try parseEmbeddedManifest();
 }
 
 pub fn validateManifest(source: []const u8) ValidationError!void {
+    _ = try parseManifest(source);
+}
+
+pub fn parseManifest(source: []const u8) ValidationError!Manifest {
     try validateTextEnvelope(source, false);
 
-    var root_seen = [_]bool{false} ** @typeInfo(RootKey).@"enum".fields.len;
-    var function_seen = [_][3]bool{[_]bool{false} ** 3} ** 3;
+    var root_seen: [12]bool = @splat(false);
+    var function_seen: [3][3]bool = @splat(@splat(false));
     var function: ?Function = null;
     var function_count: usize = 0;
+    var function_rows: [9]FunctionRow = undefined;
     var root_complete = false;
 
     var lines = std.mem.splitScalar(u8, source, '\n');
@@ -118,7 +154,11 @@ pub fn validateManifest(source: []const u8) ValidationError!void {
                 root_complete = true;
             }
             if (function) |current| {
-                try finishFunction(current, &function_seen, function_count);
+                function_rows[function_count] = try finishFunction(
+                    current,
+                    &function_seen,
+                    function_count,
+                );
                 function_count += 1;
             }
             function = .{};
@@ -142,10 +182,15 @@ pub fn validateManifest(source: []const u8) ValidationError!void {
 
     if (!root_complete) try requireAllRootKeys(root_seen);
     if (function) |current| {
-        try finishFunction(current, &function_seen, function_count);
+        function_rows[function_count] = try finishFunction(
+            current,
+            &function_seen,
+            function_count,
+        );
         function_count += 1;
     }
-    if (function_count != 9) return error.MissingFunctionRow;
+    if (function_count != function_rows.len) return error.MissingFunctionRow;
+    return .{ .functions = function_rows };
 }
 
 pub fn validateTsv(source: []const u8) ValidationError!void {
@@ -265,13 +310,15 @@ fn validateFunctionField(
         if (function.format != null) return error.DuplicateFunctionKey;
         function.format = try parseFormat(try parseString(value));
     } else if (std.mem.eql(u8, key, "status")) {
-        if (function.has_status) return error.DuplicateFunctionKey;
-        function.has_status = true;
+        if (function.status != null) return error.DuplicateFunctionKey;
         const status = try parseString(value);
-        if (!std.mem.eql(u8, status, "unsupported")) {
+        if (std.mem.eql(u8, status, "correct")) {
+            function.status = .correct;
+        } else if (std.mem.eql(u8, status, "unsupported")) {
+            function.status = .unsupported;
+        } else {
             return error.UnsupportedFunctionStatus;
         }
-        function.unsupported = true;
     } else {
         return error.UnknownFunctionKey;
     }
@@ -281,10 +328,10 @@ fn finishFunction(
     function: Function,
     function_seen: *[3][3]bool,
     function_count: usize,
-) ValidationError!void {
+) ValidationError!FunctionRow {
     const operation = function.operation orelse return error.MissingFunctionKey;
     const format = function.format orelse return error.MissingFunctionKey;
-    if (!function.has_status or !function.unsupported) return error.MissingFunctionKey;
+    const status = function.status orelse return error.MissingFunctionKey;
 
     const operation_index = @intFromEnum(operation);
     const format_index = @intFromEnum(format);
@@ -293,6 +340,11 @@ fn finishFunction(
         return error.UnsortedFunctionRow;
     }
     function_seen[operation_index][format_index] = true;
+    return .{
+        .operation = operation,
+        .format = format,
+        .status = status,
+    };
 }
 
 fn requireAllRootKeys(root_seen: [12]bool) ValidationError!void {
@@ -302,10 +354,7 @@ fn requireAllRootKeys(root_seen: [12]bool) ValidationError!void {
 }
 
 fn parseRootKey(name: []const u8) ?RootKey {
-    inline for (@typeInfo(RootKey).@"enum".fields) |field| {
-        if (std.mem.eql(u8, name, field.name)) return @enumFromInt(field.value);
-    }
-    return null;
+    return std.meta.stringToEnum(RootKey, name);
 }
 
 fn parseOperation(text: []const u8) ValidationError!Operation {
@@ -469,14 +518,18 @@ fn validateSorted(previous: SortKey, current: SortKey) ValidationError!void {
     }
 }
 
-test "embedded manifest has the pinned unsupported matrix" {
-    try validateEmbeddedManifest();
+test "embedded manifest has the pinned function matrix" {
+    const manifest = try parseEmbeddedManifest();
+    try std.testing.expectEqual(
+        FunctionStatus.correct,
+        manifest.functionStatus(.exp, .h).?,
+    );
 }
 
-test "manifest function status must remain unsupported" {
+test "manifest rejects unknown function status" {
     var source: [manifest_text.len]u8 = undefined;
     @memcpy(&source, manifest_text);
-    const status_index = std.mem.indexOf(u8, &source, "unsupported") orelse unreachable;
+    const status_index = std.mem.indexOf(u8, &source, "correct") orelse unreachable;
     source[status_index] = 'x';
     try std.testing.expectError(error.UnsupportedFunctionStatus, validateManifest(&source));
 }

@@ -84,7 +84,9 @@ status table may duplicate it.
 After implementation:
 1. `zig build test` proves the sibling zmath module imports through its public package boundary.
 2. `zig build oracle` proves the deterministic MPFR/Arb differential campaign.
-3. `zig build fuzz --fuzz=100K --seed 0x1234` runs a reproducible bounded
-   coverage-guided differential campaign on supported hosts.
-4. `zig build bench` builds benchmark executables without linking oracle libraries.
-5. The workspace status is clean after the focused Jujutsu commit.
+3. `zig build oracle-fuzz --fuzz=100K --seed 0x1234` runs a reproducible bounded
+   coverage-guided differential campaign on a supported Zig development toolchain.
+4. `devenv shell -- coverage` runs `zig-cov` under the pinned 0.17-dev coverage
+   toolchain. Delivery builds and normal oracle tests remain pinned to Zig 0.16.0.
+5. `zig build bench` builds benchmark executables without linking oracle libraries.
+6. The workspace status is clean after the focused Jujutsu commit.

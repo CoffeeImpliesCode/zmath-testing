@@ -26,15 +26,18 @@ The accepted format identifiers are:
 Aliases, uppercase format identifiers, and unknown formats are rejected.
 
 The manifest has one row for each operation-format pair for `exp`, `log`, and `sin`.
-All nine rows have status `unsupported`.
-`correct` would require exact nearest-even results. `bounded` would allow only its stated finite ULP limit in nearest-even mode.
-These rows do not claim that `zmath` exports any of these functions.
-Do not add corpus data or change a row to `correct` or `bounded` without the implementation and oracle evidence required by the specification.
+The `exp` rows, `log/h`, and `sin/h` rows have status `correct`; remaining `log`
+and `sin` rows are `unsupported`. `correct` requires exact nearest-even results
+proved by the oracle bridge. `bounded` would allow only its stated finite ULP limit
+in nearest-even mode.
+Unsupported rows do not claim an accepted accuracy contract.
+Do not add corpus data or change a row to `correct` or `bounded` without the
+implementation and oracle evidence required by the specification.
 
 ## TSV files
 
-Schema version 1 does not ship a TSV data file.
-The manifest rows are unsupported, so there is no accepted transcendental corpus yet.
+Schema version 1 does not ship a TSV data file. Accepted correctness currently comes
+from executable exhaustive or seeded oracle campaigns, not a checked-in vector table.
 A future data file must be UTF-8 without a byte-order mark, use LF line endings, and end with one LF.
 It must contain this exact header:
 

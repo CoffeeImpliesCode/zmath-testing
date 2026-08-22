@@ -10,8 +10,8 @@ rejected_formats = ["q", "bfloat16"]
 columns = ["op", "format", "input_bits", "output_bits", "output_class", "max_ulp"]
 hexadecimal = "lowercase_fixed_width"
 uncertainty_policy = "fail_closed"
-# The following exp rows remain unsupported until every transition item is accepted.
-# algorithm_source = required exact dependency-free source path from the spec checklist
+# Exp is implemented and exercised by the deterministic oracle campaign.
+# algorithm_source = zmath/src/scalar.zig, with a dependency-free exp algorithm
 # special_value_bits = spec/core-math-2026-08-22.md, exp table, exact input/output bits
 # supported_modes = explicit target triples and Zig modes. Unlisted targets or modes are unsupported.
 # rounding_mode = nearest_even with gradual underflow only. The process floating-point environment is unchanged.
@@ -28,22 +28,22 @@ uncertainty_policy = "fail_closed"
 [[function]]
 op = "exp"
 format = "h"
-status = "unsupported"
+status = "correct"
 
 [[function]]
 op = "exp"
 format = "f"
-status = "unsupported"
+status = "correct"
 
 [[function]]
 op = "exp"
 format = "d"
-status = "unsupported"
+status = "correct"
 
 [[function]]
 op = "log"
 format = "h"
-status = "unsupported"
+status = "correct"
 
 [[function]]
 op = "log"
@@ -58,7 +58,7 @@ status = "unsupported"
 [[function]]
 op = "sin"
 format = "h"
-status = "unsupported"
+status = "correct"
 
 [[function]]
 op = "sin"
