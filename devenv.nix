@@ -2,19 +2,19 @@
 
 rec {
   packages = with pkgs; [
-    # bash
-    # pkg-config
-
-    # performance / profiling tooling (ztex: speed is a top priority)
-    hyperfine        # CLI timing of benchmarks
-    valgrind         # memory / cachegrind analysis
-    perf-tools       # linux perf profiler
-
+    gmp
+    mpfr
+    flint
+    pkg-config
+    hyperfine
+    valgrind
+    perf-tools
   ];
 
   env = {
-    LD_LIBRARY_PATH = "${pkgs.lib.makeLibraryPath packages}";
-    INCLUDE_DIRECTORIES = "${pkgs.lib.makeIncludePath packages}";
+    C_INCLUDE_PATH = pkgs.lib.makeIncludePath packages;
+    LIBRARY_PATH = pkgs.lib.makeLibraryPath packages;
+    LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath packages;
   };
 
   scripts.gate.exec = "zig-gate";
