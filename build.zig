@@ -31,17 +31,53 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(&run_integration_tests.step);
     test_step.dependOn(&run_suffix_tests.step);
 
+    const corpus_support_package = b.addWriteFiles();
+    const corpus_support_root = corpus_support_package.addCopyFile(
+        b.path("test/support/corpus.zig"),
+        "corpus_support.zig",
+    );
+    _ = corpus_support_package.addCopyFile(
+        b.path("test/corpus/manifest.toml"),
+        "corpus/manifest.toml",
+    );
+    const corpus_support_module = b.createModule(.{
+        .root_source_file = corpus_support_root,
+        .target = target,
+        .optimize = optimize,
+    });
+
+    const infrastructure_module = b.createModule(.{
+        .root_source_file = b.path("test/integration/infrastructure.zig"),
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{.{
+            .name = "corpus_support",
+            .module = corpus_support_module,
+        }},
+    });
+    const infrastructure_tests = b.addTest(.{ .root_module = infrastructure_module });
+    const run_infrastructure_tests = b.addRunArtifact(infrastructure_tests);
+    test_step.dependOn(&run_infrastructure_tests.step);
+
     const oracle_module = b.createModule(.{
         .root_source_file = b.path("test/oracle/oracle_smoke.zig"),
         .target = target,
         .optimize = optimize,
-        .imports = &.{.{ .name = "zmath", .module = zmath_module }},
+        .imports = &.{
+            .{ .name = "zmath", .module = zmath_module },
+            .{ .name = "corpus_support", .module = corpus_support_module },
+        },
         .link_libc = true,
     });
     oracle_module.addCSourceFile(.{
         .file = b.path("test/oracle/oracle_smoke.c"),
         .flags = &.{"-std=c11"},
     });
+    oracle_module.addCSourceFile(.{
+        .file = b.path("test/oracle/oracle_bridge.c"),
+        .flags = &.{"-std=c11"},
+    });
+    oracle_module.addIncludePath(b.path("test/oracle"));
     oracle_module.linkSystemLibrary("mpfr", .{});
     oracle_module.linkSystemLibrary("gmp", .{});
     oracle_module.linkSystemLibrary("flint", .{});

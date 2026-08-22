@@ -15,3 +15,8 @@ test "MPFR environment smoke check" {
 test "Arb environment smoke check" {
     try std.testing.expectEqual(@as(c_int, 1), zmath_testing_arb_smoke());
 }
+
+test {
+    _ = @import("oracle_bridge_test.zig");
+    _ = @import("corpus_runner.zig");
+}

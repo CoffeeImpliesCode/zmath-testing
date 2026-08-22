@@ -8,6 +8,6 @@ test "imports the public zmath module" {
 test "exports IEEE primitives from the public module" {
     try std.testing.expectEqual(
         @as(u32, 1),
-        @as(u32, @bitCast(zmath.ieee.nextAfterF(0.0, 1.0))),
+        @as(u32, @bitCast(zmath.ieee.nextAfterf(0.0, 1.0))),
     );
 }

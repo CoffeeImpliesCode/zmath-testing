@@ -1,0 +1,71 @@
+schema_version = 1
+core_math_repository = "https://gitlab.inria.fr/core-math/core-math.git"
+core_math_revision = "3bafed75e3c22399531857d63a3fa0e24bfb42fa"
+mpfr_precision_bits = 512
+arb_precision_bits = 512
+rounding = "nearest_even"
+formats = ["h", "f", "d"]
+reserved_formats = ["q"]
+rejected_formats = ["q", "bfloat16"]
+columns = ["op", "format", "input_bits", "output_bits", "output_class", "max_ulp"]
+hexadecimal = "lowercase_fixed_width"
+uncertainty_policy = "fail_closed"
+# The following exp rows remain unsupported until every transition item is accepted.
+# algorithm_source = required exact dependency-free source path from the spec checklist
+# special_value_bits = spec/core-math-2026-08-22.md, exp table, exact input/output bits
+# supported_modes = explicit target triples and Zig modes. Unlisted targets or modes are unsupported.
+# rounding_mode = nearest_even with gradual underflow only. The process floating-point environment is unchanged.
+# h_exhaustive_corpus = all 65,536 binary16 input bit patterns, each checked exactly once
+# f_hard_cases = immutable F corpus with exact input/output bits, midpoint and boundary cases
+# d_hard_cases = immutable D corpus with exact input/output bits, midpoint and boundary cases
+# mpfr_evidence = 512-bit MPFR_RNDN result and target-format conversion for every finite row
+# arb_proof = 512-bit Arb interval rounds to one target bit pattern and agrees with MPFR
+# benchmark_corpus = immutable repository-relative corpus path, selection rule, count, and results per supported mode
+# transition_gate = correct requires max_ulp = 0. Bounded requires an approved finite-result ULP limit.
+# No exp status may change while one item is missing, disputed, or not reproducible.
+
+
+[[function]]
+op = "exp"
+format = "h"
+status = "unsupported"
+
+[[function]]
+op = "exp"
+format = "f"
+status = "unsupported"
+
+[[function]]
+op = "exp"
+format = "d"
+status = "unsupported"
+
+[[function]]
+op = "log"
+format = "h"
+status = "unsupported"
+
+[[function]]
+op = "log"
+format = "f"
+status = "unsupported"
+
+[[function]]
+op = "log"
+format = "d"
+status = "unsupported"
+
+[[function]]
+op = "sin"
+format = "h"
+status = "unsupported"
+
+[[function]]
+op = "sin"
+format = "f"
+status = "unsupported"
+
+[[function]]
+op = "sin"
+format = "d"
+status = "unsupported"
