@@ -17,8 +17,19 @@ pub fn build(b: *std.Build) void {
     });
     const integration_tests = b.addTest(.{ .root_module = integration_module });
     const run_integration_tests = b.addRunArtifact(integration_tests);
+
+    const suffix_module = b.createModule(.{
+        .root_source_file = b.path("test/integration/numeric_suffixes.zig"),
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{.{ .name = "zmath", .module = zmath_module }},
+    });
+    const suffix_tests = b.addTest(.{ .root_module = suffix_module });
+    const run_suffix_tests = b.addRunArtifact(suffix_tests);
+
     const test_step = b.step("test", "Run public zmath integration tests");
     test_step.dependOn(&run_integration_tests.step);
+    test_step.dependOn(&run_suffix_tests.step);
 
     const oracle_module = b.createModule(.{
         .root_source_file = b.path("test/oracle/oracle_smoke.zig"),
