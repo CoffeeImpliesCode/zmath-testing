@@ -7,14 +7,14 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+#ifdef __cplusplus
+#define ZMATH_TESTING_ORACLE_STATIC_ASSERT static_assert
+#else
+#define ZMATH_TESTING_ORACLE_STATIC_ASSERT _Static_assert
+#endif
 
-/* Stable ABI values. Q is reserved and every bridge entry point rejects it. */
-enum zmath_testing_oracle_format {
-    ZMATH_TESTING_ORACLE_FORMAT_H = 1,
-    ZMATH_TESTING_ORACLE_FORMAT_F = 2,
-    ZMATH_TESTING_ORACLE_FORMAT_D = 3,
-    ZMATH_TESTING_ORACLE_FORMAT_Q = 4,
-};
+#define ZMATH_TESTING_ORACLE_ABI_VERSION UINT32_C(2)
+#define ZMATH_TESTING_ORACLE_MAX_FIELDS UINT32_C(8)
 
 enum zmath_testing_oracle_status {
     ZMATH_TESTING_ORACLE_OK = 0,
@@ -23,75 +23,246 @@ enum zmath_testing_oracle_status {
     ZMATH_TESTING_ORACLE_UNCERTAIN = 3,
 };
 
+enum zmath_testing_oracle_format_code {
+    ZMATH_TESTING_ORACLE_FORMAT_NONE = 0,
+    ZMATH_TESTING_ORACLE_FORMAT_H = 1,
+    ZMATH_TESTING_ORACLE_FORMAT_F = 2,
+    ZMATH_TESTING_ORACLE_FORMAT_D = 3,
+};
+
+enum zmath_testing_oracle_field_kind {
+    ZMATH_TESTING_ORACLE_FIELD_FLOAT = 1,
+    ZMATH_TESTING_ORACLE_FIELD_SIGNED_INTEGER = 2,
+    ZMATH_TESTING_ORACLE_FIELD_UNSIGNED_INTEGER = 3,
+    ZMATH_TESTING_ORACLE_FIELD_BOOLEAN = 4,
+    ZMATH_TESTING_ORACLE_FIELD_TAG = 5,
+    ZMATH_TESTING_ORACLE_FIELD_ROUNDING = 6,
+};
+
+enum zmath_testing_oracle_result_layout {
+    ZMATH_TESTING_ORACLE_RESULT_SCALAR = 1,
+    ZMATH_TESTING_ORACLE_RESULT_STRUCTURE = 2,
+};
+
+enum zmath_testing_oracle_structure_kind {
+    ZMATH_TESTING_ORACLE_STRUCTURE_NONE = 0,
+    ZMATH_TESTING_ORACLE_STRUCTURE_CANONICALIZE = 1,
+    ZMATH_TESTING_ORACLE_STRUCTURE_FREXP = 2,
+    ZMATH_TESTING_ORACLE_STRUCTURE_MODF = 3,
+    ZMATH_TESTING_ORACLE_STRUCTURE_REMQUO = 4,
+    ZMATH_TESTING_ORACLE_STRUCTURE_LGAMMA = 5,
+    ZMATH_TESTING_ORACLE_STRUCTURE_PAYLOAD = 6,
+    ZMATH_TESTING_ORACLE_STRUCTURE_ATAN2 = 7,
+    ZMATH_TESTING_ORACLE_STRUCTURE_POWER = 8,
+    ZMATH_TESTING_ORACLE_STRUCTURE_INTEGER = 9,
+};
+
 enum zmath_testing_oracle_class {
     ZMATH_TESTING_ORACLE_CLASS_NORMAL = 0,
     ZMATH_TESTING_ORACLE_CLASS_SUBNORMAL = 1,
     ZMATH_TESTING_ORACLE_CLASS_ZERO = 2,
     ZMATH_TESTING_ORACLE_CLASS_INFINITY = 3,
     ZMATH_TESTING_ORACLE_CLASS_QNAN = 4,
+    ZMATH_TESTING_ORACLE_CLASS_NONE = 5,
 };
 
 /*
- * Oracle-only MPFR reference ABI.
- *
- * op is a NUL-terminated operation name. This bridge supports the unary names
- * "exp", "log", and "sin". arity must be one. Rounding is fixed to
- * round-to-nearest, ties-to-even, at the manifest-pinned 512-bit MPFR
- * precision. There is deliberately no ambient or caller-selected rounding
- * mode.
- *
- * Each input_bits element is an exact IEEE 754 interchange bit pattern stored
- * in the low bits of uint64_t: binary16 for H (format 1), binary32 for F
- * (format 2), or binary64 for D (format 3). Unused high bits for H and F must
- * be zero. The bridge decodes sign, exponent, and significand fields directly;
- * it never converts through a host float or double. Q (format 4) is reserved
- * and rejected. Every other format, including bfloat16, is unsupported.
- * The quiet masks are H=0x0200, F=0x00400000, and
- * D=0x0008000000000000. Exact special cases are exp(+-0)=+1,
- * exp(+inf)=+inf, exp(-inf)=+0; log(+-0)=-inf, log(+1)=+0,
- * log(+inf)=+inf, and log(negative non-NaN)=+qNaN; sin(+0)=+0,
- * sin(-0)=-0, and sin(+-inf)=+qNaN. These rules precede MPFR evaluation.
- * On OK, output_bits contains the exact target-format bit pattern in the same
- * low-bit layout and output_class is NORMAL, SUBNORMAL, ZERO, INFINITY, or
- * QNAN. Normal values, subnormals, infinities, and signed zeros use their
- * exact IEEE fields. A NaN input is returned before MPFR evaluation: preserve
- * its sign and payload, and set the target quiet bit. Invalid non-NaN inputs
- * return the positive canonical quiet encodings 0x7e00, 0x7fc00000, and
- * 0x7ff8000000000000 for H, F, and D. The bridge writes neither output on
- * UNSUPPORTED, ERROR, or UNCERTAIN.
+ * Every descriptor is explicit. The bridge accepts only IEEE binary16,
+ * binary32, and binary64 format layouts for successful MPFR/Arb evidence.
+ * Any other format code is unsupported and never produces successful evidence.
  */
-int zmath_testing_mpfr_reference(
-    const char *op,
-    unsigned format,
-    const uint64_t *input_bits,
-    size_t arity,
-    uint64_t *output_bits,
-    unsigned *output_class
+typedef struct zmath_testing_oracle_format_descriptor {
+    uint32_t code;
+    uint32_t storage_bits;
+    uint32_t exponent_bits;
+    uint32_t fraction_bits;
+    uint32_t reserved;
+} zmath_testing_oracle_format_descriptor;
+
+typedef struct zmath_testing_oracle_field_descriptor {
+    uint32_t kind;
+    uint32_t value_bits;
+    zmath_testing_oracle_format_descriptor format;
+    uint32_t reserved;
+} zmath_testing_oracle_field_descriptor;
+
+typedef struct zmath_testing_oracle_input_field {
+    zmath_testing_oracle_field_descriptor descriptor;
+    uint64_t value_bits;
+    const uint8_t *tag_bytes;
+    uint32_t tag_length;
+    uint32_t reserved;
+} zmath_testing_oracle_input_field;
+
+typedef struct zmath_testing_oracle_result_field {
+    zmath_testing_oracle_field_descriptor descriptor;
+    uint64_t value_bits;
+    uint32_t class_code;
+    uint32_t reserved;
+} zmath_testing_oracle_result_field;
+
+typedef struct zmath_testing_oracle_request {
+    uint32_t abi_version;
+    uint32_t reserved;
+    const uint8_t *operation;
+    uint32_t operation_length;
+    uint32_t arity;
+    const zmath_testing_oracle_input_field *input_fields;
+    uint32_t input_field_count;
+    uint32_t result_layout;
+    uint32_t structure_kind;
+    uint32_t result_field_count;
+    const zmath_testing_oracle_field_descriptor *result_fields;
+} zmath_testing_oracle_request;
+
+ZMATH_TESTING_ORACLE_STATIC_ASSERT(
+    sizeof(zmath_testing_oracle_format_descriptor) == 20,
+    "oracle format descriptor ABI drift"
+);
+ZMATH_TESTING_ORACLE_STATIC_ASSERT(
+    offsetof(zmath_testing_oracle_format_descriptor, code) == 0,
+    "oracle format descriptor code order drift"
+);
+ZMATH_TESTING_ORACLE_STATIC_ASSERT(
+    offsetof(zmath_testing_oracle_format_descriptor, storage_bits) == 4,
+    "oracle format descriptor storage order drift"
+);
+ZMATH_TESTING_ORACLE_STATIC_ASSERT(
+    offsetof(zmath_testing_oracle_format_descriptor, exponent_bits) == 8,
+    "oracle format descriptor exponent order drift"
+);
+ZMATH_TESTING_ORACLE_STATIC_ASSERT(
+    offsetof(zmath_testing_oracle_format_descriptor, fraction_bits) == 12,
+    "oracle format descriptor fraction order drift"
+);
+ZMATH_TESTING_ORACLE_STATIC_ASSERT(
+    offsetof(zmath_testing_oracle_format_descriptor, reserved) == 16,
+    "oracle format descriptor reserved order drift"
+);
+ZMATH_TESTING_ORACLE_STATIC_ASSERT(
+    offsetof(zmath_testing_oracle_field_descriptor, kind) == 0,
+    "oracle field descriptor kind order drift"
+);
+ZMATH_TESTING_ORACLE_STATIC_ASSERT(
+    offsetof(zmath_testing_oracle_field_descriptor, value_bits) == 4,
+    "oracle field descriptor width order drift"
+);
+ZMATH_TESTING_ORACLE_STATIC_ASSERT(
+    offsetof(zmath_testing_oracle_field_descriptor, format) == 8,
+    "oracle field descriptor format order drift"
+);
+ZMATH_TESTING_ORACLE_STATIC_ASSERT(
+    offsetof(zmath_testing_oracle_field_descriptor, reserved) == 28,
+    "oracle field descriptor reserved order drift"
+);
+ZMATH_TESTING_ORACLE_STATIC_ASSERT(
+    sizeof(zmath_testing_oracle_field_descriptor) == 32,
+    "oracle field descriptor ABI drift"
+);
+ZMATH_TESTING_ORACLE_STATIC_ASSERT(
+    sizeof(zmath_testing_oracle_input_field) == 56,
+    "oracle input field ABI drift"
+);
+ZMATH_TESTING_ORACLE_STATIC_ASSERT(
+    sizeof(zmath_testing_oracle_result_field) == 48,
+    "oracle result field ABI drift"
+);
+ZMATH_TESTING_ORACLE_STATIC_ASSERT(
+    sizeof(zmath_testing_oracle_request) == 56,
+    "oracle request ABI drift"
+);
+typedef struct zmath_testing_oracle_result {
+    uint32_t status;
+    uint32_t reserved;
+    uint32_t field_capacity;
+    uint32_t field_count;
+    zmath_testing_oracle_result_field *fields;
+} zmath_testing_oracle_result;
+ZMATH_TESTING_ORACLE_STATIC_ASSERT(
+    sizeof(zmath_testing_oracle_result) == 24,
+    "oracle result ABI drift"
+);
+ZMATH_TESTING_ORACLE_STATIC_ASSERT(
+    offsetof(zmath_testing_oracle_input_field, descriptor) == 0,
+    "oracle input field descriptor order drift"
+);
+ZMATH_TESTING_ORACLE_STATIC_ASSERT(
+    offsetof(zmath_testing_oracle_input_field, value_bits) == 32,
+    "oracle input field value order drift"
+);
+ZMATH_TESTING_ORACLE_STATIC_ASSERT(
+    offsetof(zmath_testing_oracle_input_field, tag_bytes) == 40,
+    "oracle input field tag pointer order drift"
+);
+ZMATH_TESTING_ORACLE_STATIC_ASSERT(
+    offsetof(zmath_testing_oracle_input_field, tag_length) == 48,
+    "oracle input field tag length order drift"
+);
+ZMATH_TESTING_ORACLE_STATIC_ASSERT(
+    offsetof(zmath_testing_oracle_input_field, reserved) == 52,
+    "oracle input field reserved order drift"
+);
+ZMATH_TESTING_ORACLE_STATIC_ASSERT(
+    offsetof(zmath_testing_oracle_result_field, descriptor) == 0,
+    "oracle result field descriptor order drift"
+);
+ZMATH_TESTING_ORACLE_STATIC_ASSERT(
+    offsetof(zmath_testing_oracle_result_field, value_bits) == 32,
+    "oracle result field value order drift"
+);
+ZMATH_TESTING_ORACLE_STATIC_ASSERT(
+    offsetof(zmath_testing_oracle_result_field, class_code) == 40,
+    "oracle result field class order drift"
+);
+ZMATH_TESTING_ORACLE_STATIC_ASSERT(
+    offsetof(zmath_testing_oracle_result_field, reserved) == 44,
+    "oracle result field reserved order drift"
+);
+#undef ZMATH_TESTING_ORACLE_STATIC_ASSERT
+
+struct zmath_testing_oracle_operation_signature;
+
+void zmath_testing_oracle_evaluate_exact_bits(
+    const struct zmath_testing_oracle_operation_signature *signature,
+    const zmath_testing_oracle_request *request,
+    zmath_testing_oracle_result *result
+);
+
+void zmath_testing_oracle_evaluate_algebraic(
+    const struct zmath_testing_oracle_operation_signature *signature,
+    const zmath_testing_oracle_request *request,
+    zmath_testing_oracle_result *result
+);
+
+void zmath_testing_oracle_evaluate_mpfr_arb(
+    const struct zmath_testing_oracle_operation_signature *signature,
+    const zmath_testing_oracle_request *request,
+    zmath_testing_oracle_result *result
 );
 
 /*
- * Oracle-only Arb rounding-proof ABI.
- *
- * Inputs and candidate_bits use the exact H/F/D layouts specified above.
- * The operation set, arity, fixed nearest-even rounding, reserved Q behavior,
- * and unsupported bfloat16 behavior are identical to the MPFR entry point.
- * Arb evaluates at the manifest-pinned 512-bit precision.
- *
- * OK means the complete Arb enclosure lies in one target-format rounding cell
- * and that cell's exact bit pattern equals candidate_bits. Checking that the
- * enclosure merely contains a point is not proof. A non-finite enclosure, an
- * enclosure that touches or crosses a rounding boundary, or disagreement with
- * candidate_bits returns UNCERTAIN. The bridge never guesses and writes
- * output_class only on OK. Malformed arguments return ERROR; unsupported
- * operation or format codes return UNSUPPORTED.
+ * The v2 MPFR entry point validates the request against the immutable
+ * operation table, then dispatches to the evaluator selected by that row.
+ * It copies result fields only after the evaluator reports a validated OK
+ * result. Unsupported, uncertain, malformed, or mismatched results fail
+ * closed with field_count zero.
  */
-int zmath_testing_arb_prove_rounding(
-    const char *op,
-    unsigned format,
-    const uint64_t *input_bits,
-    size_t arity,
-    uint64_t candidate_bits,
-    unsigned *output_class
+void zmath_testing_oracle_v2_mpfr_reference(
+    const zmath_testing_oracle_request *request,
+    zmath_testing_oracle_result *result
+);
+
+/*
+ * The Arb entry point repeats request/table validation, validates the
+ * candidate against the immutable result descriptors, and dispatches the
+ * same evaluator category route. A disagreement or evaluator uncertainty
+ * returns UNCERTAIN; malformed descriptors and unknown categories fail
+ * closed with field_count zero.
+ */
+void zmath_testing_oracle_v2_arb_prove(
+    const zmath_testing_oracle_request *request,
+    const zmath_testing_oracle_result *candidate,
+    zmath_testing_oracle_result *proof
 );
 
 #ifdef __cplusplus

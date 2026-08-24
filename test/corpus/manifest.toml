@@ -1,4 +1,4 @@
-schema_version = 1
+schema_version = 2
 core_math_repository = "https://gitlab.inria.fr/core-math/core-math.git"
 core_math_revision = "3bafed75e3c22399531857d63a3fa0e24bfb42fa"
 mpfr_precision_bits = 512
@@ -6,66 +6,3474 @@ arb_precision_bits = 512
 rounding = "nearest_even"
 formats = ["h", "f", "d"]
 reserved_formats = ["q"]
-rejected_formats = ["q", "bfloat16"]
-columns = ["op", "format", "input_bits", "output_bits", "output_class", "max_ulp"]
+rejected_formats = ["q", "f128", "bfloat16"]
+operation_spelling = "case_sensitive_ascii_identifier"
+columns = ["op", "provenance", "status", "arity", "inputs", "result", "oracle", "special_policy", "max_ulp"]
 hexadecimal = "lowercase_fixed_width"
 uncertainty_policy = "fail_closed"
-# The following exp rows remain unsupported until every transition item is accepted.
-# algorithm_source = required exact dependency-free source path from the spec checklist
-# special_value_bits = spec/core-math-2026-08-22.md, exp table, exact input/output bits
-# supported_modes = explicit target triples and Zig modes. Unlisted targets or modes are unsupported.
-# rounding_mode = nearest_even with gradual underflow only. The process floating-point environment is unchanged.
-# h_exhaustive_corpus = all 65,536 binary16 input bit patterns, each checked exactly once
-# f_hard_cases = immutable F corpus with exact input/output bits, midpoint and boundary cases
-# d_hard_cases = immutable D corpus with exact input/output bits, midpoint and boundary cases
-# mpfr_evidence = 512-bit MPFR_RNDN result and target-format conversion for every finite row
-# arb_proof = 512-bit Arb interval rounds to one target bit pattern and agrees with MPFR
-# benchmark_corpus = immutable repository-relative corpus path, selection rule, count, and results per supported mode
-# transition_gate = correct requires max_ulp = 0. Bounded requires an approved finite-result ULP limit.
-# No exp status may change while one item is missing, disputed, or not reproducible.
+special_policy = "zmath_c23_v1"
 
+[[function]]
+op = "abs"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "abs"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "abs"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "acos"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "acos"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "acos"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "acosh"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "acosh"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "acosh"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "acospi"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "acospi"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "acospi"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "asin"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "asin"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "asin"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "asinh"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "asinh"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "asinh"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "asinpi"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "asinpi"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "asinpi"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "atan"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "atan"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "atan"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "atan2"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:h", "float:h"]
+result = "struct:atan2:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "atan2"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:f", "float:f"]
+result = "struct:atan2:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "atan2"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:d", "float:d"]
+result = "struct:atan2:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "atan2pi"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:h", "float:h"]
+result = "struct:atan2:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "atan2pi"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:f", "float:f"]
+result = "struct:atan2:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "atan2pi"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:d", "float:d"]
+result = "struct:atan2:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "atanh"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "atanh"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "atanh"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "atanpi"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "atanpi"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "atanpi"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "cbrt"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "cbrt"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "cbrt"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "ceil"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "ceil"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "ceil"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "compoundn"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:h", "integer:i64"]
+result = "struct:power:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "compoundn"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:f", "integer:i64"]
+result = "struct:power:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "compoundn"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:d", "integer:i64"]
+result = "struct:power:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "cos"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "cos"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "cos"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "cosh"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "cosh"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "cosh"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "cospi"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "cospi"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "cospi"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "erf"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "erf"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "erf"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "erfc"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "erfc"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "erfc"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
 
 [[function]]
 op = "exp"
-format = "h"
-status = "unsupported"
+provenance = ["c23_7_12"]
+status = "correct"
+arity = 1
+inputs = ["float:h"]
+result = "float:h"
+oracle = "mpfr_arb"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
 
 [[function]]
 op = "exp"
-format = "f"
-status = "unsupported"
+provenance = ["c23_7_12"]
+status = "correct"
+arity = 1
+inputs = ["float:f"]
+result = "float:f"
+oracle = "mpfr_arb"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
 
 [[function]]
 op = "exp"
-format = "d"
+provenance = ["c23_7_12"]
+status = "correct"
+arity = 1
+inputs = ["float:d"]
+result = "float:d"
+oracle = "mpfr_arb"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "exp10"
+provenance = ["c23_7_12"]
 status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "exp10"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "exp10"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "exp10m1"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "exp10m1"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "exp10m1"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "exp2"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "exp2"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "exp2"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "exp2m1"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "exp2m1"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "exp2m1"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "expm1"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "expm1"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "expm1"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "fadd"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:d", "float:d"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "fdim"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:h", "float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "fdim"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:f", "float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "fdim"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:d", "float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "fdiv"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:d", "float:d"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "ffma"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 3
+inputs = ["float:d", "float:d", "float:d"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "floor"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "floor"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "floor"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "fma"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 3
+inputs = ["float:h", "float:h", "float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "fma"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 3
+inputs = ["float:f", "float:f", "float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "fma"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 3
+inputs = ["float:d", "float:d", "float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "fmax"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:h", "float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "fmax"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:f", "float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "fmax"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:d", "float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "fmaximum"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:h", "float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "fmaximum"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:f", "float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "fmaximum"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:d", "float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "fmaximum_mag"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:h", "float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "fmaximum_mag"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:f", "float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "fmaximum_mag"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:d", "float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "fmaximum_mag_num"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:h", "float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "fmaximum_mag_num"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:f", "float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "fmaximum_mag_num"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:d", "float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "fmaximum_num"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:h", "float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "fmaximum_num"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:f", "float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "fmaximum_num"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:d", "float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "fmin"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:h", "float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "fmin"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:f", "float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "fmin"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:d", "float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "fminimum"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:h", "float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "fminimum"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:f", "float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "fminimum"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:d", "float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "fminimum_mag"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:h", "float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "fminimum_mag"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:f", "float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "fminimum_mag"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:d", "float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "fminimum_mag_num"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:h", "float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "fminimum_mag_num"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:f", "float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "fminimum_mag_num"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:d", "float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "fminimum_num"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:h", "float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "fminimum_num"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:f", "float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "fminimum_num"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:d", "float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "fmod"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:h", "float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "fmod"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:f", "float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "fmod"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:d", "float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "fmul"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:d", "float:d"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "frexp"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "struct:frexp:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "frexp"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "struct:frexp:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "frexp"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "struct:frexp:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "fromfp"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 3
+inputs = ["float:h", "fromfp_round", "integer:u32"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "fromfp"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 3
+inputs = ["float:f", "fromfp_round", "integer:u32"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "fromfp"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 3
+inputs = ["float:d", "fromfp_round", "integer:u32"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "fromfpx"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 3
+inputs = ["float:h", "fromfp_round", "integer:u32"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "fromfpx"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 3
+inputs = ["float:f", "fromfp_round", "integer:u32"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "fromfpx"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 3
+inputs = ["float:d", "fromfp_round", "integer:u32"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "fsqrt"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "fsub"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:d", "float:d"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "hypot"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:h", "float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "hypot"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:f", "float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "hypot"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:d", "float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "ilogb"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "integer:i32"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "ilogb"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "integer:i32"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "ilogb"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "integer:i32"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "ldexp"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:h", "integer:i32"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "ldexp"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:f", "integer:i32"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "ldexp"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:d", "integer:i32"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "lgamma"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "struct:lgamma:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "lgamma"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "struct:lgamma:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "lgamma"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "struct:lgamma:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "llogb"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "integer:i64"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "llogb"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "integer:i64"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "llogb"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "integer:i64"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "llrint"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "struct:integer:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "llrint"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "struct:integer:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "llrint"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "struct:integer:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "llround"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "struct:integer:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "llround"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "struct:integer:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "llround"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "struct:integer:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
 
 [[function]]
 op = "log"
-format = "h"
-status = "unsupported"
+provenance = ["c23_7_12"]
+status = "correct"
+arity = 1
+inputs = ["float:h"]
+result = "float:h"
+oracle = "mpfr_arb"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
 
 [[function]]
 op = "log"
-format = "f"
+provenance = ["c23_7_12"]
 status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
 
 [[function]]
 op = "log"
-format = "d"
+provenance = ["c23_7_12"]
 status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "log10"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "log10"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "log10"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "log10p1"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "log10p1"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "log10p1"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "log1p"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "log1p"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "log1p"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "log2"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "log2"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "log2"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "log2p1"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "log2p1"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "log2p1"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "logb"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "logb"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "logb"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "logp1"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "logp1"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "logp1"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "lrint"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "struct:integer:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "lrint"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "struct:integer:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "lrint"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "struct:integer:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "lround"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "struct:integer:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "lround"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "struct:integer:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "lround"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "struct:integer:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "modf"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "struct:modf:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "modf"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "struct:modf:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "modf"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "struct:modf:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "nearbyint"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "nearbyint"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "nearbyint"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "pow"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:h", "float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "pow"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:f", "float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "pow"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:d", "float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "pown"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:h", "integer:i64"]
+result = "struct:power:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "pown"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:f", "integer:i64"]
+result = "struct:power:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "pown"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:d", "integer:i64"]
+result = "struct:power:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "powr"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:h", "float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "powr"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:f", "float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "powr"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:d", "float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "remainder"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:h", "float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "remainder"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:f", "float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "remainder"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:d", "float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "remquo"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:h", "float:h"]
+result = "struct:remquo:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "remquo"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:f", "float:f"]
+result = "struct:remquo:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "remquo"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:d", "float:d"]
+result = "struct:remquo:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "rint"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "rint"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "rint"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "rootn"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:h", "integer:i64"]
+result = "struct:power:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "rootn"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:f", "integer:i64"]
+result = "struct:power:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "rootn"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:d", "integer:i64"]
+result = "struct:power:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "round"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "round"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "round"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "roundeven"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "roundeven"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "roundeven"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "rsqrt"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "rsqrt"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "rsqrt"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "scalbln"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:h", "integer:i64"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "scalbln"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:f", "integer:i64"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "scalbln"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:d", "integer:i64"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "scalbn"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:h", "integer:i32"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "scalbn"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:f", "integer:i32"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "scalbn"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 2
+inputs = ["float:d", "integer:i32"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
 
 [[function]]
 op = "sin"
-format = "h"
-status = "unsupported"
+provenance = ["c23_7_12"]
+status = "correct"
+arity = 1
+inputs = ["float:h"]
+result = "float:h"
+oracle = "mpfr_arb"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
 
 [[function]]
 op = "sin"
-format = "f"
+provenance = ["c23_7_12"]
 status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
 
 [[function]]
 op = "sin"
-format = "d"
+provenance = ["c23_7_12"]
 status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "sinh"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "sinh"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "sinh"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "sinpi"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "sinpi"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "sinpi"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "sqrt"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "sqrt"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "sqrt"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "tan"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "tan"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "tan"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "tanh"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "tanh"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "tanh"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "tanpi"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "tanpi"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "tanpi"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "tgamma"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "tgamma"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "tgamma"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "trunc"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "trunc"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "trunc"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "ufromfp"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 3
+inputs = ["float:h", "fromfp_round", "integer:u32"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "ufromfp"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 3
+inputs = ["float:f", "fromfp_round", "integer:u32"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "ufromfp"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 3
+inputs = ["float:d", "fromfp_round", "integer:u32"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "ufromfpx"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 3
+inputs = ["float:h", "fromfp_round", "integer:u32"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "ufromfpx"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 3
+inputs = ["float:f", "fromfp_round", "integer:u32"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "ufromfpx"
+provenance = ["c23_7_12"]
+status = "unsupported"
+arity = 3
+inputs = ["float:d", "fromfp_round", "integer:u32"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "canonicalize"
+provenance = ["c23_ieee"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "struct:canonicalize:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "canonicalize"
+provenance = ["c23_ieee"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "struct:canonicalize:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "canonicalize"
+provenance = ["c23_ieee"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "struct:canonicalize:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "copySign"
+provenance = ["c23_ieee"]
+status = "unsupported"
+arity = 2
+inputs = ["float:h", "float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "copySign"
+provenance = ["c23_ieee"]
+status = "unsupported"
+arity = 2
+inputs = ["float:f", "float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "copySign"
+provenance = ["c23_ieee"]
+status = "unsupported"
+arity = 2
+inputs = ["float:d", "float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "nan"
+provenance = ["c23_ieee"]
+status = "unsupported"
+arity = 1
+inputs = ["tag"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "nan"
+provenance = ["c23_ieee"]
+status = "unsupported"
+arity = 1
+inputs = ["tag"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "nan"
+provenance = ["c23_ieee"]
+status = "unsupported"
+arity = 1
+inputs = ["tag"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "nextAfter"
+provenance = ["c23_ieee"]
+status = "unsupported"
+arity = 2
+inputs = ["float:h", "float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "nextAfter"
+provenance = ["c23_ieee"]
+status = "unsupported"
+arity = 2
+inputs = ["float:f", "float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "nextAfter"
+provenance = ["c23_ieee"]
+status = "unsupported"
+arity = 2
+inputs = ["float:d", "float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "nextDown"
+provenance = ["c23_ieee"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "nextDown"
+provenance = ["c23_ieee"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "nextDown"
+provenance = ["c23_ieee"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "nextToward"
+provenance = ["c23_ieee"]
+status = "unsupported"
+arity = 2
+inputs = ["float:h", "float:d"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "nextToward"
+provenance = ["c23_ieee"]
+status = "unsupported"
+arity = 2
+inputs = ["float:f", "float:d"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "nextToward"
+provenance = ["c23_ieee"]
+status = "unsupported"
+arity = 2
+inputs = ["float:d", "float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "nextUp"
+provenance = ["c23_ieee"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "nextUp"
+provenance = ["c23_ieee"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "nextUp"
+provenance = ["c23_ieee"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "getPayload"
+provenance = ["annex_f"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "getPayload"
+provenance = ["annex_f"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "getPayload"
+provenance = ["annex_f"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "float:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "setPayload"
+provenance = ["annex_f"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "struct:payload:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "setPayload"
+provenance = ["annex_f"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "struct:payload:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "setPayload"
+provenance = ["annex_f"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "struct:payload:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "setPayloadSig"
+provenance = ["annex_f"]
+status = "unsupported"
+arity = 1
+inputs = ["float:h"]
+result = "struct:payload:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "setPayloadSig"
+provenance = ["annex_f"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "struct:payload:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "setPayloadSig"
+provenance = ["annex_f"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "struct:payload:d"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "totalOrder"
+provenance = ["annex_f"]
+status = "unsupported"
+arity = 2
+inputs = ["float:h", "float:h"]
+result = "bool"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "totalOrder"
+provenance = ["annex_f"]
+status = "unsupported"
+arity = 2
+inputs = ["float:f", "float:f"]
+result = "bool"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "totalOrder"
+provenance = ["annex_f"]
+status = "unsupported"
+arity = 2
+inputs = ["float:d", "float:d"]
+result = "bool"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "totalOrderMag"
+provenance = ["annex_f"]
+status = "unsupported"
+arity = 2
+inputs = ["float:h", "float:h"]
+result = "bool"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "totalOrderMag"
+provenance = ["annex_f"]
+status = "unsupported"
+arity = 2
+inputs = ["float:f", "float:f"]
+result = "bool"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "totalOrderMag"
+provenance = ["annex_f"]
+status = "unsupported"
+arity = 2
+inputs = ["float:d", "float:d"]
+result = "bool"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "f16addf32"
+provenance = ["annex_h"]
+status = "unsupported"
+arity = 2
+inputs = ["float:f", "float:f"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "f16addf64"
+provenance = ["annex_h"]
+status = "unsupported"
+arity = 2
+inputs = ["float:d", "float:d"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "f16divf32"
+provenance = ["annex_h"]
+status = "unsupported"
+arity = 2
+inputs = ["float:f", "float:f"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "f16divf64"
+provenance = ["annex_h"]
+status = "unsupported"
+arity = 2
+inputs = ["float:d", "float:d"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "f16fmaf32"
+provenance = ["annex_h"]
+status = "unsupported"
+arity = 3
+inputs = ["float:f", "float:f", "float:f"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "f16fmaf64"
+provenance = ["annex_h"]
+status = "unsupported"
+arity = 3
+inputs = ["float:d", "float:d", "float:d"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "f16mulf32"
+provenance = ["annex_h"]
+status = "unsupported"
+arity = 2
+inputs = ["float:f", "float:f"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "f16mulf64"
+provenance = ["annex_h"]
+status = "unsupported"
+arity = 2
+inputs = ["float:d", "float:d"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "f16sqrtf32"
+provenance = ["annex_h"]
+status = "unsupported"
+arity = 1
+inputs = ["float:f"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "f16sqrtf64"
+provenance = ["annex_h"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "f16subf32"
+provenance = ["annex_h"]
+status = "unsupported"
+arity = 2
+inputs = ["float:f", "float:f"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "f16subf64"
+provenance = ["annex_h"]
+status = "unsupported"
+arity = 2
+inputs = ["float:d", "float:d"]
+result = "float:h"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "f32addf64"
+provenance = ["annex_h"]
+status = "unsupported"
+arity = 2
+inputs = ["float:d", "float:d"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "f32divf64"
+provenance = ["annex_h"]
+status = "unsupported"
+arity = 2
+inputs = ["float:d", "float:d"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "f32fmaf64"
+provenance = ["annex_h"]
+status = "unsupported"
+arity = 3
+inputs = ["float:d", "float:d", "float:d"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "f32mulf64"
+provenance = ["annex_h"]
+status = "unsupported"
+arity = 2
+inputs = ["float:d", "float:d"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "f32sqrtf64"
+provenance = ["annex_h"]
+status = "unsupported"
+arity = 1
+inputs = ["float:d"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "f32subf64"
+provenance = ["annex_h"]
+status = "unsupported"
+arity = 2
+inputs = ["float:d", "float:d"]
+result = "float:f"
+oracle = "none"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
