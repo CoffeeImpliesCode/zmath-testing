@@ -15,6 +15,123 @@ fn enableCoverage(
     }
 }
 
+fn addReferencedCorpusArtifacts(
+    b: *std.Build,
+    corpus_support_package: anytype,
+) void {
+    const manifest = @embedFile("test/corpus/manifest.toml");
+    var current_operation: ?[]const u8 = null;
+    var current_status: ?[]const u8 = null;
+    var current_result: ?[]const u8 = null;
+    var current_inputs: ?[]const u8 = null;
+    var in_function = false;
+
+    var lines = std.mem.splitScalar(u8, manifest, '\n');
+    while (lines.next()) |raw_line| {
+        const line = std.mem.trim(u8, raw_line, " \t");
+        if (line.len == 0 or line[0] == '#') continue;
+
+        if (std.mem.eql(u8, line, "[[function]]")) {
+            if (in_function) {
+                addFunctionArtifact(
+                    b,
+                    corpus_support_package,
+                    current_operation,
+                    current_status,
+                    current_result,
+                    current_inputs,
+                );
+            }
+            current_operation = null;
+            current_status = null;
+            current_result = null;
+            current_inputs = null;
+            in_function = true;
+            continue;
+        }
+        if (!in_function) continue;
+
+        const equal_index = std.mem.indexOfScalar(u8, line, '=') orelse continue;
+        const key = std.mem.trim(u8, line[0..equal_index], " \t");
+        const value = std.mem.trim(u8, line[equal_index + 1 ..], " \t");
+        const text = unquoteBuildValue(value) orelse value;
+        if (std.mem.eql(u8, key, "op")) {
+            current_operation = text;
+        } else if (std.mem.eql(u8, key, "status")) {
+            current_status = text;
+        } else if (std.mem.eql(u8, key, "result")) {
+            current_result = text;
+        } else if (std.mem.eql(u8, key, "inputs")) {
+            current_inputs = value;
+        }
+    }
+
+    if (in_function) {
+        addFunctionArtifact(
+            b,
+            corpus_support_package,
+            current_operation,
+            current_status,
+            current_result,
+            current_inputs,
+        );
+    }
+}
+
+fn addFunctionArtifact(
+    b: *std.Build,
+    corpus_support_package: anytype,
+    operation: ?[]const u8,
+    status: ?[]const u8,
+    result: ?[]const u8,
+    inputs: ?[]const u8,
+) void {
+    const accepted = status orelse return;
+    if (!std.mem.eql(u8, accepted, "correct") and
+        !std.mem.eql(u8, accepted, "bounded"))
+    {
+        return;
+    }
+    const operation_text = operation orelse @panic("accepted manifest row has no operation");
+    const format = descriptorFormat(result orelse "", inputs orelse "") orelse
+        @panic("accepted manifest row has no floating format");
+    const artifact_path = b.fmt(
+        "test/corpus/{s}_{c}.tsv",
+        .{ operation_text, format },
+    );
+    std.Io.Dir.cwd().access(b.graph.io, artifact_path, .{}) catch |err| {
+        std.debug.panic(
+            "manifest references missing corpus artifact {s}: {s}",
+            .{ artifact_path, @errorName(err) },
+        );
+    };
+    _ = corpus_support_package.addCopyFile(b.path(artifact_path), artifact_path);
+}
+
+fn unquoteBuildValue(value: []const u8) ?[]const u8 {
+    if (value.len < 2 or value[0] != '"' or value[value.len - 1] != '"') {
+        return null;
+    }
+    return value[1 .. value.len - 1];
+}
+
+fn descriptorFormat(result: []const u8, inputs: []const u8) ?u8 {
+    if (std.mem.startsWith(u8, result, "float:") and result.len == "float:x".len) {
+        return result[result.len - 1];
+    }
+    if (std.mem.startsWith(u8, result, "struct:") and result.len > 0) {
+        const format = result[result.len - 1];
+        if (format == 'h' or format == 'f' or format == 'd') return format;
+    }
+    const marker = "float:";
+    const marker_index = std.mem.indexOf(u8, inputs, marker) orelse return null;
+    const format_index = marker_index + marker.len;
+    if (format_index >= inputs.len) return null;
+    const format = inputs[format_index];
+    if (format == 'h' or format == 'f' or format == 'd') return format;
+    return null;
+}
+
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
@@ -59,6 +176,7 @@ pub fn build(b: *std.Build) void {
         b.path("test/corpus/manifest.toml"),
         "corpus/manifest.toml",
     );
+    addReferencedCorpusArtifacts(b, corpus_support_package);
     const corpus_support_module = b.createModule(.{
         .root_source_file = corpus_support_root,
         .target = target,

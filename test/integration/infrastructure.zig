@@ -3,8 +3,182 @@ const corpus = @import("corpus_support");
 
 const tsv_header = "op\tformat\tinput_bits\toutput_bits\toutput_class\tmax_ulp\n";
 
-test "portable infrastructure accepts the pinned manifest" {
+const fixture_root =
+    "schema_version = 2\n" ++
+    "core_math_repository = \"https://gitlab.inria.fr/core-math/core-math.git\"\n" ++
+    "core_math_revision = \"3bafed75e3c22399531857d63a3fa0e24bfb42fa\"\n" ++
+    "mpfr_precision_bits = 512\n" ++
+    "arb_precision_bits = 512\n" ++
+    "rounding = \"nearest_even\"\n" ++
+    "formats = [\"h\", \"f\", \"d\"]\n" ++
+    "reserved_formats = [\"q\"]\n" ++
+    "rejected_formats = [\"q\", \"f128\", \"bfloat16\"]\n" ++
+    "operation_spelling = \"c23_hfd_lowercase_v1\"\n" ++
+    "columns = [\"op\", \"provenance\", \"status\", \"arity\", \"inputs\", " ++
+    "\"result\", \"oracle\", \"special_policy\", \"max_ulp\"]\n" ++
+    "hexadecimal = \"lowercase_fixed_width\"\n" ++
+    "uncertainty_policy = \"fail_closed\"\n" ++
+    "special_policy = \"zmath_c23_v1\"\n";
+
+const fixture_row =
+    "[[function]]\n" ++
+    "op = \"abs\"\n" ++
+    "provenance = [\"zmath\"]\n" ++
+    "status = \"unsupported\"\n" ++
+    "arity = 1\n" ++
+    "inputs = [\"float:h\"]\n" ++
+    "result = \"float:h\"\n" ++
+    "oracle = \"none\"\n" ++
+    "special_policy = \"zmath_c23_v1\"\n" ++
+    "max_ulp = 0\n";
+
+const fixture_manifest = fixture_root ++ fixture_row;
+
+fn replaceText(
+    input: []const u8,
+    needle: []const u8,
+    replacement: []const u8,
+    output: []u8,
+) []const u8 {
+    const index = std.mem.indexOf(u8, input, needle) orelse @panic("fixture needle missing");
+    const suffix_start = index + needle.len;
+    const output_len = index + replacement.len + input.len - suffix_start;
+    if (output_len > output.len) @panic("fixture replacement exceeds buffer");
+    @memcpy(output[0..index], input[0..index]);
+    @memcpy(output[index .. index + replacement.len], replacement);
+    @memcpy(output[index + replacement.len .. output_len], input[suffix_start..]);
+    return output[0..output_len];
+}
+
+test "portable infrastructure accepts the pinned 315-row schema-v2 manifest" {
+    const manifest = try corpus.parseEmbeddedManifest();
+    try std.testing.expectEqual(@as(usize, 315), manifest.functionCount());
     try corpus.validateEmbeddedManifest();
+}
+
+test "portable infrastructure rejects a nonempty truncated schema-v2 manifest" {
+    try std.testing.expectError(error.MissingFunctionRow, corpus.validateManifest(fixture_manifest));
+}
+
+test "portable infrastructure rejects a malformed standard-operation signature" {
+    var source: [fixture_manifest.len + 64]u8 = undefined;
+    const malformed = replaceText(
+        fixture_manifest,
+        "inputs = [\"float:h\"]",
+        "inputs = [\"tag\"]",
+        &source,
+    );
+    try std.testing.expectError(error.InvalidDescriptor, corpus.validateManifest(malformed));
+}
+
+test "portable infrastructure rejects schema-v1 root values" {
+    var source: [fixture_manifest.len + 64]u8 = undefined;
+    const malformed = replaceText(
+        fixture_manifest,
+        "schema_version = 2",
+        "schema_version = 1",
+        &source,
+    );
+    try std.testing.expectError(error.InvalidPinnedValue, corpus.validateManifest(malformed));
+}
+
+test "portable infrastructure rejects a missing schema-v2 root key" {
+    var source: [fixture_manifest.len + 64]u8 = undefined;
+    const malformed = replaceText(
+        fixture_manifest,
+        "operation_spelling = \"c23_hfd_lowercase_v1\"\n",
+        "",
+        &source,
+    );
+    try std.testing.expectError(error.MissingRootKey, corpus.validateManifest(malformed));
+}
+
+test "portable infrastructure rejects the legacy operation spelling" {
+    var source: [fixture_manifest.len + 64]u8 = undefined;
+    const malformed = replaceText(
+        fixture_manifest,
+        "c23_hfd_lowercase_v1",
+        "c23_hfd_lowercase_v0",
+        &source,
+    );
+    try std.testing.expectError(error.InvalidPinnedValue, corpus.validateManifest(malformed));
+}
+
+test "portable infrastructure rejects unknown provenance" {
+    var source: [fixture_manifest.len + 64]u8 = undefined;
+    const malformed = replaceText(
+        fixture_manifest,
+        "provenance = [\"zmath\"]",
+        "provenance = [\"vendor\"]",
+        &source,
+    );
+    try std.testing.expectError(error.InvalidProvenance, corpus.validateManifest(malformed));
+}
+
+test "portable infrastructure rejects unordered row keys" {
+    var source: [fixture_manifest.len + 64]u8 = undefined;
+    const malformed = replaceText(
+        fixture_manifest,
+        "status = \"unsupported\"\narity = 1",
+        "arity = 1\nstatus = \"unsupported\"",
+        &source,
+    );
+    try std.testing.expectError(error.UnorderedFunctionKey, corpus.validateManifest(malformed));
+}
+
+test "portable infrastructure rejects an unknown typed descriptor" {
+    var source: [fixture_manifest.len + 64]u8 = undefined;
+    const malformed = replaceText(
+        fixture_manifest,
+        "inputs = [\"float:h\"]",
+        "inputs = [\"float:q\"]",
+        &source,
+    );
+    try std.testing.expectError(error.InvalidDescriptor, corpus.validateManifest(malformed));
+}
+
+test "portable infrastructure rejects an invented narrowing operation" {
+    var source: [fixture_manifest.len + 64]u8 = undefined;
+    const malformed = replaceText(
+        fixture_manifest,
+        "op = \"abs\"",
+        "op = \"f16addf16\"",
+        &source,
+    );
+    try std.testing.expectError(error.UnknownOperation, corpus.validateManifest(malformed));
+}
+
+test "portable infrastructure enforces unsupported status relations" {
+    var source: [fixture_manifest.len + 64]u8 = undefined;
+    const malformed = replaceText(
+        fixture_manifest,
+        "oracle = \"none\"",
+        "oracle = \"mpfr_arb\"",
+        &source,
+    );
+    try std.testing.expectError(error.InvalidStatusRelation, corpus.validateManifest(malformed));
+}
+
+test "portable infrastructure enforces correct status relations" {
+    var source: [fixture_manifest.len + 64]u8 = undefined;
+    const malformed = replaceText(
+        fixture_manifest,
+        "status = \"unsupported\"",
+        "status = \"correct\"",
+        &source,
+    );
+    try std.testing.expectError(error.InvalidStatusRelation, corpus.validateManifest(malformed));
+}
+
+test "portable infrastructure rejects non-canonical max ULP" {
+    var source: [fixture_manifest.len + 64]u8 = undefined;
+    const malformed = replaceText(
+        fixture_manifest,
+        "max_ulp = 0",
+        "max_ulp = 00",
+        &source,
+    );
+    try std.testing.expectError(error.InvalidMaxUlp, corpus.validateManifest(malformed));
 }
 
 test "portable infrastructure rejects q rows" {
