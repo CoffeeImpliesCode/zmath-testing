@@ -51,9 +51,12 @@ pub const ValidationError = error{
     UnsortedCorpusRow,
     DuplicateCorpusRow,
     InvalidArtifactName,
+    MissingArtifactMetadata,
+    UnsupportedTargetMode,
     MissingArtifactManifestRow,
     AmbiguousArtifactManifestRow,
     UnsupportedArtifact,
+    EmptyArtifact,
     ArtifactOperationMismatch,
     ArtifactFormatMismatch,
     ArtifactMaxUlpMismatch,
@@ -229,7 +232,7 @@ pub const Provenance = enum(u8) {
     zmath_core_math,
 };
 
-const OutputClass = enum {
+pub const OutputClass = enum {
     normal,
     subnormal,
     zero,
@@ -401,10 +404,93 @@ pub const Manifest = struct {
     }
 };
 
+pub const TargetMode = struct {
+    target: []const u8,
+    mode: []const u8,
+
+    pub fn eql(left: TargetMode, right: TargetMode) bool {
+        return std.mem.eql(u8, left.target, right.target) and
+            std.mem.eql(u8, left.mode, right.mode);
+    }
+
+    fn valid(target_mode: TargetMode) bool {
+        return validMetadataComponent(target_mode.target) and
+            validMetadataComponent(target_mode.mode);
+    }
+};
+
+pub const ArtifactMetadata = struct {
+    artifact_name: []const u8,
+    target_mode: TargetMode,
+};
+
+pub const EmbeddedArtifact = struct {
+    source: []const u8,
+    metadata: ?ArtifactMetadata,
+};
+
+pub const CorpusRow = struct {
+    operation: Operation,
+    format: Format,
+    input_bits: u64,
+    output_bits: u64,
+    output_class: OutputClass,
+    max_ulp: u64,
+};
+
+pub const Artifact = struct {
+    source: []const u8,
+    metadata: ArtifactMetadata,
+    function: FunctionRow,
+    operation: Operation,
+    format: Format,
+
+    pub fn rows(artifact: Artifact) ValidationError!RowIterator {
+        return RowIterator.init(artifact.source);
+    }
+};
+
 const SortKey = struct {
     operation: Operation,
     format: Format,
-    input_bits: []const u8,
+    input_bits: u64,
+};
+
+pub const RowIterator = struct {
+    remaining: []const u8,
+    previous: ?SortKey = null,
+
+    fn init(source: []const u8) ValidationError!RowIterator {
+        try validateTextEnvelope(source, true);
+        const header_end = std.mem.indexOfScalar(u8, source, '\n') orelse
+            return error.InvalidHeader;
+        if (!std.mem.eql(
+            u8,
+            source[0..header_end],
+            "op\tformat\tinput_bits\toutput_bits\toutput_class\tmax_ulp",
+        )) return error.InvalidHeader;
+
+        return .{ .remaining = source[header_end + 1 ..] };
+    }
+
+    pub fn next(iterator: *RowIterator) ValidationError!?CorpusRow {
+        if (iterator.remaining.len == 0) return null;
+        const line_end = std.mem.indexOfScalar(u8, iterator.remaining, '\n') orelse
+            return error.MissingFinalNewline;
+        const line = iterator.remaining[0..line_end];
+        iterator.remaining = iterator.remaining[line_end + 1 ..];
+        if (line.len == 0) return error.BlankCorpusLine;
+
+        const row = try parseCorpusRow(line);
+        const current = SortKey{
+            .operation = row.operation,
+            .format = row.format,
+            .input_bits = row.input_bits,
+        };
+        if (iterator.previous) |previous| try validateSorted(previous, current);
+        iterator.previous = current;
+        return row;
+    }
 };
 
 const NarrowingSignature = struct {
@@ -787,7 +873,6 @@ pub fn parseManifest(source: []const u8) ValidationError!Manifest {
             try validateRootField(&root_seen, key, value);
         }
     }
-
     if (!root_complete) try requireAllRootKeys(root_seen);
     if (function) |current| {
         try appendFunction(
@@ -820,39 +905,173 @@ pub fn validateTsv(source: []const u8) ValidationError!void {
     var previous: ?SortKey = null;
     while (lines.next()) |line| {
         if (line.len == 0) return error.BlankCorpusLine;
-
-        var fields: [6][]const u8 = undefined;
-        var field_count: usize = 0;
-        var field_iterator = std.mem.splitScalar(u8, line, '\t');
-        while (field_iterator.next()) |field| {
-            if (field_count == fields.len) return error.WrongColumnCount;
-            fields[field_count] = field;
-            field_count += 1;
-        }
-        if (field_count != fields.len) return error.WrongColumnCount;
-
-        const operation = try parseCorpusOperation(fields[0]);
-        const format = try parseFormat(fields[1]);
-        try validateHexBits(fields[2], format);
-        try validateHexBits(fields[3], format);
-        const declared_output_class = try parseOutputClass(fields[4]);
-        const derived_output_class = try deriveOutputClass(fields[3], format);
-        if (declared_output_class != derived_output_class) {
-            return error.OutputClassMismatch;
-        }
-        try validateMaxUlp(fields[5]);
-        if (isSpecial(derived_output_class) and !std.mem.eql(u8, fields[5], "0")) {
-            return error.InvalidMaxUlp;
-        }
-
+        const row = try parseCorpusRow(line);
         const current = SortKey{
-            .operation = operation,
-            .format = format,
-            .input_bits = fields[2],
+            .operation = row.operation,
+            .format = row.format,
+            .input_bits = row.input_bits,
         };
         if (previous) |prior| try validateSorted(prior, current);
         previous = current;
     }
+}
+pub fn loadArtifact(
+    manifest: *const Manifest,
+    source: []const u8,
+    metadata: ?ArtifactMetadata,
+    active_target_mode: ?TargetMode,
+) ValidationError!Artifact {
+    const artifact_metadata = metadata orelse return error.MissingArtifactMetadata;
+    const active_mode = active_target_mode orelse return error.MissingArtifactMetadata;
+    if (!artifact_metadata.target_mode.valid() or !active_mode.valid()) {
+        return error.UnsupportedTargetMode;
+    }
+    if (!artifact_metadata.target_mode.eql(active_mode)) {
+        return error.UnsupportedTargetMode;
+    }
+
+    const artifact_identity = parseArtifactName(artifact_metadata.artifact_name) orelse
+        return error.InvalidArtifactName;
+    const function = try findArtifactFunction(
+        manifest,
+        artifact_identity.operation,
+        artifact_identity.format,
+    );
+    if (function.status == .unsupported) return error.UnsupportedArtifact;
+
+    var iterator = try RowIterator.init(source);
+    var row_count: usize = 0;
+    while (try iterator.next()) |row| {
+        if (row.operation != artifact_identity.operation) {
+            return error.ArtifactOperationMismatch;
+        }
+        if (row.format != artifact_identity.format) {
+            return error.ArtifactFormatMismatch;
+        }
+        const expected_max_ulp = if (isSpecial(row.output_class))
+            0
+        else
+            function.max_ulp;
+        if (row.max_ulp != expected_max_ulp) {
+            return error.ArtifactMaxUlpMismatch;
+        }
+        row_count += 1;
+    }
+    if (row_count == 0) return error.EmptyArtifact;
+
+    return .{
+        .source = source,
+        .metadata = artifact_metadata,
+        .function = function.*,
+        .operation = artifact_identity.operation,
+        .format = artifact_identity.format,
+    };
+}
+
+pub fn loadEmbeddedArtifact(
+    manifest: *const Manifest,
+    embedded: EmbeddedArtifact,
+    active_target_mode: ?TargetMode,
+) ValidationError!Artifact {
+    return loadArtifact(manifest, embedded.source, embedded.metadata, active_target_mode);
+}
+
+const ArtifactIdentity = struct {
+    operation: Operation,
+    format: Format,
+};
+
+fn findArtifactFunction(
+    manifest: *const Manifest,
+    operation: Operation,
+    format: Format,
+) ValidationError!*const FunctionRow {
+    const manifest_operation = operation.manifestOperation();
+    var match: ?*const FunctionRow = null;
+    for (manifest.functionRows()) |*function| {
+        if (function.operation != manifest_operation or function.format != format) continue;
+        if (match != null) return error.AmbiguousArtifactManifestRow;
+        match = function;
+    }
+    return match orelse error.MissingArtifactManifestRow;
+}
+
+fn parseArtifactName(name: []const u8) ?ArtifactIdentity {
+    const basename = if (std.mem.startsWith(u8, name, "test/corpus/"))
+        name["test/corpus/".len..]
+    else
+        name;
+    const operation_names = .{ "exp", "log", "sin" };
+    const operations = .{ Operation.exp, Operation.log, Operation.sin };
+    const format_names = .{ "_h.tsv", "_f.tsv", "_d.tsv" };
+    const formats = .{ Format.h, Format.f, Format.d };
+    inline for (operation_names, operations) |operation_name, operation| {
+        inline for (format_names, formats) |format_name, format| {
+            var expected: [16]u8 = undefined;
+            const expected_name = std.fmt.bufPrint(&expected, "{s}{s}", .{
+                operation_name,
+                format_name,
+            }) catch unreachable;
+            if (std.mem.eql(u8, basename, expected_name)) {
+                return .{ .operation = operation, .format = format };
+            }
+        }
+    }
+    return null;
+}
+
+fn validMetadataComponent(value: []const u8) bool {
+    if (value.len == 0) return false;
+    for (value) |character| {
+        const alpha_numeric =
+            (character >= 'a' and character <= 'z') or
+            (character >= 'A' and character <= 'Z') or
+            (character >= '0' and character <= '9');
+        if (!alpha_numeric and character != '_' and character != '-' and
+            character != '.' and character != '+')
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+fn parseCorpusRow(line: []const u8) ValidationError!CorpusRow {
+    var fields: [6][]const u8 = undefined;
+    var field_count: usize = 0;
+    var field_iterator = std.mem.splitScalar(u8, line, '\t');
+    while (field_iterator.next()) |field| {
+        if (field_count == fields.len) return error.WrongColumnCount;
+        fields[field_count] = field;
+        field_count += 1;
+    }
+    if (field_count != fields.len) return error.WrongColumnCount;
+
+    const operation = try parseCorpusOperation(fields[0]);
+    const format = try parseFormat(fields[1]);
+    try validateHexBits(fields[2], format);
+    try validateHexBits(fields[3], format);
+    const declared_output_class = try parseOutputClass(fields[4]);
+    const derived_output_class = try deriveOutputClass(fields[3], format);
+    if (declared_output_class != derived_output_class) return error.OutputClassMismatch;
+    try validateMaxUlp(fields[5]);
+    if (isSpecial(derived_output_class) and !std.mem.eql(u8, fields[5], "0")) {
+        return error.InvalidMaxUlp;
+    }
+
+    const input_bits = std.fmt.parseUnsigned(u64, fields[2], 16) catch
+        return error.InvalidHexDigit;
+    const output_bits = std.fmt.parseUnsigned(u64, fields[3], 16) catch
+        return error.InvalidHexDigit;
+    const max_ulp = parseCanonicalUnsigned(fields[5]) orelse return error.InvalidMaxUlp;
+    return .{
+        .operation = operation,
+        .format = format,
+        .input_bits = input_bits,
+        .output_bits = output_bits,
+        .output_class = declared_output_class,
+        .max_ulp = max_ulp,
+    };
 }
 
 fn validateTextEnvelope(source: []const u8, require_final_newline: bool) ValidationError!void {
@@ -1358,11 +1577,8 @@ fn validateSorted(previous: SortKey, current: SortKey) ValidationError!void {
     if (current_format < previous_format) return error.UnsortedCorpusRow;
     if (current_format > previous_format) return;
 
-    switch (std.mem.order(u8, previous.input_bits, current.input_bits)) {
-        .lt => {},
-        .eq => return error.DuplicateCorpusRow,
-        .gt => return error.UnsortedCorpusRow,
-    }
+    if (current.input_bits < previous.input_bits) return error.UnsortedCorpusRow;
+    if (current.input_bits == previous.input_bits) return error.DuplicateCorpusRow;
 }
 
 test "embedded manifest contains all schema-v2 rows" {
@@ -1391,6 +1607,56 @@ test "TSV rejects unknown operations and output classes" {
         validateTsv(
             "op\tformat\tinput_bits\toutput_bits\toutput_class\tmax_ulp\n" ++
                 "exp\th\t0000\t0000\tsnan\t0\n",
+        ),
+    );
+}
+
+test "artifact loading requires explicit target and mode metadata" {
+    const manifest = try parseEmbeddedManifest();
+    const source =
+        "op\tformat\tinput_bits\toutput_bits\toutput_class\tmax_ulp\n" ++
+        "exp\th\t0000\t3c00\tnormal\t0\n";
+    const target_mode = TargetMode{
+        .target = "x86_64-linux-gnu",
+        .mode = "Debug",
+    };
+    try std.testing.expectError(
+        error.MissingArtifactMetadata,
+        loadArtifact(&manifest, source, null, target_mode),
+    );
+    try std.testing.expectError(
+        error.MissingArtifactMetadata,
+        loadArtifact(
+            &manifest,
+            source,
+            .{
+                .artifact_name = "test/corpus/exp_h.tsv",
+                .target_mode = target_mode,
+            },
+            null,
+        ),
+    );
+}
+
+test "artifact loading rejects unsupported manifest rows" {
+    const manifest = try parseEmbeddedManifest();
+    const target_mode = TargetMode{
+        .target = "x86_64-linux-gnu",
+        .mode = "Debug",
+    };
+    const source =
+        "op\tformat\tinput_bits\toutput_bits\toutput_class\tmax_ulp\n" ++
+        "exp\th\t0000\t3c00\tnormal\t0\n";
+    try std.testing.expectError(
+        error.UnsupportedArtifact,
+        loadArtifact(
+            &manifest,
+            source,
+            .{
+                .artifact_name = "test/corpus/exp_h.tsv",
+                .target_mode = target_mode,
+            },
+            target_mode,
         ),
     );
 }

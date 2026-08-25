@@ -80,3 +80,30 @@ Special values require exact target-format bits. Finite candidates require
 MPFR at 512 bits and an Arb interval that rounds uniquely to the same bits.
 Producers must fail on uncertainty or disagreement and must not use host `libm`,
 `fenv`, or `errno` to choose an output.
+
+## Deterministic replay
+
+Acceptance execution reads only immutable embedded TSV rows. It does not call
+`std.testing.random_seed`, use a process clock, or sample an input domain. The
+producer must generate rows from the pinned MPFR/Arb contract and fail closed
+on an oracle disagreement, an uncertain Arb interval, or an unknown special
+value. The runner checks the runtime bits, stored bits, MPFR bits, output
+classes, and Arb proof before it accepts a row.
+
+Every artifact is bound to exactly one manifest operation-format row. The row
+must have status `correct` or `bounded`; an `unsupported` row cannot load an
+artifact. The artifact name, operation, format, fixed-width bits, ordering,
+uniqueness, output class, and `max_ulp` must agree with the manifest. Missing,
+duplicate, or ambiguous manifest bindings are errors. No artifact is checked
+in while all rows remain `unsupported`.
+
+Target and mode are artifact metadata, not TSV columns. Acceptance requires an
+explicit `TargetMode` record and an active target/mode record supplied by the
+caller. Missing or mismatched records fail closed. This task does not infer a
+host target or publish the final target/mode allowlist; a later status
+transition must record the exact supported target triples and Zig modes.
+
+Exploratory fuzzing is a separate surface. A caller must provide a fixed seed
+to the seeded fuzz helper, and a fuzz campaign must preserve its seed,
+compiler, source, budget, and callback request order. Fuzz inputs never become
+accepted TSV rows automatically.

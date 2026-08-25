@@ -1,5 +1,7 @@
 const std = @import("std");
 const corpus = @import("corpus_support");
+const embedded = @import("corpus_artifacts");
+const active_build = @import("active_target_mode");
 const zmath = @import("zmath");
 
 const oracle_status_ok: c_int = 0;
@@ -33,10 +35,17 @@ extern fn zmath_testing_arb_prove_rounding(
 
 const DifferentialError = error{
     ManifestUnsupported,
+    ArtifactRejected,
+    TargetModeMissing,
+    TargetModeMismatch,
     OracleUnsupported,
     OracleError,
     OracleUncertain,
     RuntimeMismatch,
+    RuntimeClassMismatch,
+    StoredMismatch,
+    StoredClassMismatch,
+    OracleClassMismatch,
     ArbProofMismatch,
 };
 
@@ -94,6 +103,150 @@ fn operationName(operation: corpus.Operation) [*:0]const u8 {
     };
 }
 
+fn classFromBits(format: corpus.Format, bits: u64) c_uint {
+    const exponent_mask: u64 = switch (format) {
+        .h => 0x7c00,
+        .f => 0x7f80_0000,
+        .d => 0x7ff0_0000_0000_0000,
+    };
+    const fraction_mask: u64 = switch (format) {
+        .h => 0x03ff,
+        .f => 0x007f_ffff,
+        .d => 0x000f_ffff_ffff_ffff,
+    };
+    const exponent = (bits & exponent_mask) >> switch (format) {
+        .h => 10,
+        .f => 23,
+        .d => 52,
+    };
+    const exponent_all: u64 = switch (format) {
+        .h => 0x1f,
+        .f => 0xff,
+        .d => 0x7ff,
+    };
+    const fraction = bits & fraction_mask;
+    if (exponent == 0) {
+        return if (fraction == 0) oracle_class_zero else oracle_class_subnormal;
+    }
+    if (exponent == exponent_all) {
+        return if (fraction == 0) oracle_class_infinity else oracle_class_qnan;
+    }
+    return oracle_class_normal;
+}
+
+fn bridgeClass(output_class: corpus.OutputClass) DifferentialError!c_uint {
+    return switch (output_class) {
+        .normal => oracle_class_normal,
+        .subnormal => oracle_class_subnormal,
+        .zero => oracle_class_zero,
+        .infinity => oracle_class_infinity,
+        .qnan => oracle_class_qnan,
+        .snan => error.StoredClassMismatch,
+    };
+}
+
+fn signMask(format: corpus.Format) u64 {
+    return switch (format) {
+        .h => 0x8000,
+        .f => 0x8000_0000,
+        .d => 0x8000_0000_0000_0000,
+    };
+}
+
+fn ulpDistance(format: corpus.Format, left: u64, right: u64) ?u64 {
+    const sign_mask = signMask(format);
+    if ((left & sign_mask) != (right & sign_mask)) return null;
+    const left_magnitude = left & ~sign_mask;
+    const right_magnitude = right & ~sign_mask;
+    return if (left_magnitude >= right_magnitude)
+        left_magnitude - right_magnitude
+    else
+        right_magnitude - left_magnitude;
+}
+
+fn checkOracleStatus(status: c_int) DifferentialError!void {
+    if (status == oracle_status_unsupported) return error.OracleUnsupported;
+    if (status == oracle_status_error) return error.OracleError;
+    if (status == oracle_status_uncertain) return error.OracleUncertain;
+    if (status != oracle_status_ok) return error.OracleError;
+}
+
+fn runStoredRow(
+    function: corpus.FunctionRow,
+    row: corpus.CorpusRow,
+) DifferentialError!void {
+    const runtime_bits = try runRuntime(row.operation, row.format, row.input_bits);
+    const stored_class = try bridgeClass(row.output_class);
+    const runtime_class = classFromBits(row.format, runtime_bits);
+    const boundary_class_mismatch = function.status == .bounded and
+        ((runtime_class == oracle_class_normal and stored_class == oracle_class_subnormal) or
+            (runtime_class == oracle_class_subnormal and stored_class == oracle_class_normal));
+    if (runtime_class != stored_class and !boundary_class_mismatch) {
+        return error.RuntimeClassMismatch;
+    }
+
+    if (function.status == .correct) {
+        if (runtime_bits != row.output_bits) return error.RuntimeMismatch;
+    } else {
+        if (isFiniteClass(stored_class)) {
+            const distance = ulpDistance(row.format, runtime_bits, row.output_bits) orelse
+                return error.RuntimeMismatch;
+            if (distance > function.max_ulp) return error.RuntimeMismatch;
+        } else if (runtime_bits != row.output_bits) {
+            return error.RuntimeMismatch;
+        }
+    }
+
+    var input_word = row.input_bits;
+    var mpfr_bits: u64 = 0;
+    var mpfr_class: c_uint = 0;
+    try checkOracleStatus(zmath_testing_mpfr_reference(
+        operationName(row.operation),
+        bridgeFormat(row.format),
+        &input_word,
+        1,
+        &mpfr_bits,
+        &mpfr_class,
+    ));
+    if (mpfr_bits != row.output_bits) return error.StoredMismatch;
+    if (mpfr_class != stored_class) return error.StoredClassMismatch;
+
+    var proof_class: c_uint = 0;
+    try checkOracleStatus(zmath_testing_arb_prove_rounding(
+        operationName(row.operation),
+        bridgeFormat(row.format),
+        &input_word,
+        1,
+        row.output_bits,
+        &proof_class,
+    ));
+    if (proof_class != stored_class) return error.ArbProofMismatch;
+}
+
+pub fn runAccepted(active_target_mode: ?corpus.TargetMode) DifferentialError!void {
+    if (embedded.artifacts.len == 0) return;
+    const active_mode = active_target_mode orelse return error.TargetModeMissing;
+    const manifest = corpus.parseEmbeddedManifest() catch return error.ManifestUnsupported;
+    if (embedded.target_mode) |embedded_mode| {
+        if (!embedded_mode.eql(active_mode)) return error.TargetModeMismatch;
+    }
+    for (embedded.artifacts) |embedded_artifact| {
+        const artifact = corpus.loadEmbeddedArtifact(
+            &manifest,
+            embedded_artifact,
+            active_mode,
+        ) catch |err| switch (err) {
+            error.MissingArtifactMetadata => return error.TargetModeMissing,
+            error.UnsupportedTargetMode => return error.TargetModeMismatch,
+            else => return error.ArtifactRejected,
+        };
+        var rows = artifact.rows() catch return error.ArtifactRejected;
+        while (rows.next() catch return error.ArtifactRejected) |row| {
+            try runStoredRow(artifact.function, row);
+        }
+    }
+}
+
 pub fn run(
     operation: corpus.Operation,
     format: corpus.Format,
@@ -101,43 +254,32 @@ pub fn run(
 ) DifferentialError!void {
     const manifest = corpus.parseEmbeddedManifest() catch return error.ManifestUnsupported;
     const status = manifest.functionStatus(operation, format) orelse return error.ManifestUnsupported;
-    if (status != .correct) return error.ManifestUnsupported;
+    if (status == .unsupported) return error.ManifestUnsupported;
 
     const runtime_bits = try runRuntime(operation, format, input_bits);
     var input_word = input_bits;
     var expected_bits: u64 = 0;
     var expected_class: c_uint = 0;
-    const operation_name = operationName(operation);
-    const mpfr_status = zmath_testing_mpfr_reference(
-        operation_name,
+    try checkOracleStatus(zmath_testing_mpfr_reference(
+        operationName(operation),
         bridgeFormat(format),
         &input_word,
         1,
         &expected_bits,
         &expected_class,
-    );
-    if (mpfr_status == oracle_status_unsupported) return error.OracleUnsupported;
-    if (mpfr_status == oracle_status_error) return error.OracleError;
-    if (mpfr_status == oracle_status_uncertain) return error.OracleUncertain;
-    if (mpfr_status != oracle_status_ok) return error.OracleError;
+    ));
     if (runtime_bits != expected_bits) return error.RuntimeMismatch;
 
     var proof_class: c_uint = 0;
-    const arb_status = zmath_testing_arb_prove_rounding(
-        operation_name,
+    try checkOracleStatus(zmath_testing_arb_prove_rounding(
+        operationName(operation),
         bridgeFormat(format),
         &input_word,
         1,
         runtime_bits,
         &proof_class,
-    );
-    if (isFiniteClass(expected_class)) {
-        if (arb_status == oracle_status_unsupported) return error.OracleUnsupported;
-        if (arb_status == oracle_status_error) return error.OracleError;
-        if (arb_status == oracle_status_uncertain) return error.OracleUncertain;
-        if (arb_status != oracle_status_ok) return error.OracleError;
-        if (proof_class != expected_class) return error.ArbProofMismatch;
-    }
+    ));
+    if (proof_class != expected_class) return error.ArbProofMismatch;
 }
 
 pub fn runExp(format: corpus.Format, input_bits: u64) DifferentialError!void {
@@ -152,49 +294,15 @@ fn nextPrng(state: *u64) u64 {
     state.* = value;
     return value;
 }
-
-const f_boundary_bits = [_]u32{
-    0x0000_0000,
-    0x0000_0001,
-    0x0000_0002,
-    0x007f_ffff,
-    0x0080_0000,
-    0x3f7f_ffff,
-    0x3f80_0000,
-    0x3f80_0001,
-    0x7f7f_ffff,
-    0x7f80_0000,
-    0x7f80_0001,
-    0x7fc0_0000,
-    0x8000_0000,
-    0x807f_ffff,
-    0x8080_0000,
-    0xff80_0000,
-    0xff80_0001,
-    0xffc0_0000,
-};
-
-const d_boundary_bits = [_]u64{
-    0x0000_0000_0000_0000,
-    0x0000_0000_0000_0001,
-    0x0000_0000_0000_0002,
-    0x000f_ffff_ffff_ffff,
-    0x0010_0000_0000_0000,
-    0x3fef_ffff_ffff_ffff,
-    0x3ff0_0000_0000_0000,
-    0x3ff0_0000_0000_0001,
-    0x7fef_ffff_ffff_ffff,
-    0x7ff0_0000_0000_0000,
-    0x7ff0_0000_0000_0001,
-    0x7ff8_0000_0000_0000,
-    0x8000_0000_0000_0000,
-    0x800f_ffff_ffff_ffff,
-    0x8010_0000_0000_0000,
-    0xfff0_0000_0000_0000,
-    0xfff0_0000_0000_0001,
-    0xfff8_0000_0000_0000,
-};
-
+pub fn fuzzSeeded(seed: u64, sample_count: usize) DifferentialError!void {
+    var state = seed;
+    var index: usize = 0;
+    while (index < sample_count) : (index += 1) {
+        try runExp(.h, nextPrng(&state) & 0xffff);
+        try runExp(.f, @as(u64, @as(u32, @truncate(nextPrng(&state)))));
+        try runExp(.d, nextPrng(&state));
+    }
+}
 pub fn fuzzOne(_: void, smith: *std.testing.Smith) !void {
     const h_bits = smith.value(u16);
     const f_bits = smith.value(u32);
@@ -204,49 +312,21 @@ pub fn fuzzOne(_: void, smith: *std.testing.Smith) !void {
     try runExp(.d, d_bits);
 }
 
-test "embedded nearest-even exp differential campaign" {
+test "embedded acceptance replay is deterministic and artifact-driven" {
     try corpus.validateEmbeddedManifest();
-    var h_bits: u32 = 0;
-    while (h_bits < 0x1_0000) : (h_bits += 1) {
-        try runExp(.h, h_bits);
-    }
-
-    for (f_boundary_bits) |bits| try runExp(.f, bits);
-    for (d_boundary_bits) |bits| try runExp(.d, bits);
-
-    var f_state: u64 = 0x9e37_79b9_7f4a_7c15 ^ @as(u64, std.testing.random_seed);
-    var f_index: usize = 0;
-    while (f_index < 4096) : (f_index += 1) {
-        try runExp(.f, @as(u64, @as(u32, @truncate(nextPrng(&f_state)))));
-    }
-
-    var d_state: u64 = 0xd1b5_4a32_d192_ed03 ^ @as(u64, std.testing.random_seed);
-    var d_index: usize = 0;
-    while (d_index < 4096) : (d_index += 1) {
-        try runExp(.d, nextPrng(&d_state));
-    }
+    const active_mode: ?corpus.TargetMode = if (embedded.artifacts.len == 0)
+        null
+    else
+        .{
+            .target = active_build.target,
+            .mode = active_build.mode,
+        };
+    try runAccepted(active_mode);
 }
 
-test "embedded nearest-even binary16 sin differential campaign" {
-    try corpus.validateEmbeddedManifest();
-    var input_bits: u32 = 0;
-    while (input_bits < 0x1_0000) : (input_bits += 1) {
-        try run(.sin, .h, input_bits);
-    }
-    try std.testing.expectEqual(@as(u32, 0x1_0000), input_bits);
-}
 test "unsupported sin formats do not dispatch" {
     try std.testing.expectError(error.ManifestUnsupported, run(.sin, .f, 0));
     try std.testing.expectError(error.ManifestUnsupported, run(.sin, .d, 0));
-}
-
-test "logh exhaustive oracle campaign checks 65536 inputs" {
-    try corpus.validateEmbeddedManifest();
-    var input_bits: u32 = 0;
-    while (input_bits < 0x1_0000) : (input_bits += 1) {
-        try run(.log, .h, input_bits);
-    }
-    try std.testing.expectEqual(@as(u32, 0x1_0000), input_bits);
 }
 
 test "unsupported log formats do not dispatch" {

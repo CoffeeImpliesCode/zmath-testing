@@ -18,8 +18,11 @@ fn enableCoverage(
 fn addReferencedCorpusArtifacts(
     b: *std.Build,
     corpus_support_package: anytype,
-) void {
+    target_text: ?[]const u8,
+    mode_text: ?[]const u8,
+) []const u8 {
     const manifest = @embedFile("test/corpus/manifest.toml");
+    var artifact_entries: std.ArrayList(u8) = .empty;
     var current_operation: ?[]const u8 = null;
     var current_status: ?[]const u8 = null;
     var current_result: ?[]const u8 = null;
@@ -36,6 +39,9 @@ fn addReferencedCorpusArtifacts(
                 addFunctionArtifact(
                     b,
                     corpus_support_package,
+                    &artifact_entries,
+                    target_text,
+                    mode_text,
                     current_operation,
                     current_status,
                     current_result,
@@ -70,17 +76,24 @@ fn addReferencedCorpusArtifacts(
         addFunctionArtifact(
             b,
             corpus_support_package,
+            &artifact_entries,
+            target_text,
+            mode_text,
             current_operation,
             current_status,
             current_result,
             current_inputs,
         );
     }
+    return artifact_entries.items;
 }
 
 fn addFunctionArtifact(
     b: *std.Build,
     corpus_support_package: anytype,
+    artifact_entries: *std.ArrayList(u8),
+    target_text: ?[]const u8,
+    mode_text: ?[]const u8,
     operation: ?[]const u8,
     status: ?[]const u8,
     result: ?[]const u8,
@@ -106,6 +119,29 @@ fn addFunctionArtifact(
         );
     };
     _ = corpus_support_package.addCopyFile(b.path(artifact_path), artifact_path);
+
+    const artifact_metadata = if (target_text != null and mode_text != null)
+        b.fmt(
+            "corpus.ArtifactMetadata{{\n" ++
+                "            .artifact_name = \"{f}\",\n" ++
+                "            .target_mode = corpus.TargetMode{{ .target = \"{f}\", .mode = \"{f}\" }},\n" ++
+                "        }}",
+            .{
+                std.zig.fmtString(artifact_path),
+                std.zig.fmtString(target_text.?),
+                std.zig.fmtString(mode_text.?),
+            },
+        )
+    else
+        "null";
+    artifact_entries.print(
+        b.graph.arena,
+        "    corpus.EmbeddedArtifact{{\n" ++
+            "        .source = @embedFile(\"{f}\"),\n" ++
+            "        .metadata = {s},\n" ++
+            "    }},\n",
+        .{ std.zig.fmtString(artifact_path), artifact_metadata },
+    ) catch @panic("OOM");
 }
 
 fn unquoteBuildValue(value: []const u8) ?[]const u8 {
@@ -132,11 +168,54 @@ fn descriptorFormat(result: []const u8, inputs: []const u8) ?u8 {
     return null;
 }
 
+fn addEmbeddedArtifactModule(
+    b: *std.Build,
+    package: anytype,
+    target_text: ?[]const u8,
+    mode_text: ?[]const u8,
+    artifact_entries: []const u8,
+) std.Build.LazyPath {
+    const metadata = if (target_text != null and mode_text != null)
+        b.fmt(
+            "pub const target_mode: ?corpus.TargetMode = corpus.TargetMode{{ .target = \"{f}\", .mode = \"{f}\" }};\n",
+            .{
+                std.zig.fmtString(target_text.?),
+                std.zig.fmtString(mode_text.?),
+            },
+        )
+    else
+        "pub const target_mode: ?corpus.TargetMode = null;\n";
+    const artifacts = if (artifact_entries.len == 0)
+        "pub const artifacts = [_]corpus.EmbeddedArtifact{};\n"
+    else
+        b.fmt(
+            "pub const artifacts = [_]corpus.EmbeddedArtifact{{\n{s}}};\n",
+            .{artifact_entries},
+        );
+    return package.add(
+        "corpus_artifacts.zig",
+        b.fmt(
+            "const corpus = @import(\"corpus_support\");\n{s}{s}",
+            .{ metadata, artifacts },
+        ),
+    );
+}
+
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
     const coverage = b.option(bool, "coverage", "Enable zig-cov instrumentation") orelse false;
     const coverage_runtime = b.option([]const u8, "coverage-rt", "Path to zig-cov runtime object");
+    const corpus_target = b.option([]const u8, "corpus-target", "Explicit acceptance target triple metadata");
+    const corpus_mode = b.option([]const u8, "corpus-mode", "Explicit acceptance optimization mode metadata");
+    const active_options = b.addOptions();
+    active_options.addOption(
+        []const u8,
+        "target",
+        target.result.zigTriple(b.allocator) catch @panic("OOM"),
+    );
+    active_options.addOption([]const u8, "mode", @tagName(optimize));
+
     const zmath_dependency = b.dependency("zmath", .{
         .target = target,
         .optimize = optimize,
@@ -176,11 +255,32 @@ pub fn build(b: *std.Build) void {
         b.path("test/corpus/manifest.toml"),
         "corpus/manifest.toml",
     );
-    addReferencedCorpusArtifacts(b, corpus_support_package);
+    const artifact_entries = addReferencedCorpusArtifacts(
+        b,
+        corpus_support_package,
+        corpus_target,
+        corpus_mode,
+    );
+    const corpus_artifacts_root = addEmbeddedArtifactModule(
+        b,
+        corpus_support_package,
+        corpus_target,
+        corpus_mode,
+        artifact_entries,
+    );
     const corpus_support_module = b.createModule(.{
         .root_source_file = corpus_support_root,
         .target = target,
         .optimize = optimize,
+    });
+    const corpus_artifacts_module = b.createModule(.{
+        .root_source_file = corpus_artifacts_root,
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{.{
+            .name = "corpus_support",
+            .module = corpus_support_module,
+        }},
     });
 
     const infrastructure_module = b.createModule(.{
@@ -204,9 +304,12 @@ pub fn build(b: *std.Build) void {
         .imports = &.{
             .{ .name = "zmath", .module = zmath_module },
             .{ .name = "corpus_support", .module = corpus_support_module },
+            .{ .name = "corpus_artifacts", .module = corpus_artifacts_module },
         },
         .link_libc = true,
     });
+    oracle_module.addOptions("active_target_mode", active_options);
+
     oracle_module.addCSourceFile(.{
         .file = b.path("test/oracle/oracle_smoke.c"),
         .flags = &.{"-std=c11"},
@@ -225,6 +328,20 @@ pub fn build(b: *std.Build) void {
     const oracle_step = b.step("oracle", "Run MPFR and Arb oracle smoke tests");
     oracle_step.dependOn(&run_oracle_tests.step);
 
+    const corpus_runner_module = b.createModule(.{
+        .root_source_file = b.path("test/oracle/corpus_runner.zig"),
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{
+            .{ .name = "zmath", .module = zmath_module },
+            .{ .name = "corpus_support", .module = corpus_support_module },
+            .{ .name = "corpus_artifacts", .module = corpus_artifacts_module },
+        },
+        .link_libc = true,
+        .fuzz = true,
+    });
+    corpus_runner_module.addOptions("active_target_mode", active_options);
+
     const oracle_fuzz_module = b.createModule(.{
         .root_source_file = b.path("test/oracle/oracle_fuzz.zig"),
         .target = target,
@@ -232,17 +349,7 @@ pub fn build(b: *std.Build) void {
         .imports = &.{
             .{ .name = "zmath", .module = zmath_module },
             .{ .name = "corpus_support", .module = corpus_support_module },
-            .{ .name = "corpus_runner", .module = b.createModule(.{
-                .root_source_file = b.path("test/oracle/corpus_runner.zig"),
-                .target = target,
-                .optimize = optimize,
-                .imports = &.{
-                    .{ .name = "zmath", .module = zmath_module },
-                    .{ .name = "corpus_support", .module = corpus_support_module },
-                },
-                .link_libc = true,
-                .fuzz = true,
-            }) },
+            .{ .name = "corpus_runner", .module = corpus_runner_module },
         },
         .link_libc = true,
         .fuzz = true,
