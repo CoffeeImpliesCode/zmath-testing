@@ -108,13 +108,19 @@ uniqueness, output class, and `max_ulp` must agree with the manifest. Missing,
 duplicate, or ambiguous manifest bindings are errors. No artifact is checked
 in while all rows remain `unsupported`.
 
-Target and mode are artifact metadata, not TSV columns. Acceptance requires an
-explicit `TargetMode` record on each embedded artifact and an active
-target/mode record from the caller/build. Missing or mismatched records fail
-closed. The build uses `-Dcorpus-target` and `-Dcorpus-mode` when supplied and
-otherwise records the active target and Zig mode. The accepted `log/f` artifact
-therefore carries the exact target triple and Zig mode supplied by the
-caller/build.
+Target, CPU, and optimize mode are artifact metadata, not TSV columns. Acceptance
+requires an explicit `TargetMode` record on each embedded artifact and an active
+record from the caller/build. The accepted evidence tuple is immutable:
+
+```text
+target = x86_64-linux-gnu
+cpu = haswell
+optimize = ReleaseSafe
+```
+
+The build records this exact tuple in embedded metadata. The oracle runner
+rejects missing metadata and rejects any target, CPU, or optimize-mode mismatch.
+No other target profile can replay an accepted artifact.
 
 Exploratory fuzzing is a separate surface. A caller must provide a fixed seed
 to the seeded fuzz helper, and a fuzz campaign must preserve its seed,

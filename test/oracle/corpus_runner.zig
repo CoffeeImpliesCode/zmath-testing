@@ -191,6 +191,14 @@ fn runStoredRow(row: corpus.CorpusRow) DifferentialError!void {
 
 pub fn runAccepted(active_target_mode: ?corpus.TargetMode) DifferentialError!void {
     if (embedded.artifacts.len == 0) return;
+    comptime {
+        if (embedded.artifacts.len != 0 and !active_build.approved_corpus_pair) {
+            @compileError(
+                "accepted corpus requires target x86_64-linux-gnu, CPU haswell, mode ReleaseSafe",
+            );
+        }
+    }
+
     const active_mode = active_target_mode orelse return error.TargetModeMissing;
     const manifest = corpus.parseEmbeddedManifest() catch return error.ManifestUnsupported;
     if (embedded.target_mode) |embedded_mode| {
@@ -285,6 +293,7 @@ test "embedded acceptance replay is deterministic and artifact-driven" {
     else
         .{
             .target = active_build.target,
+            .cpu = active_build.cpu,
             .mode = active_build.mode,
         };
     try runAccepted(active_mode);

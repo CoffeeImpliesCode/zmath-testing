@@ -56,10 +56,13 @@ pub const ValidationError = error{
     MissingArtifactManifestRow,
     AmbiguousArtifactManifestRow,
     UnsupportedArtifact,
+    UnsupportedAcceptedOperation,
     EmptyArtifact,
     ArtifactOperationMismatch,
     ArtifactFormatMismatch,
     ArtifactMaxUlpMismatch,
+    ArtifactRowCountMismatch,
+    IncompleteUnaryHDomain,
 };
 
 // The runtime oracle dispatches only these operations. ManifestOperation below
@@ -406,15 +409,18 @@ pub const Manifest = struct {
 
 pub const TargetMode = struct {
     target: []const u8,
+    cpu: []const u8,
     mode: []const u8,
 
     pub fn eql(left: TargetMode, right: TargetMode) bool {
         return std.mem.eql(u8, left.target, right.target) and
+            std.mem.eql(u8, left.cpu, right.cpu) and
             std.mem.eql(u8, left.mode, right.mode);
     }
 
     fn valid(target_mode: TargetMode) bool {
         return validMetadataComponent(target_mode.target) and
+            validMetadataComponent(target_mode.cpu) and
             validMetadataComponent(target_mode.mode);
     }
 };
@@ -422,6 +428,7 @@ pub const TargetMode = struct {
 pub const ArtifactMetadata = struct {
     artifact_name: []const u8,
     target_mode: TargetMode,
+    required_row_count: usize,
 };
 
 pub const EmbeddedArtifact = struct {
@@ -915,6 +922,7 @@ pub fn validateTsv(source: []const u8) ValidationError!void {
         previous = current;
     }
 }
+
 pub fn loadArtifact(
     manifest: *const Manifest,
     source: []const u8,
@@ -932,6 +940,11 @@ pub fn loadArtifact(
 
     const artifact_identity = parseArtifactName(artifact_metadata.artifact_name) orelse
         return error.InvalidArtifactName;
+    const expected_row_count = expectedArtifactRowCount(artifact_identity) orelse
+        return error.UnsupportedArtifact;
+    if (artifact_metadata.required_row_count != expected_row_count) {
+        return error.ArtifactRowCountMismatch;
+    }
     const function = try findArtifactFunction(
         manifest,
         artifact_identity.operation,
@@ -941,12 +954,19 @@ pub fn loadArtifact(
 
     var iterator = try RowIterator.init(source);
     var row_count: usize = 0;
+    var expected_h_input: u64 = 0;
     while (try iterator.next()) |row| {
         if (row.operation != artifact_identity.operation) {
             return error.ArtifactOperationMismatch;
         }
         if (row.format != artifact_identity.format) {
             return error.ArtifactFormatMismatch;
+        }
+        if (artifact_identity.format == .h) {
+            if (row.input_bits != expected_h_input) {
+                return error.IncompleteUnaryHDomain;
+            }
+            expected_h_input += 1;
         }
         const expected_max_ulp = if (isSpecial(row.output_class))
             0
@@ -957,7 +977,14 @@ pub fn loadArtifact(
         }
         row_count += 1;
     }
-    if (row_count == 0) return error.EmptyArtifact;
+    if (row_count != artifact_metadata.required_row_count or
+        row_count != expected_row_count)
+    {
+        return error.ArtifactRowCountMismatch;
+    }
+    if (artifact_identity.format == .h and expected_h_input != 1 << 16) {
+        return error.IncompleteUnaryHDomain;
+    }
 
     return .{
         .source = source,
@@ -965,6 +992,25 @@ pub fn loadArtifact(
         .function = function.*,
         .operation = artifact_identity.operation,
         .format = artifact_identity.format,
+    };
+}
+
+fn expectedArtifactRowCount(identity: ArtifactIdentity) ?usize {
+    return switch (identity.operation) {
+        .exp => switch (identity.format) {
+            .h => 65_536,
+            .f => 29,
+            .d => 182,
+        },
+        .log => switch (identity.format) {
+            .h => 65_536,
+            .f => 64,
+            .d => null,
+        },
+        .sin => switch (identity.format) {
+            .h => 65_536,
+            .f, .d => null,
+        },
     };
 }
 
@@ -1202,7 +1248,7 @@ fn finishFunction(function: Function) ValidationError!FunctionRow {
     const format = try deriveFunctionFormat(inputs, result);
     try validateStatusRelation(status, oracle, max_ulp);
 
-    return .{
+    const row = FunctionRow{
         .operation = operation,
         .provenance = provenance,
         .format = format,
@@ -1213,6 +1259,34 @@ fn finishFunction(function: Function) ValidationError!FunctionRow {
         .oracle = oracle,
         .max_ulp = max_ulp,
     };
+    if (status != .unsupported and !supportsArtifact(row)) {
+        return error.UnsupportedAcceptedOperation;
+    }
+    return row;
+}
+
+fn supportsArtifact(function: FunctionRow) bool {
+    switch (function.operation) {
+        .exp, .log, .sin => {
+            if (function.arity != 1 or function.inputs.count != 1) return false;
+            const input_format = switch (function.inputs.descriptors[0]) {
+                .float => |format| format,
+                else => return false,
+            };
+            const result_format = switch (function.result) {
+                .float => |format| format,
+                else => return false,
+            };
+            if (input_format != result_format) return false;
+            return switch (function.operation) {
+                .exp => true,
+                .log => input_format == .h or input_format == .f,
+                .sin => input_format == .h,
+                else => unreachable,
+            };
+        },
+        else => return false,
+    }
 }
 
 fn deriveFunctionFormat(inputs: InputList, result: ResultDescriptor) ValidationError!Format {
@@ -1611,13 +1685,14 @@ test "TSV rejects unknown operations and output classes" {
     );
 }
 
-test "artifact loading requires explicit target and mode metadata" {
+test "artifact loading requires explicit target, CPU, and mode metadata" {
     const manifest = try parseEmbeddedManifest();
     const source =
         "op\tformat\tinput_bits\toutput_bits\toutput_class\tmax_ulp\n" ++
         "exp\th\t0000\t3c00\tnormal\t0\n";
     const target_mode = TargetMode{
         .target = "x86_64-linux-gnu",
+        .cpu = "haswell",
         .mode = "Debug",
     };
     try std.testing.expectError(
@@ -1632,6 +1707,7 @@ test "artifact loading requires explicit target and mode metadata" {
             .{
                 .artifact_name = "test/corpus/exp_h.tsv",
                 .target_mode = target_mode,
+                .required_row_count = 65_536,
             },
             null,
         ),
@@ -1642,6 +1718,7 @@ test "artifact loading rejects unsupported manifest rows" {
     const manifest = try parseEmbeddedManifest();
     const target_mode = TargetMode{
         .target = "x86_64-linux-gnu",
+        .cpu = "haswell",
         .mode = "Debug",
     };
     const source =
@@ -1655,6 +1732,7 @@ test "artifact loading rejects unsupported manifest rows" {
             .{
                 .artifact_name = "test/corpus/exp_h.tsv",
                 .target_mode = target_mode,
+                .required_row_count = 65_536,
             },
             target_mode,
         ),

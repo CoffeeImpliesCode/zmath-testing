@@ -2,6 +2,50 @@ const std = @import("std");
 const benchmark_targets = @import("bench/targets.zig");
 const benchmark_target_info = @import("bench/target_info.zig");
 
+const approved_corpus_target = "x86_64-linux-gnu";
+const approved_corpus_cpu = "haswell";
+const approved_corpus_mode = "ReleaseSafe";
+
+fn isApprovedCorpusTarget(target: std.Target) bool {
+    return target.cpu.arch == .x86_64 and
+        target.os.tag == .linux and
+        target.abi == .gnu;
+}
+
+fn isApprovedCorpusCpu(target: std.Target) bool {
+    return std.mem.eql(u8, target.cpu.model.name, approved_corpus_cpu);
+}
+
+const ArtifactAcceptance = struct {
+    operation: []const u8,
+    format: u8,
+    required_row_count: usize,
+};
+
+const artifact_acceptances = [_]ArtifactAcceptance{
+    .{ .operation = "exp", .format = 'h', .required_row_count = 65_536 },
+    .{ .operation = "exp", .format = 'f', .required_row_count = 29 },
+    .{ .operation = "exp", .format = 'd', .required_row_count = 182 },
+    .{ .operation = "log", .format = 'h', .required_row_count = 65_536 },
+    .{
+        .operation = "log",
+        .format = 'f',
+        .required_row_count = benchmark_targets.scalar_log_f.input_count,
+    },
+    .{ .operation = "sin", .format = 'h', .required_row_count = 65_536 },
+};
+
+fn artifactAcceptance(operation: []const u8, format: u8) ?ArtifactAcceptance {
+    for (artifact_acceptances) |acceptance| {
+        if (acceptance.format == format and
+            std.mem.eql(u8, acceptance.operation, operation))
+        {
+            return acceptance;
+        }
+    }
+    return null;
+}
+
 fn enableCoverage(
     enabled: bool,
     runtime_object: ?[]const u8,
@@ -21,6 +65,7 @@ fn addReferencedCorpusArtifacts(
     b: *std.Build,
     corpus_support_package: anytype,
     target_text: ?[]const u8,
+    cpu_text: ?[]const u8,
     mode_text: ?[]const u8,
 ) []const u8 {
     const manifest = @embedFile("test/corpus/manifest.toml");
@@ -43,6 +88,7 @@ fn addReferencedCorpusArtifacts(
                     corpus_support_package,
                     &artifact_entries,
                     target_text,
+                    cpu_text,
                     mode_text,
                     current_operation,
                     current_status,
@@ -80,6 +126,7 @@ fn addReferencedCorpusArtifacts(
             corpus_support_package,
             &artifact_entries,
             target_text,
+            cpu_text,
             mode_text,
             current_operation,
             current_status,
@@ -95,6 +142,7 @@ fn addFunctionArtifact(
     corpus_support_package: anytype,
     artifact_entries: *std.ArrayList(u8),
     target_text: ?[]const u8,
+    cpu_text: ?[]const u8,
     mode_text: ?[]const u8,
     operation: ?[]const u8,
     status: ?[]const u8,
@@ -110,6 +158,8 @@ fn addFunctionArtifact(
     const operation_text = operation orelse @panic("accepted manifest row has no operation");
     const format = descriptorFormat(result orelse "", inputs orelse "") orelse
         @panic("accepted manifest row has no floating format");
+    const acceptance = artifactAcceptance(operation_text, format) orelse
+        @panic("accepted manifest row has no approved artifact evidence");
     const artifact_path = b.fmt(
         "test/corpus/{s}_{c}.tsv",
         .{ operation_text, format },
@@ -122,18 +172,22 @@ fn addFunctionArtifact(
     };
     _ = corpus_support_package.addCopyFile(b.path(artifact_path), artifact_path);
 
-    const artifact_metadata = if (target_text != null and mode_text != null) blk: {
+    const artifact_metadata = if (target_text != null and cpu_text != null and mode_text != null) blk: {
         validateMetadataText(target_text.?);
+        validateMetadataText(cpu_text.?);
         validateMetadataText(mode_text.?);
         break :blk b.fmt(
             "corpus.ArtifactMetadata{{\n" ++
                 "            .artifact_name = \"{s}\",\n" ++
-                "            .target_mode = corpus.TargetMode{{ .target = \"{s}\", .mode = \"{s}\" }},\n" ++
+                "            .target_mode = corpus.TargetMode{{ .target = \"{s}\", .cpu = \"{s}\", .mode = \"{s}\" }},\n" ++
+                "            .required_row_count = {d},\n" ++
                 "        }}",
             .{
                 artifact_path,
                 target_text.?,
+                cpu_text.?,
                 mode_text.?,
+                acceptance.required_row_count,
             },
         );
     } else "null";
@@ -174,7 +228,7 @@ fn descriptorFormat(result: []const u8, inputs: []const u8) ?u8 {
 }
 
 fn validateMetadataText(value: []const u8) void {
-    if (value.len == 0) @panic("corpus target/mode metadata must not be empty");
+    if (value.len == 0) @panic("corpus target/CPU/mode metadata must not be empty");
     for (value) |character| {
         const alpha_numeric =
             (character >= 'a' and character <= 'z') or
@@ -183,7 +237,7 @@ fn validateMetadataText(value: []const u8) void {
         if (!alpha_numeric and character != '_' and character != '-' and
             character != '.' and character != '+')
         {
-            @panic("corpus target/mode metadata contains an invalid character");
+            @panic("corpus target/CPU/mode metadata contains an invalid character");
         }
     }
 }
@@ -192,15 +246,17 @@ fn addEmbeddedArtifactModule(
     b: *std.Build,
     package: anytype,
     target_text: ?[]const u8,
+    cpu_text: ?[]const u8,
     mode_text: ?[]const u8,
     artifact_entries: []const u8,
 ) std.Build.LazyPath {
-    const metadata = if (target_text != null and mode_text != null) blk: {
+    const metadata = if (target_text != null and cpu_text != null and mode_text != null) blk: {
         validateMetadataText(target_text.?);
+        validateMetadataText(cpu_text.?);
         validateMetadataText(mode_text.?);
         break :blk b.fmt(
-            "pub const target_mode: ?corpus.TargetMode = corpus.TargetMode{{ .target = \"{s}\", .mode = \"{s}\" }};\n",
-            .{ target_text.?, mode_text.? },
+            "pub const target_mode: ?corpus.TargetMode = corpus.TargetMode{{ .target = \"{s}\", .cpu = \"{s}\", .mode = \"{s}\" }};\n",
+            .{ target_text.?, cpu_text.?, mode_text.? },
         );
     } else "pub const target_mode: ?corpus.TargetMode = null;\n";
     const artifacts = if (artifact_entries.len == 0)
@@ -241,17 +297,28 @@ pub fn build(b: *std.Build) void {
     benchmark_options.addOption([]const u8, "optimize", bench_info.optimize);
     const coverage = b.option(bool, "coverage", "Enable zig-cov instrumentation") orelse false;
     const coverage_runtime = b.option([]const u8, "coverage-rt", "Path to zig-cov runtime object");
-    const active_target = target.result.zigTriple(b.allocator) catch @panic("OOM");
-    const active_mode = @tagName(optimize);
-    const corpus_target = b.option([]const u8, "corpus-target", "Explicit acceptance target triple metadata") orelse active_target;
-    const corpus_mode = b.option([]const u8, "corpus-mode", "Explicit acceptance optimization mode metadata") orelse active_mode;
+    const actual_mode = @tagName(optimize);
+    const active_target = approved_corpus_target;
+    const active_cpu = approved_corpus_cpu;
+    const active_mode = approved_corpus_mode;
+    const corpus_target = approved_corpus_target;
+    const corpus_cpu = approved_corpus_cpu;
+    const corpus_mode = approved_corpus_mode;
     const active_options = b.addOptions();
     active_options.addOption(
         []const u8,
         "target",
         active_target,
     );
+    active_options.addOption([]const u8, "cpu", active_cpu);
     active_options.addOption([]const u8, "mode", active_mode);
+    active_options.addOption(
+        bool,
+        "approved_corpus_pair",
+        isApprovedCorpusTarget(target.result) and
+            isApprovedCorpusCpu(target.result) and
+            std.mem.eql(u8, actual_mode, approved_corpus_mode),
+    );
 
     const zmath_dependency = b.dependency("zmath", .{
         .target = target,
@@ -296,12 +363,14 @@ pub fn build(b: *std.Build) void {
         b,
         corpus_support_package,
         corpus_target,
+        corpus_cpu,
         corpus_mode,
     );
     const corpus_artifacts_root = addEmbeddedArtifactModule(
         b,
         corpus_support_package,
         corpus_target,
+        corpus_cpu,
         corpus_mode,
         artifact_entries,
     );
