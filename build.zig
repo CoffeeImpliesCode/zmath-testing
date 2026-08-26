@@ -1,4 +1,6 @@
 const std = @import("std");
+const benchmark_targets = @import("bench/targets.zig");
+const benchmark_target_info = @import("bench/target_info.zig");
 
 fn enableCoverage(
     enabled: bool,
@@ -220,6 +222,23 @@ fn addEmbeddedArtifactModule(
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
+    const bench_target_name = b.option(
+        []const u8,
+        "bench-target",
+        "Select the public benchmark target",
+    ) orelse benchmark_targets.scalar_log_f.name;
+    const bench_target = benchmark_targets.parse(bench_target_name) catch
+        @panic("unknown benchmark target");
+    const bench_info = benchmark_target_info.resolve(b, target, optimize);
+    const benchmark_options = b.addOptions();
+    benchmark_options.addOption([]const u8, "name", bench_target.name);
+    benchmark_options.addOption([]const u8, "corpus_id", bench_target.corpus_id);
+    benchmark_options.addOption(usize, "input_count", bench_target.input_count);
+    benchmark_options.addOption(u64, "operation_count", bench_target.operation_count);
+    benchmark_options.addOption([]const u8, "corpus_sha256", bench_target.corpus_sha256);
+    benchmark_options.addOption([]const u8, "target_triple", bench_info.target_triple);
+    benchmark_options.addOption([]const u8, "cpu_features", bench_info.cpu_features);
+    benchmark_options.addOption([]const u8, "optimize", bench_info.optimize);
     const coverage = b.option(bool, "coverage", "Enable zig-cov instrumentation") orelse false;
     const coverage_runtime = b.option([]const u8, "coverage-rt", "Path to zig-cov runtime object");
     const active_target = target.result.zigTriple(b.allocator) catch @panic("OOM");
@@ -397,11 +416,6 @@ pub fn build(b: *std.Build) void {
         .link_libc = true,
         .fuzz = true,
     });
-    oracle_fuzz_module.addCSourceFile(.{
-        .file = b.path("test/oracle/oracle_bridge.c"),
-        .flags = &.{"-std=c11"},
-    });
-    oracle_fuzz_module.addIncludePath(b.path("test/oracle"));
     oracle_fuzz_module.linkSystemLibrary("mpfr", .{});
     oracle_fuzz_module.linkSystemLibrary("gmp", .{});
     oracle_fuzz_module.linkSystemLibrary("flint", .{});
@@ -413,12 +427,27 @@ pub fn build(b: *std.Build) void {
     const oracle_fuzz_step = b.step("oracle-fuzz", "Run bounded Exp oracle fuzzing");
     oracle_fuzz_step.dependOn(&run_oracle_fuzz.step);
 
+    const benchmark_package = b.addWriteFiles();
+    const benchmark_root = benchmark_package.addCopyFile(
+        b.path("bench/public_api.zig"),
+        "public_api.zig",
+    );
+    _ = benchmark_package.addCopyFile(
+        b.path("bench/targets.zig"),
+        "targets.zig",
+    );
+    _ = benchmark_package.addCopyFile(
+        b.path("test/corpus/log_f.tsv"),
+        "log_f.tsv",
+    );
+
     const benchmark_module = b.createModule(.{
-        .root_source_file = b.path("bench/public_api.zig"),
+        .root_source_file = benchmark_root,
         .target = target,
         .optimize = optimize,
         .imports = &.{.{ .name = "zmath", .module = zmath_module }},
     });
+    benchmark_module.addOptions("benchmark_target", benchmark_options);
     const benchmark = b.addExecutable(.{
         .name = "zmath-testing-public-api",
         .root_module = benchmark_module,

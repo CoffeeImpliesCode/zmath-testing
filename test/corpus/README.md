@@ -47,20 +47,21 @@ order. The operation spelling declaration is exactly
 
 ## Current status
 
-Of the 315 typed rows, 314 currently have:
-
-```text
-status = "unsupported"
-oracle = "none"
-special_policy = "zmath_c23_v1"
-max_ulp = 0
-```
-
-The accepted `log/f` row has:
+Six rows are accepted: `exp/h`, `exp/f`, `exp/d`, `log/h`, `log/f`, and
+`sin/h`. Each accepted row has:
 
 ```text
 status = "correct"
 oracle = "mpfr_arb"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+```
+
+The remaining 309 typed rows have:
+
+```text
+status = "unsupported"
+oracle = "none"
 special_policy = "zmath_c23_v1"
 max_ulp = 0
 ```
@@ -110,9 +111,10 @@ in while all rows remain `unsupported`.
 Target and mode are artifact metadata, not TSV columns. Acceptance requires an
 explicit `TargetMode` record on each embedded artifact and an active
 target/mode record from the caller/build. Missing or mismatched records fail
-closed. The build emits artifact metadata only when both `-Dcorpus-target` and
-`-Dcorpus-mode` are supplied. The accepted `log/f` artifact therefore carries
-the exact target triple and Zig mode supplied by the caller/build.
+closed. The build uses `-Dcorpus-target` and `-Dcorpus-mode` when supplied and
+otherwise records the active target and Zig mode. The accepted `log/f` artifact
+therefore carries the exact target triple and Zig mode supplied by the
+caller/build.
 
 Exploratory fuzzing is a separate surface. A caller must provide a fixed seed
 to the seeded fuzz helper, and a fuzz campaign must preserve its seed,
