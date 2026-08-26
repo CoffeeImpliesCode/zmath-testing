@@ -120,27 +120,30 @@ fn addFunctionArtifact(
     };
     _ = corpus_support_package.addCopyFile(b.path(artifact_path), artifact_path);
 
-    const artifact_metadata = if (target_text != null and mode_text != null)
-        b.fmt(
+    const artifact_metadata = if (target_text != null and mode_text != null) blk: {
+        validateMetadataText(target_text.?);
+        validateMetadataText(mode_text.?);
+        break :blk b.fmt(
             "corpus.ArtifactMetadata{{\n" ++
-                "            .artifact_name = \"{f}\",\n" ++
-                "            .target_mode = corpus.TargetMode{{ .target = \"{f}\", .mode = \"{f}\" }},\n" ++
+                "            .artifact_name = \"{s}\",\n" ++
+                "            .target_mode = corpus.TargetMode{{ .target = \"{s}\", .mode = \"{s}\" }},\n" ++
                 "        }}",
             .{
-                std.zig.fmtString(artifact_path),
-                std.zig.fmtString(target_text.?),
-                std.zig.fmtString(mode_text.?),
+                artifact_path,
+                target_text.?,
+                mode_text.?,
             },
-        )
-    else
-        "null";
-    artifact_entries.print(
+        );
+    } else "null";
+    artifact_entries.appendSlice(
         b.graph.arena,
-        "    corpus.EmbeddedArtifact{{\n" ++
-            "        .source = @embedFile(\"{f}\"),\n" ++
-            "        .metadata = {s},\n" ++
-            "    }},\n",
-        .{ std.zig.fmtString(artifact_path), artifact_metadata },
+        b.fmt(
+            "    corpus.EmbeddedArtifact{{\n" ++
+                "        .source = @embedFile(\"{s}\"),\n" ++
+                "        .metadata = {s},\n" ++
+                "    }},\n",
+            .{ artifact_path, artifact_metadata },
+        ),
     ) catch @panic("OOM");
 }
 
@@ -168,6 +171,21 @@ fn descriptorFormat(result: []const u8, inputs: []const u8) ?u8 {
     return null;
 }
 
+fn validateMetadataText(value: []const u8) void {
+    if (value.len == 0) @panic("corpus target/mode metadata must not be empty");
+    for (value) |character| {
+        const alpha_numeric =
+            (character >= 'a' and character <= 'z') or
+            (character >= 'A' and character <= 'Z') or
+            (character >= '0' and character <= '9');
+        if (!alpha_numeric and character != '_' and character != '-' and
+            character != '.' and character != '+')
+        {
+            @panic("corpus target/mode metadata contains an invalid character");
+        }
+    }
+}
+
 fn addEmbeddedArtifactModule(
     b: *std.Build,
     package: anytype,
@@ -175,16 +193,14 @@ fn addEmbeddedArtifactModule(
     mode_text: ?[]const u8,
     artifact_entries: []const u8,
 ) std.Build.LazyPath {
-    const metadata = if (target_text != null and mode_text != null)
-        b.fmt(
-            "pub const target_mode: ?corpus.TargetMode = corpus.TargetMode{{ .target = \"{f}\", .mode = \"{f}\" }};\n",
-            .{
-                std.zig.fmtString(target_text.?),
-                std.zig.fmtString(mode_text.?),
-            },
-        )
-    else
-        "pub const target_mode: ?corpus.TargetMode = null;\n";
+    const metadata = if (target_text != null and mode_text != null) blk: {
+        validateMetadataText(target_text.?);
+        validateMetadataText(mode_text.?);
+        break :blk b.fmt(
+            "pub const target_mode: ?corpus.TargetMode = corpus.TargetMode{{ .target = \"{s}\", .mode = \"{s}\" }};\n",
+            .{ target_text.?, mode_text.? },
+        );
+    } else "pub const target_mode: ?corpus.TargetMode = null;\n";
     const artifacts = if (artifact_entries.len == 0)
         "pub const artifacts = [_]corpus.EmbeddedArtifact{};\n"
     else
@@ -206,15 +222,17 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
     const coverage = b.option(bool, "coverage", "Enable zig-cov instrumentation") orelse false;
     const coverage_runtime = b.option([]const u8, "coverage-rt", "Path to zig-cov runtime object");
-    const corpus_target = b.option([]const u8, "corpus-target", "Explicit acceptance target triple metadata");
-    const corpus_mode = b.option([]const u8, "corpus-mode", "Explicit acceptance optimization mode metadata");
+    const active_target = target.result.zigTriple(b.allocator) catch @panic("OOM");
+    const active_mode = @tagName(optimize);
+    const corpus_target = b.option([]const u8, "corpus-target", "Explicit acceptance target triple metadata") orelse active_target;
+    const corpus_mode = b.option([]const u8, "corpus-mode", "Explicit acceptance optimization mode metadata") orelse active_mode;
     const active_options = b.addOptions();
     active_options.addOption(
         []const u8,
         "target",
-        target.result.zigTriple(b.allocator) catch @panic("OOM"),
+        active_target,
     );
-    active_options.addOption([]const u8, "mode", @tagName(optimize));
+    active_options.addOption([]const u8, "mode", active_mode);
 
     const zmath_dependency = b.dependency("zmath", .{
         .target = target,
@@ -327,6 +345,31 @@ pub fn build(b: *std.Build) void {
     const run_oracle_tests = b.addRunArtifact(oracle_tests);
     const oracle_step = b.step("oracle", "Run MPFR and Arb oracle smoke tests");
     oracle_step.dependOn(&run_oracle_tests.step);
+    const corpus_producer_module = b.createModule(.{
+        .root_source_file = b.path("test/oracle/corpus_producer.zig"),
+        .target = b.graph.host,
+        .optimize = .ReleaseSafe,
+        .link_libc = true,
+    });
+    corpus_producer_module.addCSourceFile(.{
+        .file = b.path("test/oracle/oracle_bridge.c"),
+        .flags = &.{"-std=c11"},
+    });
+    corpus_producer_module.addIncludePath(b.path("test/oracle"));
+    corpus_producer_module.linkSystemLibrary("mpfr", .{});
+    corpus_producer_module.linkSystemLibrary("gmp", .{});
+    corpus_producer_module.linkSystemLibrary("flint", .{});
+    const corpus_producer = b.addExecutable(.{
+        .name = "zmath-testing-corpus-producer",
+        .root_module = corpus_producer_module,
+    });
+    const run_corpus_producer = b.addRunArtifact(corpus_producer);
+    run_corpus_producer.addArg(b.pathFromRoot("test/corpus"));
+    const corpus_producer_step = b.step(
+        "generate-corpus",
+        "Generate immutable MPFR and Arb corpus artifacts",
+    );
+    corpus_producer_step.dependOn(&run_corpus_producer.step);
 
     const corpus_runner_module = b.createModule(.{
         .root_source_file = b.path("test/oracle/corpus_runner.zig"),

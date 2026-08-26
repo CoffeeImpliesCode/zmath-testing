@@ -511,33 +511,33 @@ max_ulp = 0
 [[function]]
 op = "exp"
 provenance = ["zmath"]
-status = "unsupported"
+status = "correct"
 arity = 1
 inputs = ["float:h"]
 result = "float:h"
-oracle = "none"
+oracle = "mpfr_arb"
 special_policy = "zmath_c23_v1"
 max_ulp = 0
 
 [[function]]
 op = "exp"
 provenance = ["zmath"]
-status = "unsupported"
+status = "correct"
 arity = 1
 inputs = ["float:f"]
 result = "float:f"
-oracle = "none"
+oracle = "mpfr_arb"
 special_policy = "zmath_c23_v1"
 max_ulp = 0
 
 [[function]]
 op = "exp"
 provenance = ["zmath"]
-status = "unsupported"
+status = "correct"
 arity = 1
 inputs = ["float:d"]
 result = "float:d"
-oracle = "none"
+oracle = "mpfr_arb"
 special_policy = "zmath_c23_v1"
 max_ulp = 0
 
@@ -1765,11 +1765,11 @@ max_ulp = 0
 [[function]]
 op = "log"
 provenance = ["zmath"]
-status = "unsupported"
+status = "correct"
 arity = 1
 inputs = ["float:h"]
 result = "float:h"
-oracle = "none"
+oracle = "mpfr_arb"
 special_policy = "zmath_c23_v1"
 max_ulp = 0
 
@@ -2689,11 +2689,11 @@ max_ulp = 0
 [[function]]
 op = "sin"
 provenance = ["zmath"]
-status = "unsupported"
+status = "correct"
 arity = 1
 inputs = ["float:h"]
 result = "float:h"
-oracle = "none"
+oracle = "mpfr_arb"
 special_policy = "zmath_c23_v1"
 max_ulp = 0
 

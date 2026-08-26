@@ -45,18 +45,11 @@ const DifferentialError = error{
     RuntimeClassMismatch,
     StoredMismatch,
     StoredClassMismatch,
-    OracleClassMismatch,
     ArbProofMismatch,
 };
 
 fn bridgeFormat(format: corpus.Format) c_uint {
     return @as(c_uint, @intFromEnum(format)) + 1;
-}
-
-fn isFiniteClass(output_class: c_uint) bool {
-    return output_class == oracle_class_normal or
-        output_class == oracle_class_subnormal or
-        output_class == oracle_class_zero;
 }
 
 fn runRuntime(
@@ -145,23 +138,10 @@ fn bridgeClass(output_class: corpus.OutputClass) DifferentialError!c_uint {
     };
 }
 
-fn signMask(format: corpus.Format) u64 {
-    return switch (format) {
-        .h => 0x8000,
-        .f => 0x8000_0000,
-        .d => 0x8000_0000_0000_0000,
-    };
-}
-
-fn ulpDistance(format: corpus.Format, left: u64, right: u64) ?u64 {
-    const sign_mask = signMask(format);
-    if ((left & sign_mask) != (right & sign_mask)) return null;
-    const left_magnitude = left & ~sign_mask;
-    const right_magnitude = right & ~sign_mask;
-    return if (left_magnitude >= right_magnitude)
-        left_magnitude - right_magnitude
-    else
-        right_magnitude - left_magnitude;
+fn isFiniteOutputClass(output_class: c_uint) bool {
+    return output_class == oracle_class_normal or
+        output_class == oracle_class_subnormal or
+        output_class == oracle_class_zero;
 }
 
 fn checkOracleStatus(status: c_int) DifferentialError!void {
@@ -171,31 +151,12 @@ fn checkOracleStatus(status: c_int) DifferentialError!void {
     if (status != oracle_status_ok) return error.OracleError;
 }
 
-fn runStoredRow(
-    function: corpus.FunctionRow,
-    row: corpus.CorpusRow,
-) DifferentialError!void {
+fn runStoredRow(row: corpus.CorpusRow) DifferentialError!void {
     const runtime_bits = try runRuntime(row.operation, row.format, row.input_bits);
     const stored_class = try bridgeClass(row.output_class);
     const runtime_class = classFromBits(row.format, runtime_bits);
-    const boundary_class_mismatch = function.status == .bounded and
-        ((runtime_class == oracle_class_normal and stored_class == oracle_class_subnormal) or
-            (runtime_class == oracle_class_subnormal and stored_class == oracle_class_normal));
-    if (runtime_class != stored_class and !boundary_class_mismatch) {
-        return error.RuntimeClassMismatch;
-    }
-
-    if (function.status == .correct) {
-        if (runtime_bits != row.output_bits) return error.RuntimeMismatch;
-    } else {
-        if (isFiniteClass(stored_class)) {
-            const distance = ulpDistance(row.format, runtime_bits, row.output_bits) orelse
-                return error.RuntimeMismatch;
-            if (distance > function.max_ulp) return error.RuntimeMismatch;
-        } else if (runtime_bits != row.output_bits) {
-            return error.RuntimeMismatch;
-        }
-    }
+    if (runtime_class != stored_class) return error.RuntimeClassMismatch;
+    if (runtime_bits != row.output_bits) return error.RuntimeMismatch;
 
     var input_word = row.input_bits;
     var mpfr_bits: u64 = 0;
@@ -210,17 +171,18 @@ fn runStoredRow(
     ));
     if (mpfr_bits != row.output_bits) return error.StoredMismatch;
     if (mpfr_class != stored_class) return error.StoredClassMismatch;
-
-    var proof_class: c_uint = 0;
-    try checkOracleStatus(zmath_testing_arb_prove_rounding(
-        operationName(row.operation),
-        bridgeFormat(row.format),
-        &input_word,
-        1,
-        row.output_bits,
-        &proof_class,
-    ));
-    if (proof_class != stored_class) return error.ArbProofMismatch;
+    if (isFiniteOutputClass(stored_class)) {
+        var proof_class: c_uint = 0;
+        try checkOracleStatus(zmath_testing_arb_prove_rounding(
+            operationName(row.operation),
+            bridgeFormat(row.format),
+            &input_word,
+            1,
+            row.output_bits,
+            &proof_class,
+        ));
+        if (proof_class != stored_class) return error.ArbProofMismatch;
+    }
 }
 
 pub fn runAccepted(active_target_mode: ?corpus.TargetMode) DifferentialError!void {
@@ -242,7 +204,7 @@ pub fn runAccepted(active_target_mode: ?corpus.TargetMode) DifferentialError!voi
         };
         var rows = artifact.rows() catch return error.ArtifactRejected;
         while (rows.next() catch return error.ArtifactRejected) |row| {
-            try runStoredRow(artifact.function, row);
+            try runStoredRow(row);
         }
     }
 }

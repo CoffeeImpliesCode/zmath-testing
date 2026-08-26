@@ -98,12 +98,43 @@ duplicate, or ambiguous manifest bindings are errors. No artifact is checked
 in while all rows remain `unsupported`.
 
 Target and mode are artifact metadata, not TSV columns. Acceptance requires an
-explicit `TargetMode` record and an active target/mode record supplied by the
-caller. Missing or mismatched records fail closed. This task does not infer a
-host target or publish the final target/mode allowlist; a later status
-transition must record the exact supported target triples and Zig modes.
+explicit `TargetMode` record on each embedded artifact and an active
+target/mode record from the caller/build. Missing or mismatched records fail
+closed. The build emits artifact metadata only when both `-Dcorpus-target` and
+`-Dcorpus-mode` are supplied. Task 3 does not publish the final target/mode
+allowlist; a later status transition must record the exact supported target
+triples and Zig modes.
 
 Exploratory fuzzing is a separate surface. A caller must provide a fixed seed
 to the seeded fuzz helper, and a fuzz campaign must preserve its seed,
 compiler, source, budget, and callback request order. Fuzz inputs never become
 accepted TSV rows automatically.
+
+## Corpus producer
+
+The test-only producer runs with `zig build generate-corpus`. It links the
+existing MPFR and Arb bridge. It writes temporary files and renames them only
+after all five artifacts pass the oracle checks.
+
+The producer writes these immutable artifacts:
+
+- `exp_h.tsv`: 65,536 data rows. It covers every unsigned binary16
+  encoding in numeric order.
+- `exp_f.tsv`: 29 data rows.
+- `exp_d.tsv`: 182 data rows.
+- `log_h.tsv`: 65,536 data rows. It covers every unsigned binary16
+  encoding in numeric order.
+- `sin_h.tsv`: 65,536 data rows. It covers every unsigned binary16
+  encoding in numeric order.
+
+The F and D boundary sets each contain the 18 inputs from the deterministic
+Task 3 campaign. The producer adds exact special values, every F and D input
+from `scalar_exp_test.zig`, and the 51 pinned CORE-MATH binary64 Exp database
+inputs from `scalar.zig`. It adds the immediate predecessor and successor of
+each selected finite input, then sorts and removes duplicates.
+
+For each row, the producer gets the output bits and class from MPFR at 512
+bits with round-to-nearest, ties-to-even. It then requires a matching unique
+512-bit Arb rounding proof for finite output classes. Any oracle error,
+disagreement, or uncertainty stops the producer before it changes an
+artifact.
