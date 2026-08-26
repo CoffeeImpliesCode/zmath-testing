@@ -47,7 +47,7 @@ order. The operation spelling declaration is exactly
 
 ## Current status
 
-Every row currently has:
+Of the 315 typed rows, 314 currently have:
 
 ```text
 status = "unsupported"
@@ -56,17 +56,27 @@ special_policy = "zmath_c23_v1"
 max_ulp = 0
 ```
 
+The accepted `log/f` row has:
+
+```text
+status = "correct"
+oracle = "mpfr_arb"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+```
+
 `unsupported` means that the manifest makes no accuracy or runtime acceptance
 claim. It does not state that the corresponding zmath symbol is absent.
 Source presence and provenance do not change row status.
 
-## Future corpus artifacts
+## Corpus artifacts
 
-Schema version 2 ships no corpus artifact for an unsupported row. Add an
-artifact only after the row changes to `correct` or `bounded` and reviewers
-accept implementation and oracle evidence for that exact operation and format.
+Schema version 2 ships no corpus artifact for an unsupported row. The checked-in
+`log_f.tsv` artifact covers the accepted `log/f` row. Add an artifact only after
+the row changes to `correct` or `bounded` and reviewers accept implementation
+and oracle evidence for that exact operation and format.
 
-A future artifact must be immutable, repository-relative, UTF-8 without a byte
+Each artifact must be immutable, repository-relative, UTF-8 without a byte
 order mark, use LF line endings, and end with one LF. Its header must be exactly:
 
 ```text
@@ -101,9 +111,8 @@ Target and mode are artifact metadata, not TSV columns. Acceptance requires an
 explicit `TargetMode` record on each embedded artifact and an active
 target/mode record from the caller/build. Missing or mismatched records fail
 closed. The build emits artifact metadata only when both `-Dcorpus-target` and
-`-Dcorpus-mode` are supplied. Task 3 does not publish the final target/mode
-allowlist; a later status transition must record the exact supported target
-triples and Zig modes.
+`-Dcorpus-mode` are supplied. The accepted `log/f` artifact therefore carries
+the exact target triple and Zig mode supplied by the caller/build.
 
 Exploratory fuzzing is a separate surface. A caller must provide a fixed seed
 to the seeded fuzz helper, and a fuzz campaign must preserve its seed,
@@ -114,7 +123,7 @@ accepted TSV rows automatically.
 
 The test-only producer runs with `zig build generate-corpus`. It links the
 existing MPFR and Arb bridge. It writes temporary files and renames them only
-after all five artifacts pass the oracle checks.
+after all six artifacts pass the oracle checks.
 
 The producer writes these immutable artifacts:
 
@@ -124,6 +133,11 @@ The producer writes these immutable artifacts:
 - `exp_d.tsv`: 182 data rows.
 - `log_h.tsv`: 65,536 data rows. It covers every unsigned binary16
   encoding in numeric order.
+- `log_f.tsv`: 64 data rows. Its provenance is the exact binary32 vectors in
+  `scalar_log_test.zig`: special values, subnormal/normal boundaries,
+  adjacent-to-one values, and nine CORE-MATH fallback/low-correction vectors
+  with each vector's immediate predecessor and successor. Inputs are sorted
+  and deduplicated.
 - `sin_h.tsv`: 65,536 data rows. It covers every unsigned binary16
   encoding in numeric order.
 

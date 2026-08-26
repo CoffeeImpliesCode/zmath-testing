@@ -83,7 +83,11 @@ fn runRuntime(
                 u64,
                 @intCast(@as(u16, @bitCast(zmath.scalar.logh(@bitCast(@as(u16, @truncate(input_bits))))))),
             ),
-            .f, .d => error.ManifestUnsupported,
+            .f => @as(
+                u64,
+                @intCast(@as(u32, @bitCast(zmath.scalar.logf(@bitCast(@as(u32, @truncate(input_bits))))))),
+            ),
+            .d => error.ManifestUnsupported,
         },
     };
 }
@@ -291,7 +295,6 @@ test "unsupported sin formats do not dispatch" {
     try std.testing.expectError(error.ManifestUnsupported, run(.sin, .d, 0));
 }
 
-test "unsupported log formats do not dispatch" {
-    try std.testing.expectError(error.ManifestUnsupported, run(.log, .f, 0));
+test "unsupported log d format does not dispatch" {
     try std.testing.expectError(error.ManifestUnsupported, run(.log, .d, 0));
 }

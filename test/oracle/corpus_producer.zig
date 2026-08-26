@@ -181,6 +181,61 @@ const d_regression_bits = [_]u64{
     0x7ff8_1234_5678_9abc,
     0xfff0_1234_5678_9abc,
 };
+// These inputs are the exact binary32 sets in scalar_log_test.zig.
+const f_log_special_bits = [_]u32{
+    0x0000_0000,
+    0x8000_0000,
+    0x7f80_0000,
+    0xff80_0000,
+    0x7fc1_2345,
+    0x7fa1_2345,
+    0xffc1_2345,
+    0xffa1_2345,
+    0xbf80_0000,
+};
+
+const f_log_reduction_bits = [_]u32{
+    0x0000_0001,
+    0x0000_0002,
+    0x0000_0003,
+    0x007f_ffff,
+    0x0080_0000,
+    0x0100_0000,
+    0x3a80_0000,
+    0x3dcc_cccd,
+    0x3eaa_aaab,
+    0x3f00_0000,
+    0x3f35_04f3,
+    0x3f7f_ffff,
+    0x3f80_0000,
+    0x3f80_0001,
+    0x3f80_0002,
+    0x3f80_0100,
+    0x3f90_0000,
+    0x3fb5_04f3,
+    0x3fc0_0000,
+    0x3fe0_0000,
+    0x3fff_fffe,
+    0x3fff_ffff,
+    0x4000_0000,
+    0x4000_0001,
+    0x4040_0000,
+    0x4120_0000,
+    0x42c8_0000,
+    0x7f7f_ffff,
+};
+
+const f_log_fallback_bits = [_]u32{
+    0x3f80_2000,
+    0x1f11_6ab8,
+    0x3c41_3d3a,
+    0x4117_8feb,
+    0x4c5d_65a5,
+    0x4d60_4ebe,
+    0x65d8_90d3,
+    0x66a8_c860,
+    0x6f31_a8ec,
+};
 
 // Pinned CORE-MATH binary64 Exp fallback database inputs from scalar.zig.
 const d_hard_cases = [_]f64{
@@ -244,11 +299,13 @@ pub fn main(init: std.process.Init) !void {
 
     const f_inputs = try selectedFInputs(allocator);
     const d_inputs = try selectedDInputs(allocator);
+    const f_log_inputs = try selectedLogFInputs(allocator);
     const artifacts = [_]GeneratedArtifact{
         .{ .name = "exp_h.tsv", .source = try generateExhaustiveH(allocator, .exp) },
         .{ .name = "exp_f.tsv", .source = try generateSelected(allocator, .exp, .f, f_inputs) },
         .{ .name = "exp_d.tsv", .source = try generateSelected(allocator, .exp, .d, d_inputs) },
         .{ .name = "log_h.tsv", .source = try generateExhaustiveH(allocator, .log) },
+        .{ .name = "log_f.tsv", .source = try generateSelected(allocator, .log, .f, f_log_inputs) },
         .{ .name = "sin_h.tsv", .source = try generateExhaustiveH(allocator, .sin) },
     };
     try replaceArtifacts(allocator, args[1], &artifacts);
@@ -260,6 +317,18 @@ fn selectedFInputs(allocator: std.mem.Allocator) ![]const u64 {
     for (f_special_bits) |bits| try inputs.append(allocator, bits);
     for (f_regression_bits) |bits| try inputs.append(allocator, bits);
     try addAdjacentFiniteInputs(allocator, &inputs, .f);
+    sortUnique(&inputs);
+    return inputs.items;
+}
+fn selectedLogFInputs(allocator: std.mem.Allocator) ![]const u64 {
+    var inputs: std.ArrayList(u64) = .empty;
+    for (f_log_special_bits) |bits| try inputs.append(allocator, bits);
+    for (f_log_reduction_bits) |bits| try inputs.append(allocator, bits);
+    for (f_log_fallback_bits) |bits| {
+        try inputs.append(allocator, bits);
+        try inputs.append(allocator, nextDown(.f, bits));
+        try inputs.append(allocator, nextUp(.f, bits));
+    }
     sortUnique(&inputs);
     return inputs.items;
 }
@@ -432,8 +501,8 @@ fn replaceArtifacts(
     output_directory: []const u8,
     artifacts: []const GeneratedArtifact,
 ) !void {
-    var final_paths: [5][:0]u8 = undefined;
-    var temporary_paths: [5][:0]u8 = undefined;
+    var final_paths: [6][:0]u8 = undefined;
+    var temporary_paths: [6][:0]u8 = undefined;
     for (artifacts, 0..) |artifact, index| {
         const final_path = try std.fmt.allocPrint(allocator, "{s}/{s}", .{
             output_directory,
