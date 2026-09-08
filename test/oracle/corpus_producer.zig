@@ -1,4 +1,13 @@
 const std = @import("std");
+const active_build = @import("active_target_mode");
+
+comptime {
+    if (!active_build.approved_corpus_pair) {
+        @compileError(
+            "corpus producer requires target x86_64-linux-gnu.2.38, CPU haswell, mode ReleaseSafe",
+        );
+    }
+}
 
 const oracle_status_ok: c_int = 0;
 const oracle_status_unsupported: c_int = 1;
@@ -436,18 +445,16 @@ fn appendRow(
         &output_class,
     ));
 
-    if (isFiniteOutputClass(output_class)) {
-        var proof_class: c_uint = 0;
-        try requireOracleOk(zmath_testing_arb_prove_rounding(
-            operation.name(),
-            format.bridgeCode(),
-            &input_word,
-            1,
-            output_bits,
-            &proof_class,
-        ));
-        if (proof_class != output_class) return error.OracleClassMismatch;
-    }
+    var proof_class: c_uint = 0;
+    try requireOracleOk(zmath_testing_arb_prove_rounding(
+        operation.name(),
+        format.bridgeCode(),
+        &input_word,
+        1,
+        output_bits,
+        &proof_class,
+    ));
+    if (proof_class != output_class) return error.OracleClassMismatch;
 
     const class_name = try outputClassName(output_class);
     switch (format) {
@@ -477,12 +484,6 @@ fn requireOracleOk(status: c_int) ProducerError!void {
         oracle_status_uncertain => error.OracleUncertain,
         else => error.OracleError,
     };
-}
-
-fn isFiniteOutputClass(output_class: c_uint) bool {
-    return output_class == oracle_class_normal or
-        output_class == oracle_class_subnormal or
-        output_class == oracle_class_zero;
 }
 
 fn outputClassName(output_class: c_uint) ProducerError![]const u8 {
@@ -535,6 +536,7 @@ fn writeFile(path: [:0]const u8, source: []const u8) ProducerError!void {
     if (fwrite(source.ptr, 1, source.len, stream) != source.len) {
         return error.FileWriteFailed;
     }
-    if (fclose(stream) != 0) return error.FileWriteFailed;
+    const close_result = fclose(stream);
     closed = true;
+    if (close_result != 0) return error.FileWriteFailed;
 }

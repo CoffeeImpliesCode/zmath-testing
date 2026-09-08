@@ -24,7 +24,9 @@ pub fn isApprovedCorpusTarget(target: std.Target) bool {
 }
 
 pub fn isApprovedCorpusCpu(target: std.Target) bool {
-    return std.mem.eql(u8, target.cpu.model.name, approved_corpus_cpu);
+    const canonical_cpu = std.Target.x86.cpu.haswell.toCpu(.x86_64);
+    if (!std.mem.eql(u8, target.cpu.model.name, approved_corpus_cpu)) return false;
+    return target.cpu.features.eql(canonical_cpu.features);
 }
 
 pub fn isApprovedCorpusMode(optimize: std.builtin.OptimizeMode) bool {
@@ -65,6 +67,28 @@ test "corpus target qualification accepts exact glibc and CPU identity" {
     try std.testing.expect(isApprovedCorpusTarget(target));
     try std.testing.expect(isApprovedCorpusCpu(target));
     try std.testing.expect(isApprovedCorpusMode(.ReleaseSafe));
+}
+
+test "corpus target qualification rejects an added haswell feature" {
+    const query = try std.Target.Query.parse(.{
+        .arch_os_abi = approved_corpus_target,
+        .cpu_features = approved_corpus_cpu ++ "+avx512f",
+    });
+    const target = try std.zig.system.resolveTargetQuery(std.testing.io, query);
+
+    try std.testing.expect(std.mem.eql(u8, target.cpu.model.name, approved_corpus_cpu));
+    try std.testing.expect(!isApprovedCorpusCpu(target));
+}
+
+test "corpus target qualification rejects a removed haswell feature" {
+    const query = try std.Target.Query.parse(.{
+        .arch_os_abi = approved_corpus_target,
+        .cpu_features = approved_corpus_cpu ++ "-avx2",
+    });
+    const target = try std.zig.system.resolveTargetQuery(std.testing.io, query);
+
+    try std.testing.expect(std.mem.eql(u8, target.cpu.model.name, approved_corpus_cpu));
+    try std.testing.expect(!isApprovedCorpusCpu(target));
 }
 
 test "corpus target qualification rejects a different glibc version" {

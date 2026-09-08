@@ -107,42 +107,136 @@ test "MPFR log H positive zero is negative infinity" {
     try std.testing.expectEqual(class_infinity, output_class);
 }
 
-test "Arb accepts or cannot prove valid H exp candidate" {
+test "Arb proves exact H exp zero candidate" {
     const input_bits: u64 = 0x0000;
     var output_class: c_uint = 0;
-    const status = zmath_testing_arb_prove_rounding(
-        "exp",
-        format_h,
-        &input_bits,
-        1,
-        0x3c00,
-        &output_class,
+    try std.testing.expectEqual(
+        status_ok,
+        zmath_testing_arb_prove_rounding(
+            "exp",
+            format_h,
+            &input_bits,
+            1,
+            0x3c00,
+            &output_class,
+        ),
     );
+    try std.testing.expectEqual(class_normal, output_class);
+}
 
-    try std.testing.expect(status == status_ok or status == status_uncertain);
-    if (status == status_ok) {
-        try std.testing.expectEqual(class_normal, output_class);
+test "Arb applies exact policy to H log domain specials" {
+    const cases = [_]struct {
+        input_bits: u64,
+        candidate_bits: u64,
+        output_class: c_uint,
+    }{
+        .{ .input_bits = 0x0000, .candidate_bits = 0xfc00, .output_class = class_infinity },
+        .{ .input_bits = 0x8000, .candidate_bits = 0xfc00, .output_class = class_infinity },
+        .{ .input_bits = 0xbc00, .candidate_bits = 0x7e00, .output_class = class_qnan },
+        .{ .input_bits = 0x3c00, .candidate_bits = 0x0000, .output_class = class_zero },
+    };
+
+    for (cases) |case| {
+        var input_bits = case.input_bits;
+        var output_class: c_uint = 0;
+        try std.testing.expectEqual(
+            status_ok,
+            zmath_testing_arb_prove_rounding(
+                "log",
+                format_h,
+                &input_bits,
+                1,
+                case.candidate_bits,
+                &output_class,
+            ),
+        );
+        try std.testing.expectEqual(case.output_class, output_class);
     }
 }
 
-test "MPFR unary decoding and target conversion cover H F D" {
-    const input_bits: u64 = 0;
+test "bridge rejects suffixed unsupported operation names" {
+    const input_bits: u64 = 0x3c00;
     var output_bits: u64 = 0;
     var output_class: c_uint = 0;
-    const expected_bits = [_]u64{
+    const unsupported_operations = [_][*:0]const u8{ "logd", "sinf", "sind" };
+
+    for (unsupported_operations) |operation| {
+        try std.testing.expectEqual(
+            status_unsupported,
+            zmath_testing_mpfr_reference(
+                operation,
+                format_h,
+                &input_bits,
+                1,
+                &output_bits,
+                &output_class,
+            ),
+        );
+        try std.testing.expectEqual(
+            status_unsupported,
+            zmath_testing_arb_prove_rounding(
+                operation,
+                format_h,
+                &input_bits,
+                1,
+                0x3c00,
+                &output_class,
+            ),
+        );
+    }
+}
+
+test "bridge rejects malformed arity and out of range bits" {
+    const input_bits: u64 = 0x0000;
+    const second_input_bits: u64 = 0x1_0000;
+    var output_bits: u64 = 0;
+    var output_class: c_uint = 0;
+    try std.testing.expectEqual(
+        status_error,
+        zmath_testing_mpfr_reference(
+            "exp",
+            format_h,
+            &input_bits,
+            2,
+            &output_bits,
+            &output_class,
+        ),
+    );
+    try std.testing.expectEqual(
+        status_error,
+        zmath_testing_mpfr_reference(
+            "exp",
+            format_h,
+            &second_input_bits,
+            1,
+            &output_bits,
+            &output_class,
+        ),
+    );
+}
+
+test "MPFR unary exp one has exact H F D outputs" {
+    const input_bits = [_]u64{
         0x3c00,
         0x3f80_0000,
         0x3ff0_0000_0000_0000,
     };
+    const expected_bits = [_]u64{
+        0x4170,
+        0x402d_f854,
+        0x4005_bf0a_8b14_5769,
+    };
     const formats = [_]c_uint{ format_h, format_f, format_d };
+    var output_bits: u64 = 0;
+    var output_class: c_uint = 0;
 
-    for (formats, expected_bits) |format, expected| {
+    for (formats, input_bits, expected_bits) |format, input, expected| {
         try std.testing.expectEqual(
             status_ok,
             zmath_testing_mpfr_reference(
                 "exp",
                 format,
-                &input_bits,
+                &input,
                 1,
                 &output_bits,
                 &output_class,
@@ -211,44 +305,148 @@ test "Arb rejects candidate disagreement" {
     );
 }
 
-test "Arb rejects an uncertain overflow rounding boundary" {
-    const input_bits: u64 = 0x7bff;
-    var output_class: c_uint = 0;
-    try std.testing.expectEqual(
-        status_uncertain,
-        zmath_testing_arb_prove_rounding(
-            "exp",
-            format_h,
-            &input_bits,
-            1,
-            0x7c00,
-            &output_class,
-        ),
-    );
-}
-
-test "MPFR decodes finite unary H F D values" {
-    const inputs = [_]u64{
-        0x3c00,
-        0x3f80_0000,
-        0x3ff0_0000_0000_0000,
+test "Arb proves finite H F D exp overflow candidates" {
+    const cases = [_]struct {
+        format: c_uint,
+        input_bits: u64,
+        candidate_bits: u64,
+        output_class: c_uint,
+    }{
+        .{
+            .format = format_h,
+            .input_bits = 0x498c,
+            .candidate_bits = 0x7c00,
+            .output_class = class_infinity,
+        },
+        .{
+            .format = format_f,
+            .input_bits = 0x42b1_7218,
+            .candidate_bits = 0x7f80_0000,
+            .output_class = class_infinity,
+        },
+        .{
+            .format = format_d,
+            .input_bits = 0x4086_2e42_fefa_39f0,
+            .candidate_bits = 0x7ff0_0000_0000_0000,
+            .output_class = class_infinity,
+        },
+        .{
+            .format = format_h,
+            .input_bits = 0x7bff,
+            .candidate_bits = 0x7c00,
+            .output_class = class_infinity,
+        },
+        .{
+            .format = format_f,
+            .input_bits = 0x7f7f_ffff,
+            .candidate_bits = 0x7f80_0000,
+            .output_class = class_infinity,
+        },
+        .{
+            .format = format_d,
+            .input_bits = 0x7fef_ffff_ffff_ffff,
+            .candidate_bits = 0x7ff0_0000_0000_0000,
+            .output_class = class_infinity,
+        },
     };
-    const formats = [_]c_uint{ format_h, format_f, format_d };
-    var output_bits: u64 = 0;
-    var output_class: c_uint = 0;
-    for (formats, inputs) |format, input| {
+
+    for (cases) |case| {
+        var input_bits = case.input_bits;
+        var output_class: c_uint = 0;
         try std.testing.expectEqual(
             status_ok,
-            zmath_testing_mpfr_reference(
+            zmath_testing_arb_prove_rounding(
                 "exp",
-                format,
-                &input,
+                case.format,
+                &input_bits,
                 1,
-                &output_bits,
+                case.candidate_bits,
                 &output_class,
             ),
         );
-        try std.testing.expectEqual(class_normal, output_class);
-        try std.testing.expect(output_bits != 0);
+        try std.testing.expectEqual(case.output_class, output_class);
+    }
+}
+
+test "Arb proves exp results on both sides of the underflow zero tie" {
+    const cases = [_]struct {
+        format: c_uint,
+        input_bits: u64,
+        candidate_bits: u64,
+        output_class: c_uint,
+    }{
+        .{ .format = format_h, .input_bits = 0xcc55, .candidate_bits = 0x0001, .output_class = class_subnormal },
+        .{ .format = format_h, .input_bits = 0xcc56, .candidate_bits = 0x0000, .output_class = class_zero },
+        .{ .format = format_f, .input_bits = 0xc2cf_f1b4, .candidate_bits = 0x0000_0001, .output_class = class_subnormal },
+        .{ .format = format_f, .input_bits = 0xc2cf_f1b5, .candidate_bits = 0x0000_0000, .output_class = class_zero },
+        .{
+            .format = format_d,
+            .input_bits = 0xc087_4910_d52d_3051,
+            .candidate_bits = 0x0000_0000_0000_0001,
+            .output_class = class_subnormal,
+        },
+        .{
+            .format = format_d,
+            .input_bits = 0xc087_4910_d52d_3052,
+            .candidate_bits = 0x0000_0000_0000_0000,
+            .output_class = class_zero,
+        },
+    };
+
+    for (cases) |case| {
+        var input_bits = case.input_bits;
+        var output_class: c_uint = 0;
+        try std.testing.expectEqual(
+            status_ok,
+            zmath_testing_arb_prove_rounding(
+                "exp",
+                case.format,
+                &input_bits,
+                1,
+                case.candidate_bits,
+                &output_class,
+            ),
+        );
+        try std.testing.expectEqual(case.output_class, output_class);
+    }
+}
+
+test "Arb keeps incorrect exp overflow-edge candidates uncertain" {
+    const cases = [_]struct {
+        format: c_uint,
+        input_bits: u64,
+        candidate_bits: u64,
+    }{
+        .{ .format = format_h, .input_bits = 0x498b, .candidate_bits = 0x7c00 },
+        .{ .format = format_h, .input_bits = 0x498c, .candidate_bits = 0x7bff },
+        .{ .format = format_f, .input_bits = 0x42b1_7217, .candidate_bits = 0x7f80_0000 },
+        .{ .format = format_f, .input_bits = 0x42b1_7218, .candidate_bits = 0x7f7f_ffff },
+        .{
+            .format = format_d,
+            .input_bits = 0x4086_2e42_fefa_39ef,
+            .candidate_bits = 0x7ff0_0000_0000_0000,
+        },
+        .{
+            .format = format_d,
+            .input_bits = 0x4086_2e42_fefa_39f0,
+            .candidate_bits = 0x7fef_ffff_ffff_ffff,
+        },
+    };
+
+    for (cases) |case| {
+        var input_bits = case.input_bits;
+        var output_class: c_uint = class_qnan;
+        try std.testing.expectEqual(
+            status_uncertain,
+            zmath_testing_arb_prove_rounding(
+                "exp",
+                case.format,
+                &input_bits,
+                1,
+                case.candidate_bits,
+                &output_class,
+            ),
+        );
+        try std.testing.expectEqual(class_qnan, output_class);
     }
 }

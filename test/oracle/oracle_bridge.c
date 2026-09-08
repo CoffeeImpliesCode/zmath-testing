@@ -555,8 +555,8 @@ static int zmath_testing_midpoint(
     mpfr_t left;
     mpfr_t right;
 
-    mpfr_init2(left, 1024);
-    mpfr_init2(right, 1024);
+    mpfr_init2(left, ZMATH_TESTING_ORACLE_PRECISION);
+    mpfr_init2(right, ZMATH_TESTING_ORACLE_PRECISION);
     if (!zmath_testing_decode_bits(left, target, left_bits) ||
         !zmath_testing_decode_bits(right, target, right_bits)) {
         mpfr_clear(right);
@@ -569,6 +569,55 @@ static int zmath_testing_midpoint(
     mpfr_clear(left);
     return 1;
 }
+static int zmath_testing_is_infinity(
+    const zmath_testing_target_format *target,
+    uint64_t bits
+) {
+    const uint64_t exponent =
+        (bits & target->exponent_mask) >> target->fraction_bits;
+    const uint64_t exponent_all =
+        (UINT64_C(1) << target->exponent_bits) - 1;
+    return exponent == exponent_all && (bits & target->fraction_mask) == 0;
+}
+
+static int zmath_testing_is_max_finite(
+    const zmath_testing_target_format *target,
+    uint64_t bits
+) {
+    const uint64_t exponent =
+        (bits & target->exponent_mask) >> target->fraction_bits;
+    const uint64_t exponent_max = (UINT64_C(1) << target->exponent_bits) - 2;
+    return exponent == exponent_max &&
+           (bits & target->fraction_mask) == target->fraction_mask;
+}
+
+static void zmath_testing_overflow_threshold(
+    arf_t threshold,
+    arf_t negative_threshold,
+    const zmath_testing_target_format *target
+) {
+    arf_t top_power;
+    arf_t half_ulp;
+    const slong top_exponent = (slong)target->bias + 1;
+    const slong half_ulp_exponent =
+        (slong)target->bias - (slong)target->fraction_bits - 1;
+
+    arf_init(top_power);
+    arf_init(half_ulp);
+    arf_set_ui_2exp_si(top_power, 1UL, top_exponent);
+    arf_set_ui_2exp_si(half_ulp, 1UL, half_ulp_exponent);
+    (void)arf_sub(
+        threshold,
+        top_power,
+        half_ulp,
+        ZMATH_TESTING_ORACLE_PRECISION,
+        ARF_RND_NEAR
+    );
+    arf_neg(negative_threshold, threshold);
+    arf_clear(half_ulp);
+    arf_clear(top_power);
+}
+
 
 int zmath_testing_arb_prove_rounding(
     const char *op,
@@ -580,18 +629,27 @@ int zmath_testing_arb_prove_rounding(
 ) {
     zmath_testing_target_format target;
     mpfr_t input;
-    mpfr_t lower;
-    mpfr_t upper;
-    mpfr_t lower_boundary;
-    mpfr_t upper_boundary;
+    mpfr_t midpoint;
+    arf_t lower;
+    arf_t upper;
+    arf_t lower_boundary;
+    arf_t upper_boundary;
+    arf_t overflow_threshold;
+    arf_t negative_overflow_threshold;
     arb_t arb_input;
     arb_t arb_result;
     uint64_t expected_bits;
-    unsigned expected_class;
+    uint64_t special_bits;
     uint64_t lower_bits;
     uint64_t upper_bits;
-    uint64_t exponent;
-    uint64_t exponent_all;
+    unsigned expected_class;
+    unsigned special_class;
+    int candidate_infinity;
+    int candidate_max_finite;
+    int candidate_negative;
+    int has_lower_boundary;
+    int has_upper_boundary;
+    int candidate_even;
     int status;
     int proof;
 
@@ -610,38 +668,46 @@ int zmath_testing_arb_prove_rounding(
         return ZMATH_TESTING_ORACLE_UNCERTAIN;
     }
 
-    exponent_all = (UINT64_C(1) << target.exponent_bits) - 1;
-    exponent = (input_bits[0] & target.exponent_mask) >> target.fraction_bits;
-    if (exponent == exponent_all) {
-        /*
-         * NaN propagation and operation-defined infinity mappings are exact
-         * bridge semantics. Arb cannot construct an interval for a non-finite
-         * input, so the MPFR result above is the proof for these cases.
-         */
-        *output_class = expected_class;
+    /*
+     * Non-finite inputs and operation-defined domain results use the exact
+     * bridge policy. Arb proves only ordinary finite mathematical inputs.
+     */
+    if (zmath_testing_special_result(
+            &special_bits,
+            &special_class,
+            &target,
+            op,
+            input_bits[0])) {
+        if (special_bits != candidate_bits) {
+            return ZMATH_TESTING_ORACLE_UNCERTAIN;
+        }
+        *output_class = special_class;
         return ZMATH_TESTING_ORACLE_OK;
     }
-    exponent = (candidate_bits & target.exponent_mask) >> target.fraction_bits;
-    if (exponent == exponent_all ||
-        (exponent == exponent_all - 1 &&
-         (candidate_bits & target.fraction_mask) == target.fraction_mask)) {
-        /*
-         * Arb intervals do not carry a proof for infinity or the
-         * finite-to-infinity overflow boundary.
-         */
-        return ZMATH_TESTING_ORACLE_UNCERTAIN;
-    }
+
+    candidate_infinity = zmath_testing_is_infinity(&target, candidate_bits);
+    candidate_max_finite = zmath_testing_is_max_finite(&target, candidate_bits);
+    candidate_negative = (candidate_bits & target.sign_mask) != 0;
+    has_lower_boundary =
+        !candidate_infinity && !(candidate_max_finite && candidate_negative);
+    has_upper_boundary =
+        !candidate_infinity && !(candidate_max_finite && !candidate_negative);
+    candidate_even = (candidate_bits & target.fraction_mask & UINT64_C(1)) == 0;
+
     mpfr_init2(input, ZMATH_TESTING_ORACLE_PRECISION);
-    mpfr_init2(lower, ZMATH_TESTING_ORACLE_PRECISION);
-    mpfr_init2(upper, ZMATH_TESTING_ORACLE_PRECISION);
-    mpfr_init2(lower_boundary, 1024);
-    mpfr_init2(upper_boundary, 1024);
+    mpfr_init2(midpoint, ZMATH_TESTING_ORACLE_PRECISION);
+    arf_init(lower);
+    arf_init(upper);
+    arf_init(lower_boundary);
+    arf_init(upper_boundary);
+    arf_init(overflow_threshold);
+    arf_init(negative_overflow_threshold);
     arb_init(arb_input);
     arb_init(arb_result);
 
+    proof = 0;
     if (!zmath_testing_decode_bits(input, &target, input_bits[0]) ||
         !mpfr_number_p(input)) {
-        proof = 0;
         goto cleanup;
     }
 
@@ -653,33 +719,91 @@ int zmath_testing_arb_prove_rounding(
     } else if (strcmp(op, "sin") == 0) {
         arb_sin(arb_result, arb_input, ZMATH_TESTING_ORACLE_PRECISION);
     } else {
-        proof = 0;
         goto cleanup;
     }
     if (!arb_is_finite(arb_result)) {
-        proof = 0;
         goto cleanup;
     }
-    arb_get_interval_mpfr(lower, upper, arb_result);
+    arb_get_interval_arf(
+        lower,
+        upper,
+        arb_result,
+        ZMATH_TESTING_ORACLE_PRECISION
+    );
+    if (!arf_is_finite(lower) || !arf_is_finite(upper)) {
+        goto cleanup;
+    }
 
-    lower_bits = zmath_testing_next_down(&target, candidate_bits);
-    upper_bits = zmath_testing_next_up(&target, candidate_bits);
-    if (!zmath_testing_midpoint(
-            lower_boundary, &target, lower_bits, candidate_bits) ||
-        !zmath_testing_midpoint(
-            upper_boundary, &target, candidate_bits, upper_bits)) {
-        proof = 0;
-        goto cleanup;
+    if (candidate_infinity || candidate_max_finite) {
+        zmath_testing_overflow_threshold(
+            overflow_threshold,
+            negative_overflow_threshold,
+            &target
+        );
     }
-    proof = mpfr_cmp(lower, lower_boundary) > 0 &&
-            mpfr_cmp(upper, upper_boundary) < 0;
+
+    if (has_lower_boundary) {
+        lower_bits = zmath_testing_next_down(&target, candidate_bits);
+        if (!zmath_testing_midpoint(
+                midpoint,
+                &target,
+                lower_bits,
+                candidate_bits
+            )) {
+            goto cleanup;
+        }
+        arf_set_mpfr(lower_boundary, midpoint);
+    }
+    if (has_upper_boundary) {
+        upper_bits = zmath_testing_next_up(&target, candidate_bits);
+        if (!zmath_testing_midpoint(
+                midpoint,
+                &target,
+                candidate_bits,
+                upper_bits
+            )) {
+            goto cleanup;
+        }
+        arf_set_mpfr(upper_boundary, midpoint);
+    }
+
+    proof = 1;
+    if (candidate_infinity) {
+        if (candidate_negative) {
+            proof = arf_cmp(upper, negative_overflow_threshold) <= 0;
+        } else {
+            proof = arf_cmp(lower, overflow_threshold) >= 0;
+        }
+    } else if (candidate_max_finite) {
+        if (candidate_negative) {
+            proof = arf_cmp(lower, negative_overflow_threshold) > 0;
+        } else {
+            proof = arf_cmp(upper, overflow_threshold) < 0;
+        }
+    }
+    if (proof && has_lower_boundary) {
+        const int comparison = arf_cmp(lower, lower_boundary);
+        if (comparison < 0 || (comparison == 0 && !candidate_even)) {
+            proof = 0;
+        }
+    }
+    if (proof && has_upper_boundary) {
+        const int comparison = arf_cmp(upper, upper_boundary);
+        if (comparison > 0 || (comparison == 0 && !candidate_even)) {
+            proof = 0;
+        }
+    }
+
 cleanup:
     arb_clear(arb_result);
     arb_clear(arb_input);
-    mpfr_clear(upper_boundary);
-    mpfr_clear(lower_boundary);
-    mpfr_clear(upper);
-    mpfr_clear(lower);
+    arf_clear(negative_overflow_threshold);
+    arf_clear(overflow_threshold);
+    arf_clear(upper_boundary);
+    arf_clear(lower_boundary);
+    arf_clear(upper);
+    arf_clear(lower);
+    mpfr_clear(midpoint);
     mpfr_clear(input);
     if (!proof) {
         return ZMATH_TESTING_ORACLE_UNCERTAIN;

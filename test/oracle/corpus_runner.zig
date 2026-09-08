@@ -142,12 +142,6 @@ fn bridgeClass(output_class: corpus.OutputClass) DifferentialError!c_uint {
     };
 }
 
-fn isFiniteOutputClass(output_class: c_uint) bool {
-    return output_class == oracle_class_normal or
-        output_class == oracle_class_subnormal or
-        output_class == oracle_class_zero;
-}
-
 fn checkOracleStatus(status: c_int) DifferentialError!void {
     if (status == oracle_status_unsupported) return error.OracleUnsupported;
     if (status == oracle_status_error) return error.OracleError;
@@ -175,36 +169,30 @@ fn runStoredRow(row: corpus.CorpusRow) DifferentialError!void {
     ));
     if (mpfr_bits != row.output_bits) return error.StoredMismatch;
     if (mpfr_class != stored_class) return error.StoredClassMismatch;
-    if (isFiniteOutputClass(stored_class)) {
-        var proof_class: c_uint = 0;
-        try checkOracleStatus(zmath_testing_arb_prove_rounding(
-            operationName(row.operation),
-            bridgeFormat(row.format),
-            &input_word,
-            1,
-            row.output_bits,
-            &proof_class,
-        ));
-        if (proof_class != stored_class) return error.ArbProofMismatch;
-    }
+    var proof_class: c_uint = 0;
+    try checkOracleStatus(zmath_testing_arb_prove_rounding(
+        operationName(row.operation),
+        bridgeFormat(row.format),
+        &input_word,
+        1,
+        row.output_bits,
+        &proof_class,
+    ));
+    if (proof_class != stored_class) return error.ArbProofMismatch;
 }
 
-pub fn runAccepted(active_target_mode: ?corpus.TargetMode) DifferentialError!void {
-    if (embedded.artifacts.len == 0) return;
-    comptime {
-        if (embedded.artifacts.len != 0 and !active_build.approved_corpus_pair) {
-            @compileError(
-                "accepted corpus requires target x86_64-linux-gnu.2.38, CPU haswell, mode ReleaseSafe",
-            );
-        }
-    }
+fn runAcceptedArtifacts(
+    active_target_mode: ?corpus.TargetMode,
+    embedded_target_mode: ?corpus.TargetMode,
+    artifacts: []const corpus.EmbeddedArtifact,
+) DifferentialError!void {
+    if (artifacts.len == 0) return;
 
     const active_mode = active_target_mode orelse return error.TargetModeMissing;
     const manifest = corpus.parseEmbeddedManifest() catch return error.ManifestUnsupported;
-    if (embedded.target_mode) |embedded_mode| {
-        if (!embedded_mode.eql(active_mode)) return error.TargetModeMismatch;
-    }
-    for (embedded.artifacts) |embedded_artifact| {
+    const embedded_mode = embedded_target_mode orelse return error.TargetModeMissing;
+    if (!embedded_mode.eql(active_mode)) return error.TargetModeMismatch;
+    for (artifacts) |embedded_artifact| {
         const artifact = corpus.loadEmbeddedArtifact(
             &manifest,
             embedded_artifact,
@@ -219,6 +207,22 @@ pub fn runAccepted(active_target_mode: ?corpus.TargetMode) DifferentialError!voi
             try runStoredRow(row);
         }
     }
+}
+
+pub fn runAccepted(active_target_mode: ?corpus.TargetMode) DifferentialError!void {
+    if (embedded.artifacts.len == 0) return;
+    comptime {
+        if (embedded.artifacts.len != 0 and !active_build.approved_corpus_pair) {
+            @compileError(
+                "accepted corpus requires target x86_64-linux-gnu.2.38, CPU haswell, mode ReleaseSafe",
+            );
+        }
+    }
+    return runAcceptedArtifacts(
+        active_target_mode,
+        embedded.target_mode,
+        embedded.artifacts[0..],
+    );
 }
 
 pub fn run(
@@ -268,6 +272,7 @@ fn nextPrng(state: *u64) u64 {
     state.* = value;
     return value;
 }
+// This helper is an exploratory Exp campaign only; it never loads accepted rows.
 pub fn fuzzSeeded(seed: u64, sample_count: usize) DifferentialError!void {
     var state = seed;
     var index: usize = 0;
@@ -297,6 +302,130 @@ test "embedded acceptance replay is deterministic and artifact-driven" {
             .mode = active_build.mode,
         };
     try runAccepted(active_mode);
+}
+
+fn activeTargetModeForTest() corpus.TargetMode {
+    return .{
+        .target = active_build.target,
+        .cpu = active_build.cpu,
+        .mode = active_build.mode,
+    };
+}
+
+fn embeddedArtifactForTest(name: []const u8) ?corpus.EmbeddedArtifact {
+    for (embedded.artifacts) |artifact| {
+        const metadata = artifact.metadata orelse continue;
+        if (std.mem.eql(u8, metadata.artifact_name, name)) return artifact;
+    }
+    return null;
+}
+
+test "stored rows reject wrong finite and special bits and classes" {
+    try std.testing.expectError(error.RuntimeMismatch, runStoredRow(.{
+        .operation = .exp,
+        .format = .h,
+        .input_bits = 0x0000,
+        .output_bits = 0x3c01,
+        .output_class = .normal,
+        .max_ulp = 0,
+    }));
+    try std.testing.expectError(error.RuntimeClassMismatch, runStoredRow(.{
+        .operation = .exp,
+        .format = .h,
+        .input_bits = 0x0000,
+        .output_bits = 0x3c00,
+        .output_class = .zero,
+        .max_ulp = 0,
+    }));
+    try std.testing.expectError(error.RuntimeMismatch, runStoredRow(.{
+        .operation = .exp,
+        .format = .h,
+        .input_bits = 0x7c01,
+        .output_bits = 0x7e02,
+        .output_class = .qnan,
+        .max_ulp = 0,
+    }));
+    try std.testing.expectError(error.StoredClassMismatch, runStoredRow(.{
+        .operation = .exp,
+        .format = .h,
+        .input_bits = 0x7c01,
+        .output_bits = 0x7e01,
+        .output_class = .snan,
+        .max_ulp = 0,
+    }));
+}
+
+test "accepted replay rejects missing and wrong target metadata" {
+    const artifact = embeddedArtifactForTest("test/corpus/exp_f.tsv") orelse
+        return error.SkipZigTest;
+    const active_mode = activeTargetModeForTest();
+    const one_artifact = [_]corpus.EmbeddedArtifact{artifact};
+    try std.testing.expectError(
+        error.TargetModeMissing,
+        runAcceptedArtifacts(active_mode, null, one_artifact[0..]),
+    );
+    try std.testing.expectError(
+        error.TargetModeMissing,
+        runAcceptedArtifacts(null, embedded.target_mode, one_artifact[0..]),
+    );
+
+    const missing_metadata = [_]corpus.EmbeddedArtifact{.{
+        .source = artifact.source,
+        .metadata = null,
+    }};
+    try std.testing.expectError(
+        error.TargetModeMissing,
+        runAcceptedArtifacts(
+            active_mode,
+            embedded.target_mode,
+            missing_metadata[0..],
+        ),
+    );
+
+    var wrong_metadata = artifact.metadata.?;
+    wrong_metadata.target_mode.cpu = "baseline";
+    const wrong_target = [_]corpus.EmbeddedArtifact{.{
+        .source = artifact.source,
+        .metadata = wrong_metadata,
+    }};
+    try std.testing.expectError(
+        error.TargetModeMismatch,
+        runAcceptedArtifacts(
+            active_mode,
+            embedded.target_mode,
+            wrong_target[0..],
+        ),
+    );
+}
+
+test "accepted replay rejects a wrong artifact ULP" {
+    const artifact = embeddedArtifactForTest("test/corpus/exp_f.tsv") orelse
+        return error.SkipZigTest;
+    const source = try std.testing.allocator.dupe(u8, artifact.source);
+    defer std.testing.allocator.free(source);
+    const max_ulp_marker = std.mem.indexOf(u8, source, "\t0\n") orelse
+        @panic("exp/f fixture has no zero-ULP row");
+    source[max_ulp_marker + 1] = '1';
+    const wrong_ulp = [_]corpus.EmbeddedArtifact{.{
+        .source = source,
+        .metadata = artifact.metadata,
+    }};
+    try std.testing.expectError(
+        error.ArtifactRejected,
+        runAcceptedArtifacts(
+            activeTargetModeForTest(),
+            embedded.target_mode,
+            wrong_ulp[0..],
+        ),
+    );
+}
+
+test "differential execution fails closed on oracle errors" {
+    try std.testing.expectError(error.OracleError, run(.exp, .h, 0x1_0000));
+}
+
+test "differential execution proves finite overflow results" {
+    try run(.exp, .h, 0x7bff);
 }
 
 test "unsupported sin formats do not dispatch" {

@@ -303,6 +303,16 @@ pub fn build(b: *std.Build) void {
             benchmark_target_info.isApprovedCorpusCpu(target.result) and
             benchmark_target_info.isApprovedCorpusMode(optimize),
     );
+    benchmark_options.addOption([]const u8, "corpus_target", corpus_target);
+    benchmark_options.addOption([]const u8, "corpus_cpu", corpus_cpu);
+    benchmark_options.addOption([]const u8, "corpus_mode", corpus_mode);
+    benchmark_options.addOption(
+        bool,
+        "approved_corpus_pair",
+        benchmark_target_info.isApprovedCorpusTarget(target.result) and
+            benchmark_target_info.isApprovedCorpusCpu(target.result) and
+            benchmark_target_info.isApprovedCorpusMode(optimize),
+    );
 
     const zmath_dependency = b.dependency("zmath", .{
         .target = target,
@@ -330,6 +340,15 @@ pub fn build(b: *std.Build) void {
     enableCoverage(coverage, coverage_runtime, suffix_tests);
     const run_suffix_tests = b.addRunArtifact(suffix_tests);
 
+    const benchmark_target_module = b.createModule(.{
+        .root_source_file = b.path("bench/targets.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    const benchmark_target_tests = b.addTest(.{ .root_module = benchmark_target_module });
+    enableCoverage(coverage, coverage_runtime, benchmark_target_tests);
+    const run_benchmark_target_tests = b.addRunArtifact(benchmark_target_tests);
+
     const target_policy_module = b.createModule(.{
         .root_source_file = b.path("bench/target_info.zig"),
         .target = target,
@@ -341,7 +360,7 @@ pub fn build(b: *std.Build) void {
 
     const test_step = b.step("test", "Run public zmath integration tests");
     test_step.dependOn(&run_target_policy_tests.step);
-
+    test_step.dependOn(&run_benchmark_target_tests.step);
     test_step.dependOn(&run_integration_tests.step);
     test_step.dependOn(&run_suffix_tests.step);
 
@@ -439,6 +458,8 @@ pub fn build(b: *std.Build) void {
         .optimize = .ReleaseSafe,
         .link_libc = true,
     });
+    corpus_producer_module.addOptions("active_target_mode", active_options);
+
     corpus_producer_module.addCSourceFile(.{
         .file = b.path("test/oracle/oracle_bridge.c"),
         .flags = &.{"-std=c11"},
@@ -459,17 +480,46 @@ pub fn build(b: *std.Build) void {
     );
     corpus_producer_step.dependOn(&run_corpus_producer.step);
 
+    // Zig 0.16's built-in fuzzer expects every __sancov_cntrs byte to have
+    // one entry in Zig's __sancov_pcs1. Clang writes two-word C records to
+    // __sancov_pcs while sharing __sancov_cntrs, so mixed Zig/C fuzz-mode
+    // compilation violates that invariant. This campaign is intentionally
+    // Exp-only: use the same dependency source without zmath's C kernel
+    // link objects, and compile only the MPFR/Arb oracle bridge separately.
+    // A future C-backed campaign must use a supported C coverage layout; this
+    // module deliberately omits those kernels so an accidental C-backed call
+    // fails at link time instead of silently losing kernel coverage.
+    const zmath_exp_fuzz_module = b.createModule(.{
+        .root_source_file = zmath_dependency.path("src/root.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    const oracle_fuzz_bridge_module = b.createModule(.{
+        .target = target,
+        .optimize = optimize,
+        .fuzz = false,
+        .link_libc = true,
+    });
+    oracle_fuzz_bridge_module.addCSourceFile(.{
+        .file = b.path("test/oracle/oracle_bridge.c"),
+        .flags = &.{"-std=c11"},
+    });
+    oracle_fuzz_bridge_module.addIncludePath(b.path("test/oracle"));
+    const oracle_fuzz_bridge = b.addLibrary(.{
+        .name = "oracle-fuzz-bridge",
+        .root_module = oracle_fuzz_bridge_module,
+    });
+
     const corpus_runner_module = b.createModule(.{
         .root_source_file = b.path("test/oracle/corpus_runner.zig"),
         .target = target,
         .optimize = optimize,
         .imports = &.{
-            .{ .name = "zmath", .module = zmath_module },
+            .{ .name = "zmath", .module = zmath_exp_fuzz_module },
             .{ .name = "corpus_support", .module = corpus_support_module },
             .{ .name = "corpus_artifacts", .module = corpus_artifacts_module },
         },
         .link_libc = true,
-        .fuzz = true,
     });
     corpus_runner_module.addOptions("active_target_mode", active_options);
 
@@ -478,13 +528,13 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
         .imports = &.{
-            .{ .name = "zmath", .module = zmath_module },
+            .{ .name = "zmath", .module = zmath_exp_fuzz_module },
             .{ .name = "corpus_support", .module = corpus_support_module },
             .{ .name = "corpus_runner", .module = corpus_runner_module },
         },
         .link_libc = true,
-        .fuzz = true,
     });
+    oracle_fuzz_module.linkLibrary(oracle_fuzz_bridge);
     oracle_fuzz_module.linkSystemLibrary("mpfr", .{});
     oracle_fuzz_module.linkSystemLibrary("gmp", .{});
     oracle_fuzz_module.linkSystemLibrary("flint", .{});
@@ -506,15 +556,38 @@ pub fn build(b: *std.Build) void {
         "targets.zig",
     );
     _ = benchmark_package.addCopyFile(
+        b.path("test/corpus/exp_h.tsv"),
+        "exp_h.tsv",
+    );
+    _ = benchmark_package.addCopyFile(
+        b.path("test/corpus/exp_f.tsv"),
+        "exp_f.tsv",
+    );
+    _ = benchmark_package.addCopyFile(
+        b.path("test/corpus/exp_d.tsv"),
+        "exp_d.tsv",
+    );
+    _ = benchmark_package.addCopyFile(
+        b.path("test/corpus/log_h.tsv"),
+        "log_h.tsv",
+    );
+    _ = benchmark_package.addCopyFile(
         b.path("test/corpus/log_f.tsv"),
         "log_f.tsv",
+    );
+    _ = benchmark_package.addCopyFile(
+        b.path("test/corpus/sin_h.tsv"),
+        "sin_h.tsv",
     );
 
     const benchmark_module = b.createModule(.{
         .root_source_file = benchmark_root,
         .target = target,
         .optimize = optimize,
-        .imports = &.{.{ .name = "zmath", .module = zmath_module }},
+        .imports = &.{
+            .{ .name = "zmath", .module = zmath_module },
+            .{ .name = "corpus_support", .module = corpus_support_module },
+        },
     });
     benchmark_module.addOptions("benchmark_target", benchmark_options);
     const benchmark = b.addExecutable(.{
@@ -527,4 +600,27 @@ pub fn build(b: *std.Build) void {
     const run_benchmark = b.addRunArtifact(benchmark);
     const run_bench_step = b.step("run-bench", "Run public zmath benchmarks");
     run_bench_step.dependOn(&run_benchmark.step);
+
+    const power_module = b.createModule(.{
+        .root_source_file = b.path("bench/power_resource.zig"),
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{.{ .name = "zmath", .module = zmath_module }},
+    });
+    const power_executable = b.addExecutable(.{
+        .name = "zmath-power-resource",
+        .root_module = power_module,
+    });
+    const install_power = b.addInstallArtifact(power_executable, .{});
+    const bench_power_step = b.step(
+        "bench-power",
+        "Build and install the power resource benchmark",
+    );
+    bench_power_step.dependOn(&install_power.step);
+
+    const run_power = b.addRunArtifact(power_executable);
+    run_power.step.dependOn(&install_power.step);
+    if (b.args) |args| run_power.addArgs(args);
+    const run_power_step = b.step("run-power", "Run the power resource benchmark");
+    run_power_step.dependOn(&run_power.step);
 }
