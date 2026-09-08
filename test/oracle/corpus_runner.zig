@@ -194,7 +194,7 @@ pub fn runAccepted(active_target_mode: ?corpus.TargetMode) DifferentialError!voi
     comptime {
         if (embedded.artifacts.len != 0 and !active_build.approved_corpus_pair) {
             @compileError(
-                "accepted corpus requires target x86_64-linux-gnu, CPU haswell, mode ReleaseSafe",
+                "accepted corpus requires target x86_64-linux-gnu.2.38, CPU haswell, mode ReleaseSafe",
             );
         }
     }

@@ -1,21 +1,6 @@
 const std = @import("std");
 const benchmark_targets = @import("bench/targets.zig");
 const benchmark_target_info = @import("bench/target_info.zig");
-
-const approved_corpus_target = "x86_64-linux-gnu";
-const approved_corpus_cpu = "haswell";
-const approved_corpus_mode = "ReleaseSafe";
-
-fn isApprovedCorpusTarget(target: std.Target) bool {
-    return target.cpu.arch == .x86_64 and
-        target.os.tag == .linux and
-        target.abi == .gnu;
-}
-
-fn isApprovedCorpusCpu(target: std.Target) bool {
-    return std.mem.eql(u8, target.cpu.model.name, approved_corpus_cpu);
-}
-
 const ArtifactAcceptance = struct {
     operation: []const u8,
     format: u8,
@@ -297,13 +282,12 @@ pub fn build(b: *std.Build) void {
     benchmark_options.addOption([]const u8, "optimize", bench_info.optimize);
     const coverage = b.option(bool, "coverage", "Enable zig-cov instrumentation") orelse false;
     const coverage_runtime = b.option([]const u8, "coverage-rt", "Path to zig-cov runtime object");
-    const actual_mode = @tagName(optimize);
-    const active_target = approved_corpus_target;
-    const active_cpu = approved_corpus_cpu;
-    const active_mode = approved_corpus_mode;
-    const corpus_target = approved_corpus_target;
-    const corpus_cpu = approved_corpus_cpu;
-    const corpus_mode = approved_corpus_mode;
+    const active_target = bench_info.target_triple;
+    const active_cpu = target.result.cpu.model.name;
+    const active_mode = @tagName(optimize);
+    const corpus_target = active_target;
+    const corpus_cpu = active_cpu;
+    const corpus_mode = active_mode;
     const active_options = b.addOptions();
     active_options.addOption(
         []const u8,
@@ -315,9 +299,9 @@ pub fn build(b: *std.Build) void {
     active_options.addOption(
         bool,
         "approved_corpus_pair",
-        isApprovedCorpusTarget(target.result) and
-            isApprovedCorpusCpu(target.result) and
-            std.mem.eql(u8, actual_mode, approved_corpus_mode),
+        benchmark_target_info.isApprovedCorpusTarget(target.result) and
+            benchmark_target_info.isApprovedCorpusCpu(target.result) and
+            benchmark_target_info.isApprovedCorpusMode(optimize),
     );
 
     const zmath_dependency = b.dependency("zmath", .{
@@ -346,7 +330,18 @@ pub fn build(b: *std.Build) void {
     enableCoverage(coverage, coverage_runtime, suffix_tests);
     const run_suffix_tests = b.addRunArtifact(suffix_tests);
 
+    const target_policy_module = b.createModule(.{
+        .root_source_file = b.path("bench/target_info.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    const target_policy_tests = b.addTest(.{ .root_module = target_policy_module });
+    enableCoverage(coverage, coverage_runtime, target_policy_tests);
+    const run_target_policy_tests = b.addRunArtifact(target_policy_tests);
+
     const test_step = b.step("test", "Run public zmath integration tests");
+    test_step.dependOn(&run_target_policy_tests.step);
+
     test_step.dependOn(&run_integration_tests.step);
     test_step.dependOn(&run_suffix_tests.step);
 
