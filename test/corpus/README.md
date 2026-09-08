@@ -70,6 +70,12 @@ max_ulp = 0
 claim. It does not state that the corresponding zmath symbol is absent.
 Source presence and provenance do not change row status.
 
+Implementation, manifest acceptance, corpus evidence, and whole-domain proof are
+separate facts. Source exports establish implementation only. A `correct` or
+`bounded` row establishes manifest acceptance only. Corpus evidence covers the
+stored rows. Whole-domain proof requires exhaustive inputs or a separate proof
+for the complete operation-format domain.
+
 ## Corpus artifacts
 
 Schema version 2 ships no corpus artifact for an unsupported row. The checked-in
@@ -89,6 +95,8 @@ bits. Bit fields use fixed-width lowercase hexadecimal text without `0x`.
 Output classes are `normal`, `subnormal`, `zero`, `infinity`, and `qnan`.
 Special values require exact target-format bits. Finite candidates require
 MPFR at 512 bits and an Arb interval that rounds uniquely to the same bits.
+`max_ulp` is canonical unsigned decimal text. Correct rows require `0`.
+Bounded rows permit any non-negative `max_ulp`, including `0`.
 Producers must fail on uncertainty or disagreement and must not use host `libm`,
 `fenv`, or `errno` to choose an output.
 
@@ -105,15 +113,14 @@ Every artifact is bound to exactly one manifest operation-format row. The row
 must have status `correct` or `bounded`; an `unsupported` row cannot load an
 artifact. The artifact name, operation, format, fixed-width bits, ordering,
 uniqueness, output class, and `max_ulp` must agree with the manifest. Missing,
-duplicate, or ambiguous manifest bindings are errors. No artifact is checked
-in while all rows remain `unsupported`.
+duplicate, or ambiguous manifest bindings are errors.
 
 Target, CPU, and optimize mode are artifact metadata, not TSV columns. Acceptance
 requires an explicit `TargetMode` record on each embedded artifact and an active
 record from the caller/build. The accepted evidence tuple is immutable:
 
 ```text
-target = x86_64-linux-gnu
+target = x86_64-linux-gnu.2.38
 cpu = haswell
 optimize = ReleaseSafe
 ```
@@ -122,6 +129,19 @@ The build records this exact tuple in embedded metadata. The oracle runner
 rejects missing metadata and rejects any target, CPU, or optimize-mode mismatch.
 No other target profile can replay an accepted artifact.
 
+The exact replay command is:
+
+```text
+zig build oracle -Dtarget=x86_64-linux-gnu.2.38 -Dcpu=haswell -Doptimize=ReleaseSafe
+```
+
+The benchmark commands use the same qualified profile:
+
+```text
+zig build bench -Dbench-target=scalar-log-f -Dtarget=x86_64-linux-gnu.2.38 -Dcpu=haswell -Doptimize=ReleaseSafe
+zig build run-bench -Dbench-target=scalar-log-f -Dtarget=x86_64-linux-gnu.2.38 -Dcpu=haswell -Doptimize=ReleaseSafe
+```
+
 Exploratory fuzzing is a separate surface. A caller must provide a fixed seed
 to the seeded fuzz helper, and a fuzz campaign must preserve its seed,
 compiler, source, budget, and callback request order. Fuzz inputs never become
@@ -129,9 +149,14 @@ accepted TSV rows automatically.
 
 ## Corpus producer
 
-The test-only producer runs with `zig build generate-corpus`. It links the
-existing MPFR and Arb bridge. It writes temporary files and renames them only
-after all six artifacts pass the oracle checks.
+The test-only producer runs with the qualified target profile:
+
+```text
+zig build generate-corpus -Dtarget=x86_64-linux-gnu.2.38 -Dcpu=haswell -Doptimize=ReleaseSafe
+```
+
+It links the existing MPFR and Arb bridge. It writes temporary files and renames
+them only after all six accepted artifacts pass the oracle checks.
 
 The producer writes these immutable artifacts:
 
@@ -146,8 +171,12 @@ The producer writes these immutable artifacts:
   adjacent-to-one values, and nine CORE-MATH fallback/low-correction vectors
   with each vector's immediate predecessor and successor. Inputs are sorted
   and deduplicated.
+
 - `sin_h.tsv`: 65,536 data rows. It covers every unsigned binary16
   encoding in numeric order.
+The H artifacts are exhaustive over their unary binary16 domains.
+The F and D artifacts are deterministic selected-case corpora. They provide
+evidence for stored inputs only and do not prove their whole domains.
 
 The F and D boundary sets each contain the 18 inputs from the deterministic
 Task 3 campaign. The producer adds exact special values, every F and D input

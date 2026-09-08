@@ -374,6 +374,11 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+    const corpus_support_tests = b.addTest(.{ .root_module = corpus_support_module });
+    enableCoverage(coverage, coverage_runtime, corpus_support_tests);
+    const run_corpus_support_tests = b.addRunArtifact(corpus_support_tests);
+    test_step.dependOn(&run_corpus_support_tests.step);
+
     const corpus_artifacts_module = b.createModule(.{
         .root_source_file = corpus_artifacts_root,
         .target = target,

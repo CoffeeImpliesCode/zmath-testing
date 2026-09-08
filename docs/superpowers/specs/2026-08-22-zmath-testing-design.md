@@ -13,13 +13,54 @@
 
 ## Build surfaces
 
-`build.zig` will expose these top-level steps:
+`build.zig` exposes these top-level steps:
 
 - `test`: portable public-API integration tests. No external oracle library is linked.
-- `oracle`: numerical comparisons against MPFR and Arb/FLINT. These adapters are isolated from integration tests and benchmarks.
+- `oracle`: deterministic replay and numerical comparison against MPFR and Arb/FLINT. These adapters are isolated from integration tests and benchmarks.
+- `oracle-fuzz`: explicitly seeded exploratory differential fuzzing. It does not change manifest status or accepted TSV rows.
 - `bench`: one executable per public numerical surface. Benchmarks do not link MPFR or Arb.
+- `generate-corpus`: test-only production of immutable MPFR/Arb-checked TSV artifacts.
 
-The workspace uses a devenv environment that provides Zig, GMP, MPFR, and FLINT/Arb. Oracle dependencies are development-only and never become zmath runtime dependencies.
+The workspace uses a devenv environment that provides Zig, GMP, MPFR, and FLINT/Arb.
+Oracle dependencies are development-only and never become zmath runtime dependencies.
+
+The accepted scalar profile is exactly target `x86_64-linux-gnu.2.38`, CPU
+`haswell`, and optimize mode `ReleaseSafe`.
+Acceptance producer, replay, and benchmark commands must name this profile:
+
+```text
+zig build generate-corpus -Dtarget=x86_64-linux-gnu.2.38 -Dcpu=haswell -Doptimize=ReleaseSafe
+zig build oracle -Dtarget=x86_64-linux-gnu.2.38 -Dcpu=haswell -Doptimize=ReleaseSafe
+zig build bench -Dbench-target=scalar-log-f -Dtarget=x86_64-linux-gnu.2.38 -Dcpu=haswell -Doptimize=ReleaseSafe
+zig build run-bench -Dbench-target=scalar-log-f -Dtarget=x86_64-linux-gnu.2.38 -Dcpu=haswell -Doptimize=ReleaseSafe
+```
+
+The benchmark commands measure performance only. They do not change manifest
+acceptance or provide numerical proof.
+
+## Current scalar contract
+
+The schema-v2 manifest has 315 sorted typed rows.
+Exactly six pairs are accepted: `exp/h`, `exp/f`, `exp/d`, `log/h`, `log/f`,
+and `sin/h`.
+The remaining 309 rows are `unsupported`.
+
+Schema version 2 keeps `max_ulp` as a non-negative unsigned value.
+Correct rows require `max_ulp = 0`.
+Bounded rows permit any non-negative value, including zero.
+This integration does not change the schema version.
+
+Implementation, manifest acceptance, corpus evidence, and whole-domain proof
+are separate facts.
+An exported zmath symbol proves implementation only.
+A `correct` or `bounded` manifest row proves acceptance only.
+An immutable corpus proves its stored inputs only.
+Whole-domain proof requires exhaustive inputs or a separate proof for the full
+operation-format domain.
+
+The H artifacts enumerate all binary16 inputs for their unary operations.
+The F and D artifacts are deterministic selected-case corpora. They do not
+prove whole-domain correctness for binary32 or binary64.
 
 ## Test structure
 
@@ -31,7 +72,10 @@ test/
 bench/            isolated benchmark executables
 ```
 
-The current zmath scaffold exports no numerical functions. Initial oracle adapters therefore need only compile and run a smoke check. Function-level comparisons are added with each exported zmath numerical function.
+Test and benchmark code imports only zmath's public package module.
+The current scalar acceptance lane uses the six accepted manifest pairs.
+Future pairs remain `unsupported` until implementation, corpus evidence, and a
+manifest update satisfy the schema-v2 contract.
 
 ## Algebra policy
 
@@ -54,39 +98,54 @@ Each surface gets handwritten law tests and an independent benchmark executable.
 
 ## Differential fuzzing policy
 
-The oracle target has two complementary differential-test surfaces:
+The oracle and fuzz surfaces have different roles:
 
-- `oracle`: a deterministic, seeded campaign. It replays committed regression inputs,
-  exhausts every `f16` input when a function is enabled, and samples weighted raw-bit
-  `f32` and `f64` inputs. This is the normal CI-quality check.
-- `fuzz`: Zig's coverage-guided `std.testing.fuzz` runner. It is an explicit,
-  long-running local target. Reproducibility requires the same source, compiler,
-  corpus, `--fuzz` budget, and `--seed`.
+- `oracle` deterministically replays immutable TSV rows for the six accepted pairs. It exhausts all `65,536` binary16 inputs for each accepted H row and replays selected F and D rows. F and D rows are samples of their domains, not whole-domain proof.
+- `oracle-fuzz` is an explicitly seeded exploratory differential campaign. It may sample weighted raw-bit `f32` and `f64` inputs, but it never changes manifest status or accepted TSV rows.
 
-Both surfaces use `std.testing.Smith.value(u16/u32/u64)` and `@bitCast` to generate
-IEEE inputs. They call the typed public zmath function, then the MPFR bridge. Output
-bits and class must match exactly. For finite output, Arb must certify that the MPFR
-rounded result is unique. `ERROR` and `UNCERTAIN` fail the test; only manifest-disabled
-functions may return `UNSUPPORTED`, and they must not dispatch to zmath or the bridge.
+The oracle replay decodes fixed-width inputs and calls the typed public zmath
+function. It compares runtime bits, stored bits, MPFR bits, output classes, and
+the Arb unique-rounding proof. `ERROR` and `UNCERTAIN` fail the replay.
+Unsupported functions do not dispatch to zmath or the bridge.
 
-Zig fuzzer crash files are preserved verbatim because Smith inputs are structured
-streams, not raw scalar bit patterns. Committed replay data embeds those files through
-`FuzzInputOptions.corpus`. Each fixture is valid only while its callback's request order
-and types remain unchanged. A separate, generated failure sidecar records operation,
-format, input bits, runtime bits, MPFR bits, seed, and certification status. It never
-modifies the accepted oracle TSV corpus.
+The fuzz surface uses `std.testing.Smith.value(u16/u32/u64)` and `@bitCast` to
+generate IEEE inputs. Reproducibility requires the same source, compiler, fuzz
+budget, seed, and callback request order.
 
-The manifest status map is parsed once and drives dispatch. No hard-coded function
-status table may duplicate it.
+Zig fuzzer crash files are preserved verbatim because Smith inputs are
+structured streams, not raw scalar bit patterns. Committed replay data embeds
+those files through `FuzzInputOptions.corpus`. Each fixture is valid only while
+its callback's request order and types remain unchanged. A separate generated
+failure sidecar records operation, format, input bits, runtime bits, MPFR bits,
+seed, and certification status. It never modifies the accepted oracle TSV corpus.
+
+The manifest status map is parsed once and drives dispatch. No hard-coded
+function status table may duplicate it.
+
+
+## Integration dispositions
+
+The broad C23 campaign and evaluator branch remains preserved at the
+`preserve-c23-campaigns` bookmark.
+Only strict manifest and schema rejection regressions move into this acceptance
+lane.
+Descriptor runtime and broad campaign files remain outside that migration.
+
+The obsolete approximate `atan2` split and its invalid audit constants are
+superseded by the canonical `Atan2Result(T)` wrappers, direct CORE-MATH kernels,
+and migrated regression cases.
+The current `lgamma` contract returns `+infinity` at zero and finite negative
+integer poles. It returns sign `-1` at those poles and keeps the pure-value
+contract without `errno` or hidden sign state.
 
 ## Verification
 
 After implementation:
+
 1. `zig build test` proves the sibling zmath module imports through its public package boundary.
-2. `zig build oracle` proves the deterministic MPFR/Arb differential campaign.
-3. `zig build oracle-fuzz --fuzz=100K --seed 0x1234` runs a reproducible bounded
-   coverage-guided differential campaign on a supported Zig development toolchain.
-4. `devenv shell -- coverage` runs `zig-cov` under the pinned 0.17-dev coverage
-   toolchain. Delivery builds and normal oracle tests remain pinned to Zig 0.16.0.
-5. `zig build bench` builds benchmark executables without linking oracle libraries.
-6. The workspace status is clean after the focused Jujutsu commit.
+2. `zig build oracle -Dtarget=x86_64-linux-gnu.2.38 -Dcpu=haswell -Doptimize=ReleaseSafe` replays the accepted MPFR/Arb corpus.
+3. `zig build oracle-fuzz --fuzz=100K --seed 0x1234 -Dtarget=x86_64-linux-gnu.2.38 -Dcpu=haswell -Doptimize=ReleaseSafe` runs a reproducible exploratory campaign.
+4. `devenv shell -- coverage` runs `zig-cov` under the pinned 0.17-dev coverage toolchain. Delivery builds and normal oracle tests remain pinned to Zig 0.16.0.
+5. `zig build bench -Dbench-target=scalar-log-f -Dtarget=x86_64-linux-gnu.2.38 -Dcpu=haswell -Doptimize=ReleaseSafe` builds the scalar benchmark without oracle libraries.
+6. `zig build run-bench -Dbench-target=scalar-log-f -Dtarget=x86_64-linux-gnu.2.38 -Dcpu=haswell -Doptimize=ReleaseSafe` runs the scalar benchmark.
+7. The workspace status is clean after the focused Jujutsu commit.

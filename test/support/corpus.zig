@@ -1655,9 +1655,199 @@ fn validateSorted(previous: SortKey, current: SortKey) ValidationError!void {
     if (current.input_bits == previous.input_bits) return error.DuplicateCorpusRow;
 }
 
-test "embedded manifest contains all schema-v2 rows" {
+const test_tsv_header =
+    "op\tformat\tinput_bits\toutput_bits\toutput_class\tmax_ulp\n";
+
+const qualified_target_mode = TargetMode{
+    .target = "x86_64-linux-gnu.2.38",
+    .cpu = "haswell",
+    .mode = "ReleaseSafe",
+};
+
+const exp_f_artifact_metadata = ArtifactMetadata{
+    .artifact_name = "test/corpus/exp_f.tsv",
+    .target_mode = qualified_target_mode,
+    .required_row_count = 29,
+};
+
+const exp_h_function_prefix =
+    "[[function]]\n" ++
+    "op = \"exp\"\n" ++
+    "provenance = [\"zmath\"]\n";
+const exp_h_function_suffix =
+    "arity = 1\n" ++
+    "inputs = [\"float:h\"]\n" ++
+    "result = \"float:h\"\n" ++
+    "oracle = \"mpfr_arb\"\n" ++
+    "special_policy = \"zmath_c23_v1\"\n";
+const exp_h_correct_zero =
+    exp_h_function_prefix ++
+    "status = \"correct\"\n" ++
+    exp_h_function_suffix ++
+    "max_ulp = 0\n";
+const exp_h_correct_one =
+    exp_h_function_prefix ++
+    "status = \"correct\"\n" ++
+    exp_h_function_suffix ++
+    "max_ulp = 1\n";
+const exp_h_bounded_zero =
+    exp_h_function_prefix ++
+    "status = \"bounded\"\n" ++
+    exp_h_function_suffix ++
+    "max_ulp = 0\n";
+const exp_h_bounded_negative =
+    exp_h_function_prefix ++
+    "status = \"bounded\"\n" ++
+    exp_h_function_suffix ++
+    "max_ulp = -1\n";
+
+fn replaceTextForTest(
+    input: []const u8,
+    needle: []const u8,
+    replacement: []const u8,
+    output: []u8,
+) []const u8 {
+    const index = std.mem.indexOf(u8, input, needle) orelse
+        @panic("test fixture needle missing");
+    const suffix_start = index + needle.len;
+    const output_len = index + replacement.len + input.len - suffix_start;
+    if (output_len > output.len) @panic("test fixture replacement exceeds buffer");
+    @memcpy(output[0..index], input[0..index]);
+    @memcpy(output[index .. index + replacement.len], replacement);
+    @memcpy(output[index + replacement.len .. output_len], input[suffix_start..]);
+    return output[0..output_len];
+}
+
+fn expectManifestReplacementError(
+    expected_error: ValidationError,
+    needle: []const u8,
+    replacement: []const u8,
+) !void {
+    var source: [manifest_text.len + 512]u8 = undefined;
+    const malformed = replaceTextForTest(manifest_text, needle, replacement, &source);
+    try std.testing.expectError(expected_error, validateManifest(malformed));
+}
+
+fn mutableFunctionRowForTest(
+    manifest: *Manifest,
+    operation: Operation,
+    format: Format,
+) *FunctionRow {
+    const manifest_operation = operation.manifestOperation();
+    const function_count: usize = manifest.function_count;
+    for (manifest.functions[0..function_count]) |*function| {
+        if (function.operation == manifest_operation and function.format == format) {
+            return function;
+        }
+    }
+    @panic("test manifest function missing");
+}
+
+test "embedded manifest contains 315 rows and six accepted artifact bindings" {
     const manifest = try parseEmbeddedManifest();
     try std.testing.expectEqual(@as(usize, 315), manifest.functionCount());
+
+    var accepted_count: usize = 0;
+    for (manifest.functionRows()) |function| {
+        if (function.status != .unsupported) accepted_count += 1;
+    }
+    try std.testing.expectEqual(@as(usize, 6), accepted_count);
+
+    const expected_bindings = [_]struct {
+        operation: Operation,
+        format: Format,
+    }{
+        .{ .operation = .exp, .format = .h },
+        .{ .operation = .exp, .format = .f },
+        .{ .operation = .exp, .format = .d },
+        .{ .operation = .log, .format = .h },
+        .{ .operation = .log, .format = .f },
+        .{ .operation = .sin, .format = .h },
+    };
+    for (expected_bindings) |binding| {
+        try std.testing.expectEqual(
+            FunctionStatus.correct,
+            manifest.functionStatus(binding.operation, binding.format).?,
+        );
+    }
+}
+
+test "manifest rejects unknown and duplicate root keys" {
+    try expectManifestReplacementError(
+        error.UnknownRootKey,
+        "rounding = \"nearest_even\"\n",
+        "mystery = \"nearest_even\"\n",
+    );
+    try expectManifestReplacementError(
+        error.DuplicateRootKey,
+        "schema_version = 2\n",
+        "schema_version = 2\nschema_version = 2\n",
+    );
+}
+
+test "manifest rejects missing unknown and duplicate function keys" {
+    try expectManifestReplacementError(
+        error.MissingFunctionKey,
+        "max_ulp = 0\n\n[[function]]",
+        "\n[[function]]",
+    );
+    try expectManifestReplacementError(
+        error.UnknownFunctionKey,
+        "max_ulp = 0\n\n[[function]]",
+        "max_ulp = 0\nmystery = \"value\"\n\n[[function]]",
+    );
+    try expectManifestReplacementError(
+        error.DuplicateFunctionKey,
+        "op = \"abs\"\n",
+        "op = \"abs\"\nop = \"abs\"\n",
+    );
+}
+
+test "manifest rejects duplicate and descending function signatures" {
+    try expectManifestReplacementError(
+        error.DuplicateFunctionRow,
+        exp_h_correct_zero,
+        exp_h_correct_zero ++ "\n" ++ exp_h_bounded_zero,
+    );
+    try expectManifestReplacementError(
+        error.UnsortedFunctionRow,
+        "op = \"acospi\"\n" ++
+            "provenance = [\"zmath\", \"core_math\"]\n" ++
+            "status = \"unsupported\"\n" ++
+            "arity = 1\n" ++
+            "inputs = [\"float:f\"]\n",
+        "op = \"abs\"\n" ++
+            "provenance = [\"zmath\", \"core_math\"]\n" ++
+            "status = \"unsupported\"\n" ++
+            "arity = 1\n" ++
+            "inputs = [\"float:f\"]\n",
+    );
+}
+
+test "manifest enforces exact correct and nonnegative bounded max ULP relations" {
+    try expectManifestReplacementError(
+        error.InvalidStatusRelation,
+        exp_h_correct_zero,
+        exp_h_correct_one,
+    );
+
+    var bounded_source: [manifest_text.len + 512]u8 = undefined;
+    const bounded_text = replaceTextForTest(
+        manifest_text,
+        exp_h_correct_zero,
+        exp_h_bounded_zero,
+        &bounded_source,
+    );
+    const bounded_manifest = try parseManifest(bounded_text);
+    const bounded = bounded_manifest.functionRow(.exp, .h).?;
+    try std.testing.expectEqual(FunctionStatus.bounded, bounded.status);
+    try std.testing.expectEqual(@as(u64, 0), bounded.max_ulp);
+
+    try expectManifestReplacementError(
+        error.InvalidMaxUlp,
+        exp_h_correct_zero,
+        exp_h_bounded_negative,
+    );
 }
 
 test "manifest rejects unknown function status" {
@@ -1685,19 +1875,39 @@ test "TSV rejects unknown operations and output classes" {
     );
 }
 
+test "TSV enforces fixed-width sorted unique six-column tuples" {
+    try std.testing.expectError(
+        error.WrongColumnCount,
+        validateTsv(test_tsv_header ++ "exp\th\t0000\t0000\tzero\n"),
+    );
+    try std.testing.expectError(
+        error.InvalidHexWidth,
+        validateTsv(test_tsv_header ++ "exp\th\t000\t0000\tzero\t0\n"),
+    );
+    try std.testing.expectError(
+        error.UnsortedCorpusRow,
+        validateTsv(
+            test_tsv_header ++
+                "exp\th\t0001\t0000\tzero\t0\n" ++
+                "exp\th\t0000\t0000\tzero\t0\n",
+        ),
+    );
+    try std.testing.expectError(
+        error.DuplicateCorpusRow,
+        validateTsv(
+            test_tsv_header ++
+                "exp\th\t0000\t0000\tzero\t0\n" ++
+                "exp\th\t0000\t0000\tzero\t0\n",
+        ),
+    );
+}
+
 test "artifact loading requires explicit target, CPU, and mode metadata" {
     const manifest = try parseEmbeddedManifest();
-    const source =
-        "op\tformat\tinput_bits\toutput_bits\toutput_class\tmax_ulp\n" ++
-        "exp\th\t0000\t3c00\tnormal\t0\n";
-    const target_mode = TargetMode{
-        .target = "x86_64-linux-gnu",
-        .cpu = "haswell",
-        .mode = "Debug",
-    };
+    const source = test_tsv_header ++ "exp\th\t0000\t3c00\tnormal\t0\n";
     try std.testing.expectError(
         error.MissingArtifactMetadata,
-        loadArtifact(&manifest, source, null, target_mode),
+        loadArtifact(&manifest, source, null, qualified_target_mode),
     );
     try std.testing.expectError(
         error.MissingArtifactMetadata,
@@ -1706,7 +1916,7 @@ test "artifact loading requires explicit target, CPU, and mode metadata" {
             source,
             .{
                 .artifact_name = "test/corpus/exp_h.tsv",
-                .target_mode = target_mode,
+                .target_mode = qualified_target_mode,
                 .required_row_count = 65_536,
             },
             null,
@@ -1715,26 +1925,57 @@ test "artifact loading requires explicit target, CPU, and mode metadata" {
 }
 
 test "artifact loading rejects unsupported manifest rows" {
-    const manifest = try parseEmbeddedManifest();
-    const target_mode = TargetMode{
-        .target = "x86_64-linux-gnu",
-        .cpu = "haswell",
-        .mode = "Debug",
-    };
-    const source =
-        "op\tformat\tinput_bits\toutput_bits\toutput_class\tmax_ulp\n" ++
-        "exp\th\t0000\t3c00\tnormal\t0\n";
+    var manifest = try parseEmbeddedManifest();
+    const function = mutableFunctionRowForTest(&manifest, .exp, .f);
+    function.status = .unsupported;
+
     try std.testing.expectError(
         error.UnsupportedArtifact,
         loadArtifact(
             &manifest,
+            @embedFile("test/corpus/exp_f.tsv"),
+            exp_f_artifact_metadata,
+            qualified_target_mode,
+        ),
+    );
+}
+
+test "artifact loading requires one unique accepted manifest row" {
+    const source = @embedFile("test/corpus/exp_f.tsv");
+    const manifest = try parseEmbeddedManifest();
+    const artifact = try loadArtifact(
+        &manifest,
+        source,
+        exp_f_artifact_metadata,
+        qualified_target_mode,
+    );
+    try std.testing.expectEqual(Operation.exp, artifact.operation);
+    try std.testing.expectEqual(Format.f, artifact.format);
+    try std.testing.expectEqual(FunctionStatus.correct, artifact.function.status);
+
+    var missing_manifest = manifest;
+    const missing_function = mutableFunctionRowForTest(&missing_manifest, .exp, .f);
+    missing_function.operation = .exp10;
+    try std.testing.expectError(
+        error.MissingArtifactManifestRow,
+        loadArtifact(
+            &missing_manifest,
             source,
-            .{
-                .artifact_name = "test/corpus/exp_h.tsv",
-                .target_mode = target_mode,
-                .required_row_count = 65_536,
-            },
-            target_mode,
+            exp_f_artifact_metadata,
+            qualified_target_mode,
+        ),
+    );
+
+    var ambiguous_manifest = manifest;
+    const accepted_function = mutableFunctionRowForTest(&ambiguous_manifest, .exp, .f).*;
+    ambiguous_manifest.functions[0] = accepted_function;
+    try std.testing.expectError(
+        error.AmbiguousArtifactManifestRow,
+        loadArtifact(
+            &ambiguous_manifest,
+            source,
+            exp_f_artifact_metadata,
+            qualified_target_mode,
         ),
     );
 }
