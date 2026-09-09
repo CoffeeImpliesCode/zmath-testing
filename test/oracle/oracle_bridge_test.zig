@@ -1,452 +1,755 @@
 const std = @import("std");
+const c = @import("oracle_abi");
 
-const format_h: c_uint = 1;
-const format_f: c_uint = 2;
-const format_d: c_uint = 3;
-const format_q: c_uint = 4;
-// The ABI does not assign bfloat16 a format code. Five is the first unknown code.
-const format_bfloat16: c_uint = 5;
+const max_fields: usize = c.ZMATH_TESTING_ORACLE_MAX_FIELDS;
 
-const status_ok: c_int = 0;
-const status_unsupported: c_int = 1;
-const status_error: c_int = 2;
-const status_uncertain: c_int = 3;
+const ExpectedField = struct {
+    value_bits: u64,
+    class_code: u32,
+};
 
-const class_normal: c_uint = 0;
-const class_subnormal: c_uint = 1;
-const class_zero: c_uint = 2;
-const class_infinity: c_uint = 3;
-const class_qnan: c_uint = 4;
+const RequestStorage = struct {
+    inputs: [max_fields]c.zmath_testing_oracle_input_field = undefined,
+    result_descriptors: [max_fields]c.zmath_testing_oracle_field_descriptor = undefined,
+    request: c.zmath_testing_oracle_request = undefined,
 
-extern fn zmath_testing_mpfr_reference(
-    op: [*:0]const u8,
-    format: c_uint,
-    input_bits: *const u64,
-    arity: usize,
-    output_bits: *u64,
-    output_class: *c_uint,
-) c_int;
+    fn init(
+        self: *RequestStorage,
+        signature: *const c.zmath_testing_oracle_operation_signature,
+        values: []const u64,
+    ) void {
+        std.debug.assert(values.len == signature.arity);
+        std.debug.assert(signature.arguments != null);
+        std.debug.assert(signature.result_fields != null);
+        std.debug.assert(signature.arity <= max_fields);
+        std.debug.assert(signature.result_field_count <= max_fields);
 
-extern fn zmath_testing_arb_prove_rounding(
-    op: [*:0]const u8,
-    format: c_uint,
-    input_bits: *const u64,
-    arity: usize,
-    candidate_bits: u64,
-    output_class: *c_uint,
-) c_int;
+        for (values, 0..) |value_bits, index| {
+            self.inputs[index] = .{
+                .descriptor = signature.arguments[index],
+                .value_bits = value_bits,
+                .tag_bytes = null,
+                .tag_length = 0,
+                .reserved = 0,
+            };
+        }
+        for (0..signature.result_field_count) |index| {
+            self.result_descriptors[index] = signature.result_fields[index];
+        }
+        self.request = .{
+            .abi_version = c.ZMATH_TESTING_ORACLE_ABI_VERSION,
+            .reserved = 0,
+            .operation = signature.operation,
+            .operation_length = signature.operation_length,
+            .arity = signature.arity,
+            .input_fields = @ptrCast(&self.inputs),
+            .input_field_count = signature.arity,
+            .result_layout = signature.result_layout,
+            .structure_kind = signature.structure_kind,
+            .result_field_count = signature.result_field_count,
+            .result_fields = @ptrCast(&self.result_descriptors),
+        };
+    }
+};
 
-test "oracle ABI rejects Q and bfloat16 formats" {
-    const input_bits: u64 = 0x0000;
-    var output_bits: u64 = 0;
-    var output_class: c_uint = 0;
+const OutputStorage = struct {
+    fields: [max_fields]c.zmath_testing_oracle_result_field = undefined,
+    result: c.zmath_testing_oracle_result = undefined,
 
-    for ([_]c_uint{ format_q, format_bfloat16 }) |format| {
-        try std.testing.expectEqual(
-            status_unsupported,
-            zmath_testing_mpfr_reference(
-                "exp",
-                format,
-                &input_bits,
-                1,
-                &output_bits,
-                &output_class,
-            ),
-        );
-        try std.testing.expectEqual(
-            status_unsupported,
-            zmath_testing_arb_prove_rounding(
-                "exp",
-                format,
-                &input_bits,
-                1,
-                0x3c00,
-                &output_class,
-            ),
-        );
+    fn init(self: *OutputStorage, field_capacity: u32) void {
+        std.debug.assert(field_capacity <= c.ZMATH_TESTING_ORACLE_MAX_FIELDS);
+        for (&self.fields) |*field| {
+            field.* = .{
+                .descriptor = .{
+                    .kind = 0,
+                    .value_bits = 0,
+                    .format = .{
+                        .code = 0,
+                        .storage_bits = 0,
+                        .exponent_bits = 0,
+                        .fraction_bits = 0,
+                        .reserved = 0,
+                    },
+                    .reserved = 0,
+                },
+                .value_bits = 0xdead_beef_dead_beef,
+                .class_code = 0xffff_ffff,
+                .reserved = 0,
+            };
+        }
+        self.result = .{
+            .status = c.ZMATH_TESTING_ORACLE_UNSUPPORTED,
+            .reserved = 0,
+            .field_capacity = field_capacity,
+            .field_count = 0xffff_ffff,
+            .fields = @ptrCast(&self.fields),
+        };
+    }
+
+    fn setCandidate(
+        self: *OutputStorage,
+        signature: *const c.zmath_testing_oracle_operation_signature,
+        expected: []const ExpectedField,
+    ) void {
+        std.debug.assert(expected.len == signature.result_field_count);
+        std.debug.assert(signature.result_fields != null);
+
+        self.init(@intCast(expected.len));
+        self.result.status = c.ZMATH_TESTING_ORACLE_OK;
+        self.result.field_count = @intCast(expected.len);
+        for (expected, 0..) |field, index| {
+            self.fields[index] = .{
+                .descriptor = signature.result_fields[index],
+                .value_bits = field.value_bits,
+                .class_code = field.class_code,
+                .reserved = 0,
+            };
+        }
+    }
+};
+
+fn operationSlice(
+    signature: *const c.zmath_testing_oracle_operation_signature,
+) []const u8 {
+    std.debug.assert(signature.operation != null);
+    const pointer: [*]const u8 = @ptrCast(signature.operation);
+    return pointer[0..@intCast(signature.operation_length)];
+}
+
+fn findSignature(
+    operation_name: []const u8,
+    format_code: u32,
+) !*const c.zmath_testing_oracle_operation_signature {
+    for (&c.zmath_testing_oracle_operation_table) |*signature| {
+        if (!std.mem.eql(u8, operation_name, operationSlice(signature))) continue;
+        if (signature.arity == 0) continue;
+        if (signature.arguments == null) continue;
+        if (signature.arguments[0].kind != c.ZMATH_TESTING_ORACLE_FIELD_FLOAT) continue;
+        if (signature.arguments[0].format.code != format_code) continue;
+        return signature;
+    }
+    return error.SignatureNotFound;
+}
+
+fn expectSuccess(
+    output: *const OutputStorage,
+    expected: []const ExpectedField,
+) !void {
+    try std.testing.expectEqual(
+        @as(u32, c.ZMATH_TESTING_ORACLE_OK),
+        output.result.status,
+    );
+    try std.testing.expectEqual(
+        @as(u32, @intCast(expected.len)),
+        output.result.field_count,
+    );
+    for (expected, 0..) |field, index| {
+        try std.testing.expectEqual(field.value_bits, output.fields[index].value_bits);
+        try std.testing.expectEqual(field.class_code, output.fields[index].class_code);
     }
 }
 
-test "MPFR exp H positive zero is positive one" {
-    const input_bits: u64 = 0x0000;
-    var output_bits: u64 = 0;
-    var output_class: c_uint = 0;
-
-    try std.testing.expectEqual(
-        status_ok,
-        zmath_testing_mpfr_reference(
-            "exp",
-            format_h,
-            &input_bits,
-            1,
-            &output_bits,
-            &output_class,
-        ),
-    );
-    try std.testing.expectEqual(@as(u64, 0x3c00), output_bits);
-    try std.testing.expectEqual(class_normal, output_class);
+fn expectClosed(expected_status: u32, output: *const OutputStorage) !void {
+    try std.testing.expectEqual(expected_status, output.result.status);
+    try std.testing.expectEqual(@as(u32, 0), output.result.field_count);
 }
 
-test "MPFR log H positive zero is negative infinity" {
-    const input_bits: u64 = 0x0000;
-    var output_bits: u64 = 0;
-    var output_class: c_uint = 0;
+test "typed bridge rejects unsupported and malformed descriptors" {
+    const signature = try findSignature("exp", c.ZMATH_TESTING_ORACLE_FORMAT_H);
+    const expected = [_]ExpectedField{.{
+        .value_bits = 0x3c00,
+        .class_code = c.ZMATH_TESTING_ORACLE_CLASS_NORMAL,
+    }};
+    var request: RequestStorage = .{};
+    var output: OutputStorage = .{};
 
-    try std.testing.expectEqual(
-        status_ok,
-        zmath_testing_mpfr_reference(
-            "log",
-            format_h,
-            &input_bits,
-            1,
-            &output_bits,
-            &output_class,
-        ),
+    request.init(signature, &.{0x0000});
+    request.inputs[0].descriptor.format.code = 4;
+    output.init(signature.result_field_count);
+    c.zmath_testing_oracle_v2_mpfr_reference(&request.request, &output.result);
+    try expectClosed(c.ZMATH_TESTING_ORACLE_UNSUPPORTED, &output);
+
+    request.init(signature, &.{0x0000});
+    request.result_descriptors[0].format.code = 5;
+    output.init(signature.result_field_count);
+    c.zmath_testing_oracle_v2_mpfr_reference(&request.request, &output.result);
+    try expectClosed(c.ZMATH_TESTING_ORACLE_UNSUPPORTED, &output);
+
+    var candidate: OutputStorage = .{};
+    candidate.setCandidate(signature, &expected);
+    request.init(signature, &.{0x0000});
+    request.inputs[0].descriptor.format.storage_bits = 15;
+    output.init(signature.result_field_count);
+    c.zmath_testing_oracle_v2_arb_prove(
+        &request.request,
+        &candidate.result,
+        &output.result,
     );
-    try std.testing.expectEqual(@as(u64, 0xfc00), output_bits);
-    try std.testing.expectEqual(class_infinity, output_class);
+    try expectClosed(c.ZMATH_TESTING_ORACLE_ERROR, &output);
+
+    request.init(signature, &.{0x0000});
+    request.inputs[0].descriptor.kind = 0xffff_ffff;
+    output.init(signature.result_field_count);
+    c.zmath_testing_oracle_v2_mpfr_reference(&request.request, &output.result);
+    try expectClosed(c.ZMATH_TESTING_ORACLE_ERROR, &output);
 }
 
-test "Arb proves exact H exp zero candidate" {
-    const input_bits: u64 = 0x0000;
-    var output_class: c_uint = 0;
-    try std.testing.expectEqual(
-        status_ok,
-        zmath_testing_arb_prove_rounding(
-            "exp",
-            format_h,
-            &input_bits,
-            1,
-            0x3c00,
-            &output_class,
-        ),
+test "typed bridge rejects malformed request metadata and values" {
+    const signature = try findSignature("exp", c.ZMATH_TESTING_ORACLE_FORMAT_H);
+    const expected = [_]ExpectedField{.{
+        .value_bits = 0x3c00,
+        .class_code = c.ZMATH_TESTING_ORACLE_CLASS_NORMAL,
+    }};
+    var request: RequestStorage = .{};
+    var output: OutputStorage = .{};
+
+    request.init(signature, &.{0x0000});
+    request.request.abi_version = c.ZMATH_TESTING_ORACLE_ABI_VERSION + 1;
+    output.init(signature.result_field_count);
+    c.zmath_testing_oracle_v2_mpfr_reference(&request.request, &output.result);
+    try expectClosed(c.ZMATH_TESTING_ORACLE_ERROR, &output);
+
+    var candidate: OutputStorage = .{};
+    candidate.setCandidate(signature, &expected);
+    request.init(signature, &.{0x0000});
+    request.request.arity = 2;
+    output.init(signature.result_field_count);
+    c.zmath_testing_oracle_v2_arb_prove(
+        &request.request,
+        &candidate.result,
+        &output.result,
     );
-    try std.testing.expectEqual(class_normal, output_class);
+    try expectClosed(c.ZMATH_TESTING_ORACLE_ERROR, &output);
+
+    request.init(signature, &.{0x1_0000});
+    output.init(signature.result_field_count);
+    c.zmath_testing_oracle_v2_mpfr_reference(&request.request, &output.result);
+    try expectClosed(c.ZMATH_TESTING_ORACLE_ERROR, &output);
+
+    request.init(signature, &.{0x0000});
+    request.request.reserved = 1;
+    output.init(signature.result_field_count);
+    c.zmath_testing_oracle_v2_arb_prove(
+        &request.request,
+        &candidate.result,
+        &output.result,
+    );
+    try expectClosed(c.ZMATH_TESTING_ORACLE_ERROR, &output);
 }
 
-test "Arb applies exact policy to H log domain specials" {
+test "typed bridge fails closed on insufficient result capacity" {
+    const signature = try findSignature("exp", c.ZMATH_TESTING_ORACLE_FORMAT_H);
+    const expected = [_]ExpectedField{.{
+        .value_bits = 0x3c00,
+        .class_code = c.ZMATH_TESTING_ORACLE_CLASS_NORMAL,
+    }};
+    var request: RequestStorage = .{};
+    request.init(signature, &.{0x0000});
+
+    var output: OutputStorage = .{};
+    output.init(0);
+    c.zmath_testing_oracle_v2_mpfr_reference(&request.request, &output.result);
+    try expectClosed(c.ZMATH_TESTING_ORACLE_ERROR, &output);
+
+    var candidate: OutputStorage = .{};
+    candidate.setCandidate(signature, &expected);
+    output.init(0);
+    c.zmath_testing_oracle_v2_arb_prove(
+        &request.request,
+        &candidate.result,
+        &output.result,
+    );
+    try expectClosed(c.ZMATH_TESTING_ORACLE_ERROR, &output);
+}
+
+test "typed MPFR reference returns exact transcendental bits" {
     const cases = [_]struct {
+        operation_name: []const u8,
+        format_code: u32,
         input_bits: u64,
-        candidate_bits: u64,
-        output_class: c_uint,
+        expected_bits: u64,
+        expected_class: u32,
     }{
-        .{ .input_bits = 0x0000, .candidate_bits = 0xfc00, .output_class = class_infinity },
-        .{ .input_bits = 0x8000, .candidate_bits = 0xfc00, .output_class = class_infinity },
-        .{ .input_bits = 0xbc00, .candidate_bits = 0x7e00, .output_class = class_qnan },
-        .{ .input_bits = 0x3c00, .candidate_bits = 0x0000, .output_class = class_zero },
+        .{
+            .operation_name = "exp",
+            .format_code = c.ZMATH_TESTING_ORACLE_FORMAT_H,
+            .input_bits = 0x0000,
+            .expected_bits = 0x3c00,
+            .expected_class = c.ZMATH_TESTING_ORACLE_CLASS_NORMAL,
+        },
+        .{
+            .operation_name = "log",
+            .format_code = c.ZMATH_TESTING_ORACLE_FORMAT_H,
+            .input_bits = 0x0000,
+            .expected_bits = 0xfc00,
+            .expected_class = c.ZMATH_TESTING_ORACLE_CLASS_INFINITY,
+        },
+        .{
+            .operation_name = "exp",
+            .format_code = c.ZMATH_TESTING_ORACLE_FORMAT_H,
+            .input_bits = 0x3c00,
+            .expected_bits = 0x4170,
+            .expected_class = c.ZMATH_TESTING_ORACLE_CLASS_NORMAL,
+        },
+        .{
+            .operation_name = "exp",
+            .format_code = c.ZMATH_TESTING_ORACLE_FORMAT_F,
+            .input_bits = 0x3f80_0000,
+            .expected_bits = 0x402d_f854,
+            .expected_class = c.ZMATH_TESTING_ORACLE_CLASS_NORMAL,
+        },
+        .{
+            .operation_name = "exp",
+            .format_code = c.ZMATH_TESTING_ORACLE_FORMAT_D,
+            .input_bits = 0x3ff0_0000_0000_0000,
+            .expected_bits = 0x4005_bf0a_8b14_5769,
+            .expected_class = c.ZMATH_TESTING_ORACLE_CLASS_NORMAL,
+        },
     };
 
     for (cases) |case| {
-        var input_bits = case.input_bits;
-        var output_class: c_uint = 0;
-        try std.testing.expectEqual(
-            status_ok,
-            zmath_testing_arb_prove_rounding(
-                "log",
-                format_h,
-                &input_bits,
-                1,
-                case.candidate_bits,
-                &output_class,
-            ),
-        );
-        try std.testing.expectEqual(case.output_class, output_class);
+        const signature = try findSignature(case.operation_name, case.format_code);
+        var request: RequestStorage = .{};
+        request.init(signature, &.{case.input_bits});
+        var output: OutputStorage = .{};
+        output.init(signature.result_field_count);
+        c.zmath_testing_oracle_v2_mpfr_reference(&request.request, &output.result);
+        const expected = [_]ExpectedField{.{
+            .value_bits = case.expected_bits,
+            .class_code = case.expected_class,
+        }};
+        try expectSuccess(&output, &expected);
     }
 }
 
-test "bridge rejects suffixed unsupported operation names" {
-    const input_bits: u64 = 0x3c00;
-    var output_bits: u64 = 0;
-    var output_class: c_uint = 0;
-    const unsupported_operations = [_][*:0]const u8{ "logd", "sinf", "sind" };
-
-    for (unsupported_operations) |operation| {
-        try std.testing.expectEqual(
-            status_unsupported,
-            zmath_testing_mpfr_reference(
-                operation,
-                format_h,
-                &input_bits,
-                1,
-                &output_bits,
-                &output_class,
-            ),
-        );
-        try std.testing.expectEqual(
-            status_unsupported,
-            zmath_testing_arb_prove_rounding(
-                operation,
-                format_h,
-                &input_bits,
-                1,
-                0x3c00,
-                &output_class,
-            ),
-        );
-    }
-}
-
-test "bridge rejects malformed arity and out of range bits" {
-    const input_bits: u64 = 0x0000;
-    const second_input_bits: u64 = 0x1_0000;
-    var output_bits: u64 = 0;
-    var output_class: c_uint = 0;
-    try std.testing.expectEqual(
-        status_error,
-        zmath_testing_mpfr_reference(
-            "exp",
-            format_h,
-            &input_bits,
-            2,
-            &output_bits,
-            &output_class,
-        ),
-    );
-    try std.testing.expectEqual(
-        status_error,
-        zmath_testing_mpfr_reference(
-            "exp",
-            format_h,
-            &second_input_bits,
-            1,
-            &output_bits,
-            &output_class,
-        ),
-    );
-}
-
-test "MPFR unary exp one has exact H F D outputs" {
-    const input_bits = [_]u64{
-        0x3c00,
-        0x3f80_0000,
-        0x3ff0_0000_0000_0000,
-    };
-    const expected_bits = [_]u64{
-        0x4170,
-        0x402d_f854,
-        0x4005_bf0a_8b14_5769,
-    };
-    const formats = [_]c_uint{ format_h, format_f, format_d };
-    var output_bits: u64 = 0;
-    var output_class: c_uint = 0;
-
-    for (formats, input_bits, expected_bits) |format, input, expected| {
-        try std.testing.expectEqual(
-            status_ok,
-            zmath_testing_mpfr_reference(
-                "exp",
-                format,
-                &input,
-                1,
-                &output_bits,
-                &output_class,
-            ),
-        );
-        try std.testing.expectEqual(expected, output_bits);
-        try std.testing.expectEqual(class_normal, output_class);
-    }
-}
-
-test "bridge preserves signed zero and quiets NaN payloads" {
-    const negative_zero = [_]u64{ 0x8000, 0x8000_0000, 0x8000_0000_0000_0000 };
-    const expected_sine_zero = negative_zero;
-    const formats = [_]c_uint{ format_h, format_f, format_d };
-    var output_bits: u64 = 0;
-    var output_class: c_uint = 0;
-
-    for (formats, negative_zero, expected_sine_zero) |format, input, expected| {
-        try std.testing.expectEqual(
-            status_ok,
-            zmath_testing_mpfr_reference(
-                "sin",
-                format,
-                &input,
-                1,
-                &output_bits,
-                &output_class,
-            ),
-        );
-        try std.testing.expectEqual(expected, output_bits);
-        try std.testing.expectEqual(class_zero, output_class);
-    }
-
-    const nan_inputs = [_]u64{ 0x7d01, 0x7f80_0001, 0x7ff0_0000_0000_0001 };
-    const quiet_nan_outputs = [_]u64{ 0x7f01, 0x7fc0_0001, 0x7ff8_0000_0000_0001 };
-    for (formats, nan_inputs, quiet_nan_outputs) |format, input, expected| {
-        try std.testing.expectEqual(
-            status_ok,
-            zmath_testing_mpfr_reference(
-                "exp",
-                format,
-                &input,
-                1,
-                &output_bits,
-                &output_class,
-            ),
-        );
-        try std.testing.expectEqual(expected, output_bits);
-        try std.testing.expectEqual(class_qnan, output_class);
-    }
-}
-
-test "Arb rejects candidate disagreement" {
-    const input_bits: u64 = 0;
-    var output_class: c_uint = 0;
-    try std.testing.expectEqual(
-        status_uncertain,
-        zmath_testing_arb_prove_rounding(
-            "exp",
-            format_h,
-            &input_bits,
-            1,
-            0x3c01,
-            &output_class,
-        ),
-    );
-}
-
-test "Arb proves finite H F D exp overflow candidates" {
+test "typed Arb proof accepts exact transcendental special cases" {
     const cases = [_]struct {
-        format: c_uint,
+        operation_name: []const u8,
         input_bits: u64,
         candidate_bits: u64,
-        output_class: c_uint,
+        candidate_class: u32,
     }{
         .{
-            .format = format_h,
+            .operation_name = "exp",
+            .input_bits = 0x0000,
+            .candidate_bits = 0x3c00,
+            .candidate_class = c.ZMATH_TESTING_ORACLE_CLASS_NORMAL,
+        },
+        .{
+            .operation_name = "log",
+            .input_bits = 0x0000,
+            .candidate_bits = 0xfc00,
+            .candidate_class = c.ZMATH_TESTING_ORACLE_CLASS_INFINITY,
+        },
+        .{
+            .operation_name = "log",
+            .input_bits = 0x8000,
+            .candidate_bits = 0xfc00,
+            .candidate_class = c.ZMATH_TESTING_ORACLE_CLASS_INFINITY,
+        },
+        .{
+            .operation_name = "log",
+            .input_bits = 0xbc00,
+            .candidate_bits = 0x7e00,
+            .candidate_class = c.ZMATH_TESTING_ORACLE_CLASS_QNAN,
+        },
+        .{
+            .operation_name = "log",
+            .input_bits = 0x3c00,
+            .candidate_bits = 0x0000,
+            .candidate_class = c.ZMATH_TESTING_ORACLE_CLASS_ZERO,
+        },
+    };
+
+    for (cases) |case| {
+        const signature = try findSignature(
+            case.operation_name,
+            c.ZMATH_TESTING_ORACLE_FORMAT_H,
+        );
+        var request: RequestStorage = .{};
+        request.init(signature, &.{case.input_bits});
+        const expected = [_]ExpectedField{.{
+            .value_bits = case.candidate_bits,
+            .class_code = case.candidate_class,
+        }};
+        var candidate: OutputStorage = .{};
+        candidate.setCandidate(signature, &expected);
+        var proof: OutputStorage = .{};
+        proof.init(signature.result_field_count);
+        c.zmath_testing_oracle_v2_arb_prove(
+            &request.request,
+            &candidate.result,
+            &proof.result,
+        );
+        try expectSuccess(&proof, &expected);
+    }
+}
+
+test "typed reference preserves signed zero and NaN payload behavior" {
+    const cases = [_]struct {
+        format_code: u32,
+        negative_zero: u64,
+        signaling_nan: u64,
+        quiet_nan: u64,
+    }{
+        .{
+            .format_code = c.ZMATH_TESTING_ORACLE_FORMAT_H,
+            .negative_zero = 0x8000,
+            .signaling_nan = 0x7d01,
+            .quiet_nan = 0x7f01,
+        },
+        .{
+            .format_code = c.ZMATH_TESTING_ORACLE_FORMAT_F,
+            .negative_zero = 0x8000_0000,
+            .signaling_nan = 0x7f80_0001,
+            .quiet_nan = 0x7fc0_0001,
+        },
+        .{
+            .format_code = c.ZMATH_TESTING_ORACLE_FORMAT_D,
+            .negative_zero = 0x8000_0000_0000_0000,
+            .signaling_nan = 0x7ff0_0000_0000_0001,
+            .quiet_nan = 0x7ff8_0000_0000_0001,
+        },
+    };
+
+    for (cases) |case| {
+        const sine_signature = try findSignature("sin", case.format_code);
+        var request: RequestStorage = .{};
+        request.init(sine_signature, &.{case.negative_zero});
+        var output: OutputStorage = .{};
+        output.init(sine_signature.result_field_count);
+        c.zmath_testing_oracle_v2_mpfr_reference(&request.request, &output.result);
+        const expected_zero = [_]ExpectedField{.{
+            .value_bits = case.negative_zero,
+            .class_code = c.ZMATH_TESTING_ORACLE_CLASS_ZERO,
+        }};
+        try expectSuccess(&output, &expected_zero);
+
+        const exp_signature = try findSignature("exp", case.format_code);
+        request.init(exp_signature, &.{case.signaling_nan});
+        output.init(exp_signature.result_field_count);
+        c.zmath_testing_oracle_v2_mpfr_reference(&request.request, &output.result);
+        const expected_nan = [_]ExpectedField{.{
+            .value_bits = case.quiet_nan,
+            .class_code = c.ZMATH_TESTING_ORACLE_CLASS_QNAN,
+        }};
+        try expectSuccess(&output, &expected_nan);
+    }
+}
+
+test "typed bridge retains signaling NaN result classes" {
+    {
+        const signature = try findSignature(
+            "copySign",
+            c.ZMATH_TESTING_ORACLE_FORMAT_H,
+        );
+        const expected = [_]ExpectedField{.{
+            .value_bits = 0xfc01,
+            .class_code = c.ZMATH_TESTING_ORACLE_CLASS_SNAN,
+        }};
+        var request: RequestStorage = .{};
+        request.init(signature, &.{ 0x7c01, 0x8000 });
+        var reference: OutputStorage = .{};
+        reference.init(signature.result_field_count);
+        c.zmath_testing_oracle_v2_mpfr_reference(
+            &request.request,
+            &reference.result,
+        );
+        try expectSuccess(&reference, &expected);
+
+        var candidate: OutputStorage = .{};
+        candidate.setCandidate(signature, &expected);
+        var proof: OutputStorage = .{};
+        proof.init(signature.result_field_count);
+        c.zmath_testing_oracle_v2_arb_prove(
+            &request.request,
+            &candidate.result,
+            &proof.result,
+        );
+        try expectSuccess(&proof, &expected);
+    }
+
+    {
+        const signature = try findSignature(
+            "setPayloadSig",
+            c.ZMATH_TESTING_ORACLE_FORMAT_H,
+        );
+        const expected = [_]ExpectedField{
+            .{
+                .value_bits = 0x7c03,
+                .class_code = c.ZMATH_TESTING_ORACLE_CLASS_SNAN,
+            },
+            .{
+                .value_bits = 1,
+                .class_code = c.ZMATH_TESTING_ORACLE_CLASS_NONE,
+            },
+        };
+        var request: RequestStorage = .{};
+        request.init(signature, &.{0x4200});
+        var reference: OutputStorage = .{};
+        reference.init(signature.result_field_count);
+        c.zmath_testing_oracle_v2_mpfr_reference(
+            &request.request,
+            &reference.result,
+        );
+        try expectSuccess(&reference, &expected);
+
+        var candidate: OutputStorage = .{};
+        candidate.setCandidate(signature, &expected);
+        var proof: OutputStorage = .{};
+        proof.init(signature.result_field_count);
+        c.zmath_testing_oracle_v2_arb_prove(
+            &request.request,
+            &candidate.result,
+            &proof.result,
+        );
+        try expectSuccess(&proof, &expected);
+    }
+}
+
+test "typed Arb proof rejects a forged normal result class" {
+    const signature = try findSignature("exp", c.ZMATH_TESTING_ORACLE_FORMAT_H);
+    var request: RequestStorage = .{};
+    request.init(signature, &.{0x3c00});
+
+    var reference: OutputStorage = .{};
+    reference.init(signature.result_field_count);
+    c.zmath_testing_oracle_v2_mpfr_reference(&request.request, &reference.result);
+    const expected = [_]ExpectedField{.{
+        .value_bits = 0x4170,
+        .class_code = c.ZMATH_TESTING_ORACLE_CLASS_NORMAL,
+    }};
+    try expectSuccess(&reference, &expected);
+
+    reference.fields[0].class_code = c.ZMATH_TESTING_ORACLE_CLASS_ZERO;
+    var proof: OutputStorage = .{};
+    proof.init(signature.result_field_count);
+    c.zmath_testing_oracle_v2_arb_prove(
+        &request.request,
+        &reference.result,
+        &proof.result,
+    );
+    try expectClosed(c.ZMATH_TESTING_ORACLE_ERROR, &proof);
+
+    var candidate: OutputStorage = .{};
+    candidate.setCandidate(signature, &expected);
+    candidate.fields[0].descriptor.format.fraction_bits = 9;
+    proof.init(signature.result_field_count);
+    c.zmath_testing_oracle_v2_arb_prove(
+        &request.request,
+        &candidate.result,
+        &proof.result,
+    );
+    try expectClosed(c.ZMATH_TESTING_ORACLE_ERROR, &proof);
+}
+
+test "typed Arb proof reports valid candidate disagreement as uncertain" {
+    const signature = try findSignature("exp", c.ZMATH_TESTING_ORACLE_FORMAT_H);
+    var request: RequestStorage = .{};
+    request.init(signature, &.{0x0000});
+    const incorrect = [_]ExpectedField{.{
+        .value_bits = 0x3c01,
+        .class_code = c.ZMATH_TESTING_ORACLE_CLASS_NORMAL,
+    }};
+    var candidate: OutputStorage = .{};
+    candidate.setCandidate(signature, &incorrect);
+    var proof: OutputStorage = .{};
+    proof.init(signature.result_field_count);
+    c.zmath_testing_oracle_v2_arb_prove(
+        &request.request,
+        &candidate.result,
+        &proof.result,
+    );
+    try expectClosed(c.ZMATH_TESTING_ORACLE_UNCERTAIN, &proof);
+}
+
+test "typed Arb proof accepts finite exp overflow candidates" {
+    const cases = [_]struct {
+        format_code: u32,
+        input_bits: u64,
+        candidate_bits: u64,
+    }{
+        .{
+            .format_code = c.ZMATH_TESTING_ORACLE_FORMAT_H,
             .input_bits = 0x498c,
             .candidate_bits = 0x7c00,
-            .output_class = class_infinity,
         },
         .{
-            .format = format_f,
+            .format_code = c.ZMATH_TESTING_ORACLE_FORMAT_F,
             .input_bits = 0x42b1_7218,
             .candidate_bits = 0x7f80_0000,
-            .output_class = class_infinity,
         },
         .{
-            .format = format_d,
+            .format_code = c.ZMATH_TESTING_ORACLE_FORMAT_D,
             .input_bits = 0x4086_2e42_fefa_39f0,
             .candidate_bits = 0x7ff0_0000_0000_0000,
-            .output_class = class_infinity,
         },
         .{
-            .format = format_h,
+            .format_code = c.ZMATH_TESTING_ORACLE_FORMAT_H,
             .input_bits = 0x7bff,
             .candidate_bits = 0x7c00,
-            .output_class = class_infinity,
         },
         .{
-            .format = format_f,
+            .format_code = c.ZMATH_TESTING_ORACLE_FORMAT_F,
             .input_bits = 0x7f7f_ffff,
             .candidate_bits = 0x7f80_0000,
-            .output_class = class_infinity,
         },
         .{
-            .format = format_d,
+            .format_code = c.ZMATH_TESTING_ORACLE_FORMAT_D,
             .input_bits = 0x7fef_ffff_ffff_ffff,
             .candidate_bits = 0x7ff0_0000_0000_0000,
-            .output_class = class_infinity,
         },
     };
 
     for (cases) |case| {
-        var input_bits = case.input_bits;
-        var output_class: c_uint = 0;
-        try std.testing.expectEqual(
-            status_ok,
-            zmath_testing_arb_prove_rounding(
-                "exp",
-                case.format,
-                &input_bits,
-                1,
-                case.candidate_bits,
-                &output_class,
-            ),
+        const signature = try findSignature("exp", case.format_code);
+        var request: RequestStorage = .{};
+        request.init(signature, &.{case.input_bits});
+        const expected = [_]ExpectedField{.{
+            .value_bits = case.candidate_bits,
+            .class_code = c.ZMATH_TESTING_ORACLE_CLASS_INFINITY,
+        }};
+        var candidate: OutputStorage = .{};
+        candidate.setCandidate(signature, &expected);
+        var proof: OutputStorage = .{};
+        proof.init(signature.result_field_count);
+        c.zmath_testing_oracle_v2_arb_prove(
+            &request.request,
+            &candidate.result,
+            &proof.result,
         );
-        try std.testing.expectEqual(case.output_class, output_class);
+        try expectSuccess(&proof, &expected);
     }
 }
 
-test "Arb proves exp results on both sides of the underflow zero tie" {
+test "typed Arb proof accepts exp underflow boundary candidates" {
     const cases = [_]struct {
-        format: c_uint,
+        format_code: u32,
         input_bits: u64,
         candidate_bits: u64,
-        output_class: c_uint,
+        candidate_class: u32,
     }{
-        .{ .format = format_h, .input_bits = 0xcc55, .candidate_bits = 0x0001, .output_class = class_subnormal },
-        .{ .format = format_h, .input_bits = 0xcc56, .candidate_bits = 0x0000, .output_class = class_zero },
-        .{ .format = format_f, .input_bits = 0xc2cf_f1b4, .candidate_bits = 0x0000_0001, .output_class = class_subnormal },
-        .{ .format = format_f, .input_bits = 0xc2cf_f1b5, .candidate_bits = 0x0000_0000, .output_class = class_zero },
         .{
-            .format = format_d,
+            .format_code = c.ZMATH_TESTING_ORACLE_FORMAT_H,
+            .input_bits = 0xcc55,
+            .candidate_bits = 0x0001,
+            .candidate_class = c.ZMATH_TESTING_ORACLE_CLASS_SUBNORMAL,
+        },
+        .{
+            .format_code = c.ZMATH_TESTING_ORACLE_FORMAT_H,
+            .input_bits = 0xcc56,
+            .candidate_bits = 0x0000,
+            .candidate_class = c.ZMATH_TESTING_ORACLE_CLASS_ZERO,
+        },
+        .{
+            .format_code = c.ZMATH_TESTING_ORACLE_FORMAT_F,
+            .input_bits = 0xc2cf_f1b4,
+            .candidate_bits = 0x0000_0001,
+            .candidate_class = c.ZMATH_TESTING_ORACLE_CLASS_SUBNORMAL,
+        },
+        .{
+            .format_code = c.ZMATH_TESTING_ORACLE_FORMAT_F,
+            .input_bits = 0xc2cf_f1b5,
+            .candidate_bits = 0x0000_0000,
+            .candidate_class = c.ZMATH_TESTING_ORACLE_CLASS_ZERO,
+        },
+        .{
+            .format_code = c.ZMATH_TESTING_ORACLE_FORMAT_D,
             .input_bits = 0xc087_4910_d52d_3051,
             .candidate_bits = 0x0000_0000_0000_0001,
-            .output_class = class_subnormal,
+            .candidate_class = c.ZMATH_TESTING_ORACLE_CLASS_SUBNORMAL,
         },
         .{
-            .format = format_d,
+            .format_code = c.ZMATH_TESTING_ORACLE_FORMAT_D,
             .input_bits = 0xc087_4910_d52d_3052,
             .candidate_bits = 0x0000_0000_0000_0000,
-            .output_class = class_zero,
+            .candidate_class = c.ZMATH_TESTING_ORACLE_CLASS_ZERO,
         },
     };
 
     for (cases) |case| {
-        var input_bits = case.input_bits;
-        var output_class: c_uint = 0;
-        try std.testing.expectEqual(
-            status_ok,
-            zmath_testing_arb_prove_rounding(
-                "exp",
-                case.format,
-                &input_bits,
-                1,
-                case.candidate_bits,
-                &output_class,
-            ),
+        const signature = try findSignature("exp", case.format_code);
+        var request: RequestStorage = .{};
+        request.init(signature, &.{case.input_bits});
+        const expected = [_]ExpectedField{.{
+            .value_bits = case.candidate_bits,
+            .class_code = case.candidate_class,
+        }};
+        var candidate: OutputStorage = .{};
+        candidate.setCandidate(signature, &expected);
+        var proof: OutputStorage = .{};
+        proof.init(signature.result_field_count);
+        c.zmath_testing_oracle_v2_arb_prove(
+            &request.request,
+            &candidate.result,
+            &proof.result,
         );
-        try std.testing.expectEqual(case.output_class, output_class);
+        try expectSuccess(&proof, &expected);
     }
 }
 
-test "Arb keeps incorrect exp overflow-edge candidates uncertain" {
+test "typed Arb proof rejects incorrect exp overflow edge candidates" {
     const cases = [_]struct {
-        format: c_uint,
+        format_code: u32,
         input_bits: u64,
         candidate_bits: u64,
+        candidate_class: u32,
     }{
-        .{ .format = format_h, .input_bits = 0x498b, .candidate_bits = 0x7c00 },
-        .{ .format = format_h, .input_bits = 0x498c, .candidate_bits = 0x7bff },
-        .{ .format = format_f, .input_bits = 0x42b1_7217, .candidate_bits = 0x7f80_0000 },
-        .{ .format = format_f, .input_bits = 0x42b1_7218, .candidate_bits = 0x7f7f_ffff },
         .{
-            .format = format_d,
-            .input_bits = 0x4086_2e42_fefa_39ef,
-            .candidate_bits = 0x7ff0_0000_0000_0000,
+            .format_code = c.ZMATH_TESTING_ORACLE_FORMAT_H,
+            .input_bits = 0x498b,
+            .candidate_bits = 0x7c00,
+            .candidate_class = c.ZMATH_TESTING_ORACLE_CLASS_INFINITY,
         },
         .{
-            .format = format_d,
+            .format_code = c.ZMATH_TESTING_ORACLE_FORMAT_H,
+            .input_bits = 0x498c,
+            .candidate_bits = 0x7bff,
+            .candidate_class = c.ZMATH_TESTING_ORACLE_CLASS_NORMAL,
+        },
+        .{
+            .format_code = c.ZMATH_TESTING_ORACLE_FORMAT_F,
+            .input_bits = 0x42b1_7217,
+            .candidate_bits = 0x7f80_0000,
+            .candidate_class = c.ZMATH_TESTING_ORACLE_CLASS_INFINITY,
+        },
+        .{
+            .format_code = c.ZMATH_TESTING_ORACLE_FORMAT_F,
+            .input_bits = 0x42b1_7218,
+            .candidate_bits = 0x7f7f_ffff,
+            .candidate_class = c.ZMATH_TESTING_ORACLE_CLASS_NORMAL,
+        },
+        .{
+            .format_code = c.ZMATH_TESTING_ORACLE_FORMAT_D,
+            .input_bits = 0x4086_2e42_fefa_39ef,
+            .candidate_bits = 0x7ff0_0000_0000_0000,
+            .candidate_class = c.ZMATH_TESTING_ORACLE_CLASS_INFINITY,
+        },
+        .{
+            .format_code = c.ZMATH_TESTING_ORACLE_FORMAT_D,
             .input_bits = 0x4086_2e42_fefa_39f0,
             .candidate_bits = 0x7fef_ffff_ffff_ffff,
+            .candidate_class = c.ZMATH_TESTING_ORACLE_CLASS_NORMAL,
         },
     };
 
     for (cases) |case| {
-        var input_bits = case.input_bits;
-        var output_class: c_uint = class_qnan;
-        try std.testing.expectEqual(
-            status_uncertain,
-            zmath_testing_arb_prove_rounding(
-                "exp",
-                case.format,
-                &input_bits,
-                1,
-                case.candidate_bits,
-                &output_class,
-            ),
+        const signature = try findSignature("exp", case.format_code);
+        var request: RequestStorage = .{};
+        request.init(signature, &.{case.input_bits});
+        const incorrect = [_]ExpectedField{.{
+            .value_bits = case.candidate_bits,
+            .class_code = case.candidate_class,
+        }};
+        var candidate: OutputStorage = .{};
+        candidate.setCandidate(signature, &incorrect);
+        var proof: OutputStorage = .{};
+        proof.init(signature.result_field_count);
+        c.zmath_testing_oracle_v2_arb_prove(
+            &request.request,
+            &candidate.result,
+            &proof.result,
         );
-        try std.testing.expectEqual(class_qnan, output_class);
+        try expectClosed(c.ZMATH_TESTING_ORACLE_UNCERTAIN, &proof);
     }
 }

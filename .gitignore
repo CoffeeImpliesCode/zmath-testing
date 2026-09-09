@@ -2,3 +2,7 @@
 zig-out/
 .devenv/
 .direnv/
+test/corpus/generated/records/
+test/corpus/generated/probes/
+test/corpus/generated/.incomplete
+test/corpus/generated/*.tmp

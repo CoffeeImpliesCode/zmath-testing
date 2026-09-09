@@ -1,13 +1,13 @@
 const std = @import("std");
 const benchmark_targets = @import("bench/targets.zig");
 const benchmark_target_info = @import("bench/target_info.zig");
-const ArtifactAcceptance = struct {
+const LegacyArtifactAcceptance = struct {
     operation: []const u8,
     format: u8,
     required_row_count: usize,
 };
 
-const artifact_acceptances = [_]ArtifactAcceptance{
+const legacy_artifact_acceptances = [_]LegacyArtifactAcceptance{
     .{ .operation = "exp", .format = 'h', .required_row_count = 65_536 },
     .{ .operation = "exp", .format = 'f', .required_row_count = 29 },
     .{ .operation = "exp", .format = 'd', .required_row_count = 182 },
@@ -20,8 +20,8 @@ const artifact_acceptances = [_]ArtifactAcceptance{
     .{ .operation = "sin", .format = 'h', .required_row_count = 65_536 },
 };
 
-fn artifactAcceptance(operation: []const u8, format: u8) ?ArtifactAcceptance {
-    for (artifact_acceptances) |acceptance| {
+fn legacyArtifactAcceptance(operation: []const u8, format: u8) ?LegacyArtifactAcceptance {
+    for (legacy_artifact_acceptances) |acceptance| {
         if (acceptance.format == format and
             std.mem.eql(u8, acceptance.operation, operation))
         {
@@ -143,8 +143,9 @@ fn addFunctionArtifact(
     const operation_text = operation orelse @panic("accepted manifest row has no operation");
     const format = descriptorFormat(result orelse "", inputs orelse "") orelse
         @panic("accepted manifest row has no floating format");
-    const acceptance = artifactAcceptance(operation_text, format) orelse
-        @panic("accepted manifest row has no approved artifact evidence");
+    // Legacy TSVs are optional regression fixtures. Typed corpus publication
+    // and replay remain authoritative for every accepted descriptor.
+    const acceptance = legacyArtifactAcceptance(operation_text, format) orelse return;
     const artifact_path = b.fmt(
         "test/corpus/{s}_{c}.tsv",
         .{ operation_text, format },
@@ -258,6 +259,20 @@ fn addEmbeddedArtifactModule(
             .{ metadata, artifacts },
         ),
     );
+}
+
+fn addOracleSources(b: *std.Build, module: *std.Build.Module) void {
+    module.addCSourceFiles(.{
+        .files = &.{
+            "test/oracle/oracle_bridge.c",
+            "test/oracle/oracle_operation_table.c",
+            "test/oracle/oracle_exact_bits.c",
+            "test/oracle/oracle_algebraic.c",
+            "test/oracle/oracle_transcendental.c",
+        },
+        .flags = &.{"-std=c11"},
+    });
+    module.addIncludePath(b.path("test/oracle"));
 }
 
 pub fn build(b: *std.Build) void {
@@ -422,6 +437,14 @@ pub fn build(b: *std.Build) void {
     const run_infrastructure_tests = b.addRunArtifact(infrastructure_tests);
     test_step.dependOn(&run_infrastructure_tests.step);
 
+    const oracle_abi = b.addTranslateC(.{
+        .root_source_file = b.path("test/oracle/oracle_evaluators.h"),
+        .target = target,
+        .optimize = optimize,
+    });
+    oracle_abi.addIncludePath(b.path("test/oracle"));
+    const oracle_abi_module = oracle_abi.createModule();
+
     const oracle_module = b.createModule(.{
         .root_source_file = b.path("test/oracle/oracle_smoke.zig"),
         .target = target,
@@ -430,6 +453,7 @@ pub fn build(b: *std.Build) void {
             .{ .name = "zmath", .module = zmath_module },
             .{ .name = "corpus_support", .module = corpus_support_module },
             .{ .name = "corpus_artifacts", .module = corpus_artifacts_module },
+            .{ .name = "oracle_abi", .module = oracle_abi_module },
         },
         .link_libc = true,
     });
@@ -439,46 +463,141 @@ pub fn build(b: *std.Build) void {
         .file = b.path("test/oracle/oracle_smoke.c"),
         .flags = &.{"-std=c11"},
     });
-    oracle_module.addCSourceFile(.{
-        .file = b.path("test/oracle/oracle_bridge.c"),
-        .flags = &.{"-std=c11"},
-    });
-    oracle_module.addIncludePath(b.path("test/oracle"));
+    addOracleSources(b, oracle_module);
     oracle_module.linkSystemLibrary("mpfr", .{});
     oracle_module.linkSystemLibrary("gmp", .{});
     oracle_module.linkSystemLibrary("flint", .{});
     const oracle_tests = b.addTest(.{ .root_module = oracle_module });
     enableCoverage(coverage, coverage_runtime, oracle_tests);
     const run_oracle_tests = b.addRunArtifact(oracle_tests);
-    const oracle_step = b.step("oracle", "Run MPFR and Arb oracle smoke tests");
+    const oracle_step = b.step("oracle", "Run typed scalar reference and proof checks");
     oracle_step.dependOn(&run_oracle_tests.step);
+    const transcendental_regression_module = b.createModule(.{
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
+    });
+    addOracleSources(b, transcendental_regression_module);
+    transcendental_regression_module.addCSourceFile(.{
+        .file = b.path("test/oracle/oracle_transcendental_regression.c"),
+        .flags = &.{"-std=c11"},
+    });
+    transcendental_regression_module.linkSystemLibrary("mpfr", .{});
+    transcendental_regression_module.linkSystemLibrary("gmp", .{});
+    transcendental_regression_module.linkSystemLibrary("flint", .{});
+    const transcendental_regression = b.addExecutable(.{
+        .name = "oracle-transcendental-regression",
+        .root_module = transcendental_regression_module,
+    });
+    const run_transcendental_regression = b.addRunArtifact(transcendental_regression);
+    oracle_step.dependOn(&run_transcendental_regression.step);
+
+    const corpus_campaigns_module = b.createModule(.{
+        .root_source_file = b.path("test/oracle/corpus_campaigns.zig"),
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{.{
+            .name = "corpus_support",
+            .module = corpus_support_module,
+        }},
+    });
+    const campaign_tests = b.addTest(.{ .root_module = corpus_campaigns_module });
+    const run_campaign_tests = b.addRunArtifact(campaign_tests);
+    test_step.dependOn(&run_campaign_tests.step);
+    const campaign_test_step = b.step("test-campaigns", "Check deterministic scalar campaign ordering");
+    campaign_test_step.dependOn(&run_campaign_tests.step);
+
+    const corpus_set_module = b.createModule(.{
+        .root_source_file = b.path("test/support/corpus_set.zig"),
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{
+            .{ .name = "corpus_support", .module = corpus_support_module },
+            .{ .name = "corpus_campaigns", .module = corpus_campaigns_module },
+            .{ .name = "oracle_abi", .module = oracle_abi_module },
+        },
+    });
+
+    const scalar_runner_module = b.createModule(.{
+        .root_source_file = b.path("test/oracle/corpus_runner.zig"),
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{
+            .{ .name = "zmath", .module = zmath_module },
+            .{ .name = "corpus_support", .module = corpus_support_module },
+            .{ .name = "corpus_artifacts", .module = corpus_artifacts_module },
+        },
+    });
+    scalar_runner_module.addOptions("active_target_mode", active_options);
     const corpus_producer_module = b.createModule(.{
-        .root_source_file = b.path("test/oracle/corpus_producer.zig"),
-        .target = b.graph.host,
-        .optimize = .ReleaseSafe,
+        .root_source_file = b.path("test/oracle/corpus_generate.zig"),
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{
+            .{ .name = "corpus_support", .module = corpus_support_module },
+            .{ .name = "corpus_campaigns", .module = corpus_campaigns_module },
+            .{ .name = "corpus_runner", .module = scalar_runner_module },
+            .{ .name = "oracle_abi", .module = oracle_abi_module },
+            .{ .name = "corpus_set", .module = corpus_set_module },
+        },
         .link_libc = true,
     });
     corpus_producer_module.addOptions("active_target_mode", active_options);
 
-    corpus_producer_module.addCSourceFile(.{
-        .file = b.path("test/oracle/oracle_bridge.c"),
-        .flags = &.{"-std=c11"},
-    });
-    corpus_producer_module.addIncludePath(b.path("test/oracle"));
+    addOracleSources(b, corpus_producer_module);
     corpus_producer_module.linkSystemLibrary("mpfr", .{});
     corpus_producer_module.linkSystemLibrary("gmp", .{});
     corpus_producer_module.linkSystemLibrary("flint", .{});
+    const generator_tests = b.addTest(.{ .root_module = corpus_producer_module });
+    const run_generator_tests = b.addRunArtifact(generator_tests);
+    oracle_step.dependOn(&run_generator_tests.step);
+    const generator_test_step = b.step("test-generator", "Check scalar corpus publication and profile guards");
+    generator_test_step.dependOn(&run_generator_tests.step);
     const corpus_producer = b.addExecutable(.{
         .name = "zmath-testing-corpus-producer",
         .root_module = corpus_producer_module,
     });
+    const install_corpus_producer = b.addInstallArtifact(corpus_producer, .{});
+    const generator_step = b.step("oracle-generator", "Build the typed scalar corpus generator");
+    generator_step.dependOn(&install_corpus_producer.step);
     const run_corpus_producer = b.addRunArtifact(corpus_producer);
-    run_corpus_producer.addArg(b.pathFromRoot("test/corpus"));
+    run_corpus_producer.addArg("test/corpus");
+    if (b.args) |args| run_corpus_producer.addArgs(args);
     const corpus_producer_step = b.step(
         "generate-corpus",
-        "Generate immutable MPFR and Arb corpus artifacts",
+        "Generate verified typed scalar corpus artifacts",
     );
     corpus_producer_step.dependOn(&run_corpus_producer.step);
+
+    const corpus_replay_module = b.createModule(.{
+        .root_source_file = b.path("test/oracle/corpus_replay.zig"),
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{
+            .{ .name = "corpus_support", .module = corpus_support_module },
+            .{ .name = "corpus_set", .module = corpus_set_module },
+            .{ .name = "corpus_runner", .module = scalar_runner_module },
+        },
+        .link_libc = true,
+    });
+    corpus_replay_module.addOptions("active_target_mode", active_options);
+    corpus_replay_module.addIncludePath(b.path("test/oracle"));
+    corpus_replay_module.addCSourceFile(.{
+        .file = b.path("test/oracle/oracle_operation_table.c"),
+        .flags = &.{"-std=c11"},
+    });
+    const corpus_replay = b.addExecutable(.{
+        .name = "zmath-corpus-replay",
+        .root_module = corpus_replay_module,
+    });
+    const install_corpus_replay = b.addInstallArtifact(corpus_replay, .{});
+    const replay_build_step = b.step("corpus-replay", "Build the typed scalar corpus replay");
+    replay_build_step.dependOn(&install_corpus_replay.step);
+    const run_corpus_replay = b.addRunArtifact(corpus_replay);
+    run_corpus_replay.addArg("test/corpus");
+    if (b.args) |args| run_corpus_replay.addArgs(args);
+    const replay_step = b.step("replay-corpus", "Verify every published scalar corpus record");
+    replay_step.dependOn(&run_corpus_replay.step);
 
     // Zig 0.16's built-in fuzzer expects every __sancov_cntrs byte to have
     // one entry in Zig's __sancov_pcs1. Clang writes two-word C records to
@@ -500,11 +619,7 @@ pub fn build(b: *std.Build) void {
         .fuzz = false,
         .link_libc = true,
     });
-    oracle_fuzz_bridge_module.addCSourceFile(.{
-        .file = b.path("test/oracle/oracle_bridge.c"),
-        .flags = &.{"-std=c11"},
-    });
-    oracle_fuzz_bridge_module.addIncludePath(b.path("test/oracle"));
+    addOracleSources(b, oracle_fuzz_bridge_module);
     const oracle_fuzz_bridge = b.addLibrary(.{
         .name = "oracle-fuzz-bridge",
         .root_module = oracle_fuzz_bridge_module,
@@ -600,6 +715,35 @@ pub fn build(b: *std.Build) void {
     const run_benchmark = b.addRunArtifact(benchmark);
     const run_bench_step = b.step("run-bench", "Run public zmath benchmarks");
     run_bench_step.dependOn(&run_benchmark.step);
+
+    const scalar_benchmark_module = b.createModule(.{
+        .root_source_file = b.path("bench/scalar_matrix.zig"),
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{
+            .{ .name = "scalar_runner", .module = scalar_runner_module },
+            .{ .name = "corpus_support", .module = corpus_support_module },
+            .{ .name = "corpus_set", .module = corpus_set_module },
+        },
+    });
+    scalar_benchmark_module.addOptions("active_target_mode", active_options);
+    scalar_benchmark_module.addIncludePath(b.path("test/oracle"));
+    scalar_benchmark_module.addCSourceFile(.{
+        .file = b.path("test/oracle/oracle_operation_table.c"),
+        .flags = &.{"-std=c11"},
+    });
+    const scalar_benchmark = b.addExecutable(.{
+        .name = "zmath-scalar-matrix",
+        .root_module = scalar_benchmark_module,
+    });
+    const install_scalar_benchmark = b.addInstallArtifact(scalar_benchmark, .{});
+    const scalar_bench_step = b.step("bench-scalar", "Build typed scalar corpus benchmarks");
+    scalar_bench_step.dependOn(&install_scalar_benchmark.step);
+    const run_scalar_benchmark = b.addRunArtifact(scalar_benchmark);
+    run_scalar_benchmark.addArg("test/corpus");
+    if (b.args) |args| run_scalar_benchmark.addArgs(args);
+    const run_scalar_bench_step = b.step("run-bench-scalar", "Benchmark typed scalar corpora");
+    run_scalar_bench_step.dependOn(&run_scalar_benchmark.step);
 
     const power_module = b.createModule(.{
         .root_source_file = b.path("bench/power_resource.zig"),

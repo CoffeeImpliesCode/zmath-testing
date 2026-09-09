@@ -1,15 +1,16 @@
 # Scalar oracle corpus
 
-This directory defines the scalar oracle contract for `zmath`.
+This directory defines the typed scalar oracle contract for `zmath`.
 The runtime library does not depend on this directory or on oracle libraries.
 The normative contract is in `../../../zmath/spec/core-math-2026-08-22.md`.
 
 ## Manifest
 
-`manifest.toml` uses schema version 2. It pins CORE-MATH revision
+`manifest.toml` uses schema version 3.
+It pins CORE-MATH revision
 `3bafed75e3c22399531857d63a3fa0e24bfb42fa`, MPFR precision at 512 bits, and
-Arb precision at 512 bits. Both oracle paths use round-to-nearest, ties-to-even.
-The uncertainty policy is fail closed.
+Arb precision at 512 bits. Numerical evaluation does not adapt beyond those
+precisions. The uncertainty policy is fail closed.
 
 The root keys occur in this order:
 
@@ -33,8 +34,8 @@ Their typed descriptors select the format. Encoded narrowing names remain exact.
 
 ## Ownership and provenance
 
-The manifest has 315 typed rows. Provenance records ownership, not acceptance.
-Use only these ordered arrays:
+The manifest has 315 sorted typed rows. Provenance records ownership, not
+acceptance. Use only these ordered arrays:
 
 - `["zmath"]` for zmath-owned operations.
 - `["core_math"]` for CORE-MATH-owned operations.
@@ -45,80 +46,93 @@ case-sensitive operation spelling, then by the typed format in `h`, `f`, `d`
 order. The operation spelling declaration is exactly
 `c23_hfd_lowercase_v1`.
 
-## Current status
+The authoritative C operation table maps every manifest operation-format key
+exactly once. It assigns 150 descriptors to `exact_bits`, 126 to `mpfr_arb`,
+and 39 to `algebraic`.
 
-Six rows are accepted: `exp/h`, `exp/f`, `exp/d`, `log/h`, `log/f`, and
-`sin/h`. Each accepted row has:
+## Status and evidence
 
-```text
-status = "correct"
-oracle = "mpfr_arb"
-special_policy = "zmath_c23_v1"
-max_ulp = 0
-```
+The status values are `unsupported`, `correct`, and `bounded`.
+An unsupported row requires `oracle = "none"` and `max_ulp = 0`.
+A correct row requires a non-`none` oracle and `max_ulp = 0`.
+A bounded row requires a non-`none` oracle and a non-negative `max_ulp`.
+The accepted oracle values are `none`, `exact_bits`, `algebraic`, and
+`mpfr_arb`.
 
-The remaining 309 typed rows have:
+Implementation, manifest acceptance, corpus evidence, and whole-domain proof
+are separate facts. Source exports establish implementation only. A `correct`
+or `bounded` row establishes manifest acceptance only. Corpus evidence covers
+stored tuples. Whole-domain proof requires exhaustive inputs or a separate
+proof for the complete operation-format domain.
 
-```text
-status = "unsupported"
-oracle = "none"
-special_policy = "zmath_c23_v1"
-max_ulp = 0
-```
+The checked-in manifest accepts all 315 descriptors as `correct` with
+`max_ulp = 0`. Full publication and replay verified 63,160,084 records.
+The benchmark exercised every descriptor.
 
-`unsupported` means that the manifest makes no accuracy or runtime acceptance
-claim. It does not state that the corresponding zmath symbol is absent.
-Source presence and provenance do not change row status.
+## Typed publication
 
-Implementation, manifest acceptance, corpus evidence, and whole-domain proof are
-separate facts. Source exports establish implementation only. A `correct` or
-`bounded` row establishes manifest acceptance only. Corpus evidence covers the
-stored rows. Whole-domain proof requires exhaustive inputs or a separate proof
-for the complete operation-format domain.
+New publication records use the length-framed binary `ZCDR` codec version 1.
+The metadata file begins with `ZCDM version=1`.
+Each record stores the operation, ordered provenance, arity, typed arguments,
+result descriptor, typed result fields, and `max_ulp`.
+Floating fields store exact format, bits, and IEEE class. Integer, Boolean,
+tag, rounding, and status-container fields use explicit typed encodings.
 
-## Corpus artifacts
+The generator compares the zmath result with the evaluator selected by the
+authoritative C table before writing a record. `exact_bits` uses direct IEEE
+bit and integer models. `algebraic` uses exact GMP rational arithmetic for
+finite dyadic operations and certified 512-bit MPFR/Arb enclosures for
+irrational algebraic roots. `mpfr_arb` uses a fixed 512-bit MPFR candidate and a
+Arb proof.
 
-Schema version 2 ships no corpus artifact for an unsupported row. The checked-in
-`log_f.tsv` artifact covers the accepted `log/f` row. Add an artifact only after
-the row changes to `correct` or `bounded` and reviewers accept implementation
-and oracle evidence for that exact operation and format.
+Exact dyadic relations are used for target rounding boundaries. Fixed
+1,024-bit MPFR boundary containers may hold exact binary boundary values; this
+does not change the 512-bit numerical evaluation precision.
+The atan2 midpoint correction, log-domain overflow proof, and negative
+noninteger lgamma reflection proof are fail-closed evaluator protocols.
 
-Each artifact must be immutable, repository-relative, UTF-8 without a byte
-order mark, use LF line endings, and end with one LF. Its header must be exactly:
+Metadata records the manifest descriptor digest, target profile, campaign
+class, seed, cardinality, selection rule, record count, source metadata, and
+artifact SHA-256. The loader rejects `.incomplete`, requires `COMPLETE`, and
+verifies the metadata digest, descriptor digest, scope, profile, record order,
+count, and artifact digest. When source metadata is unavailable, use the exact
+`source-metadata-unavailable` digest sentinel and `none` source fields.
 
-```text
-op\tformat\tinput_bits\toutput_bits\toutput_class\tmax_ulp
-```
+Campaign classes are explicit:
 
-Data rows must be unique and sorted by operation, format, and unsigned input
-bits. Bit fields use fixed-width lowercase hexadecimal text without `0x`.
-Output classes are `normal`, `subnormal`, `zero`, `infinity`, and `qnan`.
-Special values require exact target-format bits. Finite inputs within the
-mathematical domain require MPFR at 512 bits and a unique 512-bit Arb proof,
-including results that round to target infinity or zero.
-`max_ulp` is canonical unsigned decimal text. Correct rows require `0`.
-Bounded rows permit any non-negative `max_ulp`, including `0`.
-Producers must fail on uncertainty or disagreement and must not use host `libm`,
-`fenv`, or `errno` to choose an output.
+- `exhaustive_h_unary` enumerates all 65,536 binary16 input bit patterns for
+  one unary H operation.
+- `bounded_h_integer_domain` covers a declared integer parameter domain.
+- `explicit_special_tuple_grid` covers declared special-value tuples.
+- `selected_cartesian` covers a declared selected Cartesian product.
+- `selected_unary_f` and `selected_unary_d` cover declared selected F and D
+  inputs.
+- `exact_bit_status` covers exact-bit and status-return cases.
 
-## Deterministic replay
+Only `exhaustive_h_unary` claims exhaustive coverage of its one-argument
+binary16 domain. Every other campaign claims only its declared tuples.
+The publication includes 61 exhaustive binary16 unary campaigns.
+The remaining campaigns do not prove whole IEEE operation-format domains.
 
-Acceptance execution reads only immutable embedded TSV rows. It does not call
-`std.testing.random_seed`, use a process clock, or sample an input domain. The
-producer must generate rows from the pinned MPFR/Arb contract and fail closed
-on an oracle disagreement, an uncertain Arb interval, or an unknown special
-value. The runner checks the runtime bits, stored bits, MPFR bits, output
-classes, and Arb proof before it accepts a row.
+Generated raw records are multi-gigabyte artifacts.
+Keep `generated/records/` and `generated/probes/` local and ignored.
+Also ignore incomplete-publication markers and temporary files.
+Commit publication metadata, `COMPLETE`, `replay.txt`, and `benchmark.txt`.
+Regenerate raw records with `generate-corpus` in a new checkout.
 
-Every artifact is bound to exactly one manifest operation-format row. The row
-must have status `correct` or `bounded`; an `unsupported` row cannot load an
-artifact. The artifact name, operation, format, fixed-width bits, ordering,
-uniqueness, output class, and `max_ulp` must agree with the manifest. Missing,
-duplicate, or ambiguous manifest bindings are errors.
+The metadata SHA-256 is
+`f7e624e2be25c43935da9afa179cb20149fce4a0326dbfa310056c5761a017ab`.
+Its status-oracle snapshots record the candidate state before acceptance.
+Status promotion does not change numerical descriptor identity or record hashes.
+The loader checks both historical snapshots and the current manifest.
 
-Target, CPU, and optimize mode are artifact metadata, not TSV columns. Acceptance
-requires an explicit `TargetMode` record on each embedded artifact and an active
-record from the caller/build. The accepted evidence tuple is immutable:
+`generated/verification.json` records test, formatting, replay, benchmark,
+and lint outcomes. Numerical verification passed. The runtime house gate and
+harness style lint still report diagnostics; they are not recorded as passing.
+
+## Deterministic replay and benchmark
+
+The qualified profile is:
 
 ```text
 target = x86_64-linux-gnu.2.38
@@ -126,24 +140,97 @@ cpu = haswell
 optimize = ReleaseSafe
 ```
 
-The build records this exact tuple in embedded metadata. The oracle runner
-rejects missing metadata and rejects any target, CPU, or optimize-mode mismatch.
-No other target profile can replay an accepted artifact.
-
-The exact replay command is:
+Build the typed tools with:
 
 ```text
-zig build oracle -Dtarget=x86_64-linux-gnu.2.38 -Dcpu=haswell -Doptimize=ReleaseSafe
+zig build oracle-generator -Dtarget=x86_64-linux-gnu.2.38 -Dcpu=haswell -Doptimize=ReleaseSafe
+zig build corpus-replay -Dtarget=x86_64-linux-gnu.2.38 -Dcpu=haswell -Doptimize=ReleaseSafe
+zig build bench-scalar -Dtarget=x86_64-linux-gnu.2.38 -Dcpu=haswell -Doptimize=ReleaseSafe
 ```
 
-The benchmark commands use the same qualified profile:
+The resulting executables are:
 
 ```text
-zig build bench -Dbench-target=scalar-log-f -Dtarget=x86_64-linux-gnu.2.38 -Dcpu=haswell -Doptimize=ReleaseSafe
-zig build run-bench -Dbench-target=scalar-log-f -Dtarget=x86_64-linux-gnu.2.38 -Dcpu=haswell -Doptimize=ReleaseSafe
+zig-out/bin/zmath-testing-corpus-producer
+zig-out/bin/zmath-corpus-replay
+zig-out/bin/zmath-scalar-matrix
 ```
 
-The same commands accept these six target names:
+Each executable accepts an optional first positional corpus root. The default
+root is `test/corpus`. Each accepts `--operation=<manifest-op>` and
+`--format=h|f|d`; the filters can be used independently or together:
+
+```text
+zig-out/bin/zmath-testing-corpus-producer test/corpus --operation=atan2 --format=d
+zig-out/bin/zmath-corpus-replay test/corpus --operation=atan2 --format=d
+zig-out/bin/zmath-scalar-matrix test/corpus --operation=atan2 --format=d
+```
+
+The build wrappers expose these commands:
+
+```text
+zig build generate-corpus -Dtarget=x86_64-linux-gnu.2.38 -Dcpu=haswell -Doptimize=ReleaseSafe
+zig build replay-corpus -Dtarget=x86_64-linux-gnu.2.38 -Dcpu=haswell -Doptimize=ReleaseSafe
+zig build run-bench-scalar -Dtarget=x86_64-linux-gnu.2.38 -Dcpu=haswell -Doptimize=ReleaseSafe
+```
+
+Append filters after `--` when using a build wrapper. The wrapper passes
+`test/corpus` as its default positional root:
+
+```text
+zig build generate-corpus -Dtarget=x86_64-linux-gnu.2.38 -Dcpu=haswell -Doptimize=ReleaseSafe -- --operation=atan2 --format=d
+zig build replay-corpus -Dtarget=x86_64-linux-gnu.2.38 -Dcpu=haswell -Doptimize=ReleaseSafe -- --operation=atan2 --format=d
+zig build run-bench-scalar -Dtarget=x86_64-linux-gnu.2.38 -Dcpu=haswell -Doptimize=ReleaseSafe -- --operation=atan2 --format=d
+```
+
+The generator request and evaluator table use oracle ABI v2.
+Each request carries operation bytes, arity, typed input fields, result layout,
+structure kind, and typed result fields. The C table has one authoritative
+signature and evaluator category for each manifest descriptor.
+
+Replay reads stored typed outputs and compares them with current zmath results.
+It does not link or invoke MPFR, Arb, GMP, or FLINT. The scalar benchmark
+validates publication metadata and artifact digests before measurement. It
+reports measurements only and does not grant manifest acceptance or
+whole-domain proof.
+
+## Historical TSV fixtures
+
+Six historical TSV fixtures remain tracked for compatibility and regression
+context. They are not the schema-3 typed publication format and do not claim
+full coverage:
+
+- `exp_h.tsv`: 65,536 data rows covering every unsigned binary16 encoding in
+  numeric order.
+- `exp_f.tsv`: 29 data rows.
+- `exp_d.tsv`: 182 data rows.
+- `log_h.tsv`: 65,536 data rows covering every unsigned binary16 encoding in
+  numeric order.
+- `log_f.tsv`: 64 data rows from the exact binary32 vectors in
+  `scalar_log_test.zig`: special values, subnormal/normal boundaries,
+  adjacent-to-one values, and nine CORE-MATH fallback/low-correction vectors
+  with each vector's immediate predecessor and successor. Inputs are sorted
+  and deduplicated.
+- `sin_h.tsv`: 65,536 data rows covering every unsigned binary16 encoding in
+  numeric order.
+
+The H fixtures are exhaustive over their unary binary16 domains. The F and D
+fixtures are deterministic selected-case corpora and provide evidence only for
+stored inputs. Their historical text header is:
+
+```text
+op	format	input_bits	output_bits	output_class	max_ulp
+```
+
+The legacy TSV reader remains for these compatibility fixtures only.
+The typed producer and replay validate campaign scope, typed records, and the
+manifest status/evaluator relation.
+
+## Historical benchmark fixture
+
+The following table records the old six-target native runs. It is historical
+benchmark evidence for the TSV fixtures, not a performance bound or a
+schema-3 full-publication result:
 
 | Target | Corpus rows | Timed operations | Observed elapsed ns | Result checksum |
 | --- | ---: | ---: | ---: | ---: |
@@ -155,17 +242,33 @@ The same commands accept these six target names:
 | `scalar-sin-h` | 65,536 | 1,048,576 | 9,792,795 | 29,520,195,616 |
 
 These are single native runs on a shared host, not performance bounds.
-Each target validates its corpus and SHA-256 before the timed loop.
-Per-call input barriers prevent constant folding and loop hoisting.
-The output includes the resolved target triple, sorted CPU features, mode,
-corpus path, row count, operation count, SHA-256, elapsed time, and checksum.
-The exact populated Haswell feature set is required; adding or removing a
-feature rejects the accepted profile.
+The typed scalar benchmark validates its selected publication metadata and
+SHA-256 before the timed loop.
+
+## Corpus producer and fail-closed behavior
+
+The test-only producer runs on the host.
+Build options record the requested target, CPU features, and mode.
+The producer rejects unapproved profiles before it reads arguments or changes files.
+Host execution does not qualify an additional runtime profile.
+
+The producer writes temporary record files.
+It publishes metadata and `COMPLETE` only after all selected records pass evaluator checks.
+A failed run can leave partial records with an `.incomplete` marker.
+Evaluator disagreement, an ambiguous enclosure, or an unresolved midpoint correction prevents completion.
+Unknown special-value policies, descriptor mismatches, and missing source sentinels also prevent completion.
+The producer does not increase precision silently or emit a best-effort record.
+
+Replay rejects metadata, profile, descriptor, scope, record-order, count, or
+artifact-digest mismatches. It does not skip a bad row, substitute a host
+result, invoke an external oracle, or accept a nearby value.
+
+## Exploratory fuzzing
 
 Exploratory fuzzing is a separate surface. A caller must provide a fixed seed
 to the seeded fuzz helper, and a fuzz campaign must preserve its seed,
 compiler, source, budget, and callback request order. Fuzz inputs never become
-accepted TSV rows automatically.
+accepted typed records automatically.
 
 The Exp-only Smith campaign uses Zig 0.16.0:
 
@@ -179,56 +282,10 @@ built-in fuzzer cannot combine its PC-table layout with Clang's C layout.
 This target therefore omits C kernel link objects. A future C-backed campaign
 needs compatible coverage support; it must not silently claim C coverage.
 
-## Corpus producer
-
-The test-only producer runs on the host. At compile time, it checks that
-the requested corpus profile is exactly the qualified target, CPU features,
-and mode. Host execution does not qualify an additional runtime profile.
-
-```text
-zig build generate-corpus -Dtarget=x86_64-linux-gnu.2.38 -Dcpu=haswell -Doptimize=ReleaseSafe
-```
-
-It links the existing MPFR and Arb bridge. It writes temporary files and renames
-them only after all six accepted artifacts pass the oracle checks.
-
-The producer writes these immutable artifacts:
-
-- `exp_h.tsv`: 65,536 data rows. It covers every unsigned binary16
-  encoding in numeric order.
-- `exp_f.tsv`: 29 data rows.
-- `exp_d.tsv`: 182 data rows.
-- `log_h.tsv`: 65,536 data rows. It covers every unsigned binary16
-  encoding in numeric order.
-- `log_f.tsv`: 64 data rows. Its provenance is the exact binary32 vectors in
-  `scalar_log_test.zig`: special values, subnormal/normal boundaries,
-  adjacent-to-one values, and nine CORE-MATH fallback/low-correction vectors
-  with each vector's immediate predecessor and successor. Inputs are sorted
-  and deduplicated.
-
-- `sin_h.tsv`: 65,536 data rows. It covers every unsigned binary16
-  encoding in numeric order.
-The H artifacts are exhaustive over their unary binary16 domains.
-The F and D artifacts are deterministic selected-case corpora. They provide
-evidence for stored inputs only and do not prove their whole domains.
-
-The F and D boundary sets each contain the 18 inputs from the deterministic
-Task 3 campaign. The producer adds exact special values, every F and D input
-from `scalar_exp_test.zig`, and the 51 pinned CORE-MATH binary64 Exp database
-inputs from `scalar.zig`. It adds the immediate predecessor and successor of
-each selected finite input, then sorts and removes duplicates.
-
-For each row, the producer gets the output bits and class from MPFR at 512
-bits with round-to-nearest, ties-to-even. It calls the Arb bridge for every
-row. The bridge requires a unique 512-bit enclosure proof for finite
-mathematical results, including target-format overflow, and applies exact
-nonfinite-input and domain-special rules. Any oracle error, disagreement,
-or uncertainty stops generation before artifact replacement.
-
 ## Exact-power resource measurements
 
-Power families remain `unsupported`. Resource measurements do not establish
-numerical acceptance or a full-domain stack or latency bound.
+Power-family resource measurements do not establish numerical acceptance or a
+whole-domain stack or latency bound.
 
 ```text
 zig build run-power -Dtarget=x86_64-linux-gnu.2.38 -Dcpu=haswell -Doptimize=ReleaseSafe
@@ -250,15 +307,15 @@ Observed native four-call batch ranges, in milliseconds:
 | `rootn` | 6.056–82.031 | 4.903–25.075 |
 
 Batch times include dispatch and checksum overhead. The host was shared and
-the runs were not isolated. In particular, these samples do not establish
-a speedup ratio between modes. Minimum-subnormal `compoundn` is expensive.
+the runs were not isolated. These samples do not establish a speedup ratio
+between modes. Minimum-subnormal `compoundn` is expensive.
 
-Valgrind 3.27.1 Massif, with `--stacks=yes --time-unit=B`, observed whole-program
-peak stack sizes of 362,832 bytes in ReleaseSafe and 362,976 bytes in
-ReleaseFast. It reported zero heap bytes in both runs. These peaks cover
-only the 36 scenarios and include measurement-program stack use.
+Valgrind 3.27.1 Massif, with `--stacks=yes --time-unit=B`, observed
+whole-program peak stack sizes of 362,832 bytes in ReleaseSafe and 362,976
+bytes in ReleaseFast. It reported zero heap bytes in both runs. These peaks
+cover only the 36 scenarios and include measurement-program stack use.
 Do not use instrumented elapsed times as native latency measurements.
 
-`readelf -d` found no dynamic section in all six scalar benchmark binaries
-or either power measurement binary. `nm -u` listed only `_DYNAMIC`;
+`readelf -d` found no dynamic section in all six historical scalar benchmark
+binaries or either power measurement binary. `nm -u` listed only `_DYNAMIC`;
 none referenced MPFR, GMP, FLINT, Arb, or libc math symbols.

@@ -4,7 +4,7 @@ const corpus = @import("corpus_support");
 const tsv_header = "op\tformat\tinput_bits\toutput_bits\toutput_class\tmax_ulp\n";
 
 const fixture_root =
-    "schema_version = 2\n" ++
+    "schema_version = 3\n" ++
     "core_math_repository = \"https://gitlab.inria.fr/core-math/core-math.git\"\n" ++
     "core_math_revision = \"3bafed75e3c22399531857d63a3fa0e24bfb42fa\"\n" ++
     "mpfr_precision_bits = 512\n" ++
@@ -34,6 +34,29 @@ const fixture_row =
 
 const fixture_manifest = fixture_root ++ fixture_row;
 
+const abs_h_unsupported =
+    "[[function]]\n" ++
+    "op = \"abs\"\n" ++
+    "provenance = [\"zmath\"]\n" ++
+    "status = \"unsupported\"\n" ++
+    "arity = 1\n" ++
+    "inputs = [\"float:h\"]\n" ++
+    "result = \"float:h\"\n" ++
+    "oracle = \"none\"\n" ++
+    "special_policy = \"zmath_c23_v1\"\n" ++
+    "max_ulp = 0\n";
+const abs_h_correct =
+    "[[function]]\n" ++
+    "op = \"abs\"\n" ++
+    "provenance = [\"zmath\"]\n" ++
+    "status = \"correct\"\n" ++
+    "arity = 1\n" ++
+    "inputs = [\"float:h\"]\n" ++
+    "result = \"float:h\"\n" ++
+    "oracle = \"exact_bits\"\n" ++
+    "special_policy = \"zmath_c23_v1\"\n" ++
+    "max_ulp = 0\n";
+
 fn replaceText(
     input: []const u8,
     needle: []const u8,
@@ -50,13 +73,35 @@ fn replaceText(
     return output[0..output_len];
 }
 
-test "portable infrastructure accepts the pinned 315-row schema-v2 manifest" {
+test "portable infrastructure accepts the complete typed manifest" {
     const manifest = try corpus.parseEmbeddedManifest();
     try std.testing.expectEqual(@as(usize, 315), manifest.functionCount());
     try corpus.validateEmbeddedManifest();
 }
 
-test "portable infrastructure rejects a nonempty truncated schema-v2 manifest" {
+test "portable infrastructure accepts a correct descriptor outside legacy TSV set" {
+    var source: [corpus.manifest_text.len + 16]u8 = undefined;
+    const accepted_source = if (std.mem.indexOf(
+        u8,
+        corpus.manifest_text,
+        abs_h_correct,
+    ) != null)
+        corpus.manifest_text
+    else
+        replaceText(
+            corpus.manifest_text,
+            abs_h_unsupported,
+            abs_h_correct,
+            &source,
+        );
+    const manifest = try corpus.parseManifest(accepted_source);
+    const function = manifest.function_values[0];
+    try std.testing.expectEqualStrings("abs", function.op);
+    try std.testing.expectEqual(corpus.FunctionStatus.correct, function.status);
+    try std.testing.expectEqual(corpus.Oracle.exact_bits, function.oracle);
+}
+
+test "portable infrastructure rejects a nonempty truncated manifest" {
     try std.testing.expectError(error.MissingFunctionRow, corpus.validateManifest(fixture_manifest));
 }
 
@@ -71,18 +116,18 @@ test "portable infrastructure rejects a malformed standard-operation signature" 
     try std.testing.expectError(error.InvalidDescriptor, corpus.validateManifest(malformed));
 }
 
-test "portable infrastructure rejects schema-v1 root values" {
+test "portable infrastructure rejects the previous manifest schema" {
     var source: [fixture_manifest.len + 64]u8 = undefined;
     const malformed = replaceText(
         fixture_manifest,
+        "schema_version = 3",
         "schema_version = 2",
-        "schema_version = 1",
         &source,
     );
     try std.testing.expectError(error.InvalidPinnedValue, corpus.validateManifest(malformed));
 }
 
-test "portable infrastructure rejects a missing schema-v2 root key" {
+test "portable infrastructure rejects a missing root key" {
     var source: [fixture_manifest.len + 64]u8 = undefined;
     const malformed = replaceText(
         fixture_manifest,

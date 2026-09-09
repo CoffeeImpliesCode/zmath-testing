@@ -18,5 +18,7 @@ test "Arb environment smoke check" {
 
 test {
     _ = @import("oracle_bridge_test.zig");
+    _ = @import("oracle_exact_bits_test.zig");
+    _ = @import("oracle_algebraic_test.zig");
     _ = @import("corpus_runner.zig");
 }
