@@ -2,6 +2,502 @@
 
 Date: 2026-09-09. Runtime snapshot: `e6673837a3c7a7ea249f586c7b9da2d9b684e4e6`.
 
+## 2026-09-26 optimization campaign
+
+This section records a second campaign against the runtime source tree. Unlike
+the analysis below, it changed `../zmath` and verified every change before
+keeping it.
+
+Coverage: 41 operations, 3 formats, and 3 distributions in the comparative
+matrix (1,173 available provider cells), 315 typed corpus descriptors, and 15
+public helper or rounding-mode cases that the comparative matrix does not
+exercise. The frozen baseline source, binaries, and raw records are under
+`bench/results/superopt-20260926-*`. These are sampled timing and accuracy
+audits, not whole-domain proofs.
+
+The same-input Zig intrinsic reference covers 18 descriptors (`abs`, `ceil`,
+`floor`, `trunc`, `round`, and `fma` in three formats). Its binary16 and binary32
+`fma` samples differ from the qualified zmath outputs, so the typed runner
+explicitly excludes those two rows. The other 16 references are timed.
+
+### Measurement limits found on this host
+
+The process-level typed benchmark has a floor near 4.8 ns per call. Cheap
+descriptors varied by as much as 3x across repetitions, including unchanged
+code. Two protocols separated useful measurements from that noise:
+
+1. For expensive descriptors, alternate baseline and candidate processes and
+   compare the minimum time per call. The paired run in
+   `bench/results/superopt-20260926-ab-clean/report.json` has 15 observations
+   per descriptor and revision.
+2. For shorter calls, link the frozen baseline and candidate into one
+   interleaved comparator (`bench/results/superopt-20260926-abtime.zig`).
+   The rows below come from one run,
+   `bench/results/superopt-20260926-abtime-2.txt`, and use its minimum
+   time per call. Repeated runs show 3–8% code-placement bias for unchanged
+   functions; smaller differences do not establish a win.
+
+### Retained changes
+
+The following times are nanoseconds per call. Each table uses one named
+measurement run and its minimum statistic; speedup is before divided by after.
+The interleaved run compares the wave-2 implementation with the frozen baseline.
+
+| Interleaved case | Before | After | Speedup |
+|---|---:|---:|---:|
+| `fmod` f16/f32/f64 | 653/1660/12472 | 156/159/1058 | 4.18/10.44/11.79x |
+| `remainder` f16/f32/f64 | 672/1649/12597 | 161/163/1077 | 4.17/10.12/11.70x |
+| `trunc` f16/f32/f64 | 40.6/33.4/32.1 | 24.0/20.4/19.9 | 1.69/1.64/1.61x |
+| `ceil` f16/f32/f64 | 55.0/45.4/30.7 | 32.9/26.3/19.9 | 1.67/1.72/1.54x |
+| `floor` f16/f32/f64 | 39.5/31.6/30.3 | 23.8/20.4/19.9 | 1.66/1.55/1.52x |
+| `asin` f16 | 23.05 | 13.03 | 1.77x |
+| `tanh` f16 | 26.72 | 22.88 | 1.17x |
+| `sqrt` f64 | 14.95 | 12.60 | 1.19x |
+
+The paired typed-corpus minima compare the wave-2 implementation with the
+same frozen baseline. This workload includes corpus dispatch; its absolute
+times are not interchangeable with the interleaved times.
+
+| Typed corpus case | Before | After | Speedup |
+|---|---:|---:|---:|
+| `f16sqrtf64` | 175.439 | 24.266 | 7.23x |
+| `fsqrt` (f64 input, f32 result) | 178.309 | 22.368 | 7.97x |
+| `f32sqrtf64` | 178.095 | 22.136 | 8.05x |
+| `f16sqrtf32` | 85.936 | 21.653 | 3.97x |
+| `pown` f64 | 162515 | 130482 | 1.25x |
+| `compoundn` f64 | 144215 | 68349 | 2.11x |
+
+For the later certified `rootn` f64 seed, five alternating runs with five
+repetitions each in `bench/results/superopt-20260926-rootn-*-{baseline,wave3}.txt`
+give 1,133,460 → 328,491 ns per call by the same minimum statistic (3.45x).
+The medians of the 25 observations agree (1,143,401 → 330,926 ns, 3.46x).
+
+The changes preserve exact integer state or the original result rounding:
+
+- `scalar_remainder.zig` replaces one exponent bit per division with
+  `clz(divisor)`-wide quotient chunks, keeping the low three quotient bits
+  exact for `remquo` and the nearest-even tie rule unchanged.
+- `scalar_narrow_common.zig` replaces 32 integer divisions per narrowing
+  square root with a strict f64 seed and exact u128 square corrections. The
+  midpoint comparison and the single final rounding are unchanged.
+- `scalar_power_exact.zig` initializes and copies only active limbs, restricts
+  the root search to the exact exponent bracket, and short-circuits degree one,
+  powers of one, squares, and the proven tiny-`compoundn` region. For f64 roots
+  of degree at least two, an approximate seed is used only after exact
+  comparisons certify adjacent candidates; otherwise the exact binary search
+  runs unchanged. The 2,048-limb array is capacity, not a product size for
+  every call. A follow-on change writes f16 shift limbs directly. The f32 and
+  f64 paths keep the original shift loop.
+- `scalar_rounding.zig` and `scalar_integer_rounding.zig` use directed
+  rounding intrinsics after explicit NaN, zero, and range guards.
+- `scalar_asin.zig` and `scalar_tanh.zig` answer the binary16 ranges from
+  exact result tables generated from the exhaustive qualified corpus
+  (`bench/generate_half_tables.py`, 24,306 bytes total).
+- `scalar_sqrt.zig` takes one unsigned-bit guard before `@sqrt`; `coremath_lgammah.c`,
+  `coremath_lgammaf.c`, and `coremath_lgammad.c` own the pole signs so the Zig
+  wrappers no longer repeat the classification; `scalar_erff.zig`, `scalar_erfh.zig`,
+  and `scalar_erfd.zig` derive the range-reduction index once; `scalar_cbrt.zig`
+  scales the reciprocal with an exponent decrement; `scalar_scaling.zig` and
+  `ieee.zig` normalize subnormals with a bounded `@clz` shift.
+
+### Final full comparison and verification
+
+`bench/results/superopt-20260926-baseline/report.txt` and
+`bench/results/superopt-20260926-final-resumed/report.txt` use five repetitions
+on CPU 7, `ReleaseSafe`, and the Haswell target. Both runs used identical
+input digests, the same CORE-MATH revision, and nearest-even rounding.
+Each provider uses an opaque C function pointer and a 1,024-call batch.
+Times below are median ns per call.
+The runner audited all 1,173 available provider rows: 41 operations × 3
+formats × 3 distributions for zmath, plus available references. All 369 zmath
+rows and all 363 supported independent CORE-MATH rows matched the MPFR audit
+contract. Zig differed on 101 of its 195 available sampled rows; glibc differed
+on 82 of 246. These audits do not establish whole-domain correctness.
+
+| Final comparative case | Baseline zmath | Final zmath | Final CORE-MATH |
+|---|---:|---:|---:|
+| `asin` f16 normal/wide | 21.30/22.13 | 9.82/8.85 | 18.52/18.21 |
+| `tanh` f16 normal/wide | 15.46/11.50 | 9.66/8.61 | 12.30/9.42 |
+| `lgamma` f64 normal/wide | 97.43/100.35 | 71.76/73.69 | 57.89/59.94 |
+| `tgamma` f32 normal/wide | 37.55/53.24 | 27.99/40.36 | 29.69/41.79 |
+| `atan2pi` f64 normal | 62.44 | 54.63 | 36.98 |
+
+By the final matrix's median statistic, zmath is faster than CORE-MATH on
+255 of 363 comparable rows, versus 250 in the baseline; it is slower on 108.
+Against the fastest *sample-matching* available reference, zmath leads on
+222 of 369 rows, versus 220 in the baseline. Near-ties vary with placement
+and CPU conditions; these counts describe this run, not 5 proven new wins.
+The baseline and final typed executables each measured 315 descriptors.
+The companion helper executables each measured 15 public helper/mode cases.
+Input digests match. Checksums agree when the adaptive call counts match.
+The qualified corpus replay, oracle, campaign, generator, and fuzz gates passed.
+The runtime house gate passed format, build, 561 unit tests, AST check, and
+three linters. The harness Zig format check also passed.
+
+### Reverted change
+
+Rewriting `asinhf` to widen the sign-cleared input and inject the sign after
+rounding measured 0.955 to 0.973 against unchanged code across four runs,
+with both minimum and median statistics agreeing. The change was restored
+to the baseline form. Selecting operands instead of using the weighted quotient
+in the C `atan2pif` kernel gave no repeatable gain: one five-repetition run
+changed normal/wide/special medians from 27.10/251.19/29.86 to
+28.40/245.30/32.29 ns per call. That change was also restored.
+
+### Remaining losses
+
+`rootn` f64 still costs about 0.33 ms per call on its typed probe despite
+the certified seed. Exact candidate powers may involve up to about 53
+active limbs; the 2,048-limb buffer is a capacity bound. More progress needs
+a different certified algorithm or a better seed.
+
+The archived final binary regressed on the `compoundn` f16 typed probe. Five
+alternating processes with five repetitions each measured baseline versus
+final minima of 788 → 1,079 ns per call and medians of 889 → 1,126 ns
+(0.73x and 0.79x). The records are
+`bench/results/superopt-20260926-compoundn-*-{baseline,final}.txt`.
+Fixed-size clearing and a specialized u64 representation for `1+x` did not
+recover a repeatable win and were reverted. The later f16 shift change below
+reduces this loss without changing the f32 or f64 shift loop.
+
+The final report lists all 108 zmath rows slower than the independent
+CORE-MATH reference: 52 gaps exceed 10% and 19 exceed 25% by median.
+The largest measured ratios are `cospi` f32 normal (1.48x), `atan2pi` f64
+normal (1.48x), `log2p1` f32 wide (1.44x), `lgamma` f32 special (1.40x),
+and `erf` f64 normal (1.37x). `atan2pi` f32 normal/wide also trails
+(1.23/1.08x), while f64 wide/special is faster than CORE-MATH. For f64,
+`lgamma` normal/wide trails by 1.24/1.23x and `tgamma` by 1.13/1.36x.
+The sampled audit found MPFR mismatches in 101 of 195 available Zig rows
+and 82 of 246 glibc rows; a faster mismatching row is not a
+correctness-preserving target.
+
+The full matrix also has eight baseline-to-final slowdowns above 20% by
+median, mostly short paths near the measurement floor. Three concerning
+cases were rerun in three alternating baseline/final processes with five
+repetitions each (`bench/results/superopt-20260926-focused-*.json`):
+`tanpi` f64 wide, `tgamma` f64 wide, and `cospi` f32 normal then measured
+baseline/final ratios of 1.06, 0.98, and 1.04. Their CORE-MATH controls
+varied too. Thus the isolated full-run differences do not establish a
+repeatable source regression; the archived-final `compoundn` f16 loss above does.
+
+### Follow-on f16 shift measurement
+
+The 32-limb `Big.shifted` path now writes each active result limb once. It
+clears only whole-limb gaps and stores the final carry if it is nonzero.
+The f32 and f64 paths keep the prior clear-and-OR loop. This preserves exact
+integer powers and one final rounding.
+
+Five rotating runs of the frozen baseline, archived final, and new f16-only
+binary used CPU 6, Haswell, `ReleaseSafe`, and five repetitions per process.
+Each cell below contains 25 `compoundn` f16 measurements of the same 64
+qualified samples. Each binary checked all samples against the corpus before
+timing. All corpus digests matched.
+
+| `compoundn` f16 binary | Minimum ns/call | Median ns/call |
+|---|---:|---:|
+| Frozen baseline | 802.4 | 827.8 |
+| Archived final | 1,071.4 | 1,208.5 |
+| F16-only shift | 800.3 | 855.6 |
+
+The f16-only shift is 1.41x faster than the archived final by median and
+1.34x faster by minimum. It is 3% slower than the frozen baseline by median.
+The two baseline minima differ by less than 1%. These are sampled timings,
+not a whole-domain speed or accuracy claim.
+
+For `pown` f16, three alternating process pairs with five repetitions each
+measured archived-final and f16-only minima of 1,026.3 and 813.8 ns/call.
+The corresponding medians were 1,154.1 and 866.6 ns/call (1.33x).
+The `rootn` process timings varied substantially for all three formats,
+including the unchanged f32 and f64 paths. No `rootn` speed claim follows
+from these runs. Disassembly of the f32 and f64 `Big.shifted` functions
+showed the same instructions apart from relocated call targets.
+
+The typed executable is
+`bench/results/superopt-20260926-shifted-f16-only-bin/bin/zmath-scalar-matrix`.
+The archived-final and baseline executables are in the adjacent
+`superopt-20260926-{final,baseline}-bin` directories. Reproduce a probe with
+`taskset -c 6 <executable> test/corpus --operation=compoundn --repetitions=5`.
+The runtime house gate and qualified replay passed after the precision-scoped
+change. The replay checked 315 descriptors and 63,160,084 records. The oracle,
+campaign, generator, and fuzz gates also passed on the retained tree.
+
+### buildhost 9 full comparator (2026-09-27)
+
+The existing `ReleaseSafe` Haswell comparators require an ELF loader and
+reference libraries at absolute `/nix/store` paths. buildhost 9 has no
+`/nix/store`. The fix kept both binaries
+and their pinned references unchanged. The private, rootless `bwrap` namespace
+binds six bundled Nix store paths and the complete pinned CORE-MATH source
+under `/nix/store`. No host packages or system paths were changed.
+
+The binaries are
+`bench/results/superopt-20260926-baseline-bin/bin/zmath-compare` and
+`bench/results/superopt-20260926-f16only-comparative-bin/bin/zmath-compare`.
+Their SHA256 digests are
+`1546bad0bf03ff5aceda7d1c9f94406f56f6839be08cf2845afc091ae735de45`
+and `2a2d2665b39da0c212f67c8e663ca118a7f98e8d35fcfe54c972931dda24af13`.
+The bundle is in `bench/results/superopt-20260927-compare-runtime.tgz`
+(SHA256 `18250b991ba9a81f5661f2c5e3e1c138c794a6091a7f15574b82d2274c8d8896`)
+and `bench/results/superopt-20260927-compare-core-source.tgz`
+(SHA256 `60e30d10792f275e7ac3105b0dd4017e07acf05fda13a15fd447fb3836b3e996`).
+The first archive contains glibc 2.42, GCC 15.3 runtime libraries, MPFR
+4.2.2, GMP 6.3.0, and the pinned CORE-MATH shared library. The second
+contains the full pinned source tree required by the binary's provenance
+check. Extract each archive once into a new `nix-store` directory. The
+server-side copy is under
+`~/zmath-bench-20260927-f16only/compare/`.
+
+The working smoke command below uses the unpacked remote directory. Replace
+`/binaries/retained` with `/binaries/baseline` for the frozen run. The full
+matrix omits the filter and list flag, and supplies `--accuracy_out`,
+`--benchmark_out`, `--benchmark_out_format=json`,
+`--benchmark_min_warmup_time=0.1`, `--benchmark_min_time=0.2s`,
+`--benchmark_repetitions=5`, `--benchmark_report_aggregates_only=false`,
+`--benchmark_display_aggregates_only=false`, and
+`--benchmark_enable_random_interleaving=true`.
+
+```sh
+bundle="$HOME/zmath-bench-20260927-f16only/compare"
+taskset -c 7 nice -n 10 bwrap --tmpfs / \
+  --ro-bind /usr /usr --symlink usr/bin /bin \
+  --symlink usr/lib64 /lib64 --symlink usr/lib /lib \
+  --dir /nix --ro-bind "$bundle/nix-store" /nix/store \
+  --ro-bind /etc /etc --ro-bind /sys /sys --proc /proc --dev-bind /dev /dev \
+  --ro-bind "$bundle/bin" /binaries --bind "$bundle/results" /work \
+  --tmpfs /tmp \
+  --setenv LD_LIBRARY_PATH /nix/store/r48746qznwqxxl9qzd8f08ny8mg1dg2y-gcc-15.3.0-lib/lib \
+  -- /binaries/retained --benchmark_list_tests=true \
+  --benchmark_filter='^(zmath|coremath)/atan2pi/f64/normal$'
+```
+
+Both binaries ran on the same Xeon Gold 6134 host, pinned to CPU 7 at nice
+10, without GPU use. Each full run used 0.1 s warmup, 0.2 s minimum
+measurement, five randomly interleaved repetitions per row, and a 1,024-call
+batch. Both runs used GCC 15.3.0 and CORE-MATH revision
+`3bafed75e3c22399531857d63a3fa0e24bfb42fa`. The pinned GNU libc
+version was 2.42.
+The production evidence loader accepted both receipts: each audited 1,476
+provider/dataset rows and timed all 1,173 available rows five times. The two
+audit JSON files are byte-identical (SHA256
+`09e3db1c42efc690d3e40a9b804657fa0d2f0be436004234e01bb415b018940d`).
+All 369 zmath and 363 CORE-MATH rows had zero recorded MPFR-512 RNE
+discrepancies. Input hashes, reference origins, and timing keys match.
+This sampled audit is not a whole-domain rounding proof.
+
+| Case | Frozen zmath ns/call | Retained zmath ns/call | Matching reference, frozen → retained ns/call |
+|---|---:|---:|---:|
+| `asin` f16 normal | 17.38 | 12.22 | CORE-MATH 23.11 → 21.56 |
+| `asin` f16 wide | 17.60 | 12.18 | CORE-MATH 22.02 → 21.04 |
+| `atan2pi` f64 normal | 44.58 | 40.31 | CORE-MATH 32.64 → 32.39 |
+| `atan2pi` f32 normal | 30.41 | 29.25 | CORE-MATH 25.24 → 25.45 |
+| `tgamma` f64 normal | 78.06 | 78.19 | CORE-MATH 68.92 → 69.16 |
+| `hypot` f16 normal | 24.80 | 24.64 | Zig 13.00 → 12.80 |
+| `hypot` f16 wide | 22.07 | 21.81 | Zig 10.29 → 13.01 |
+| `asin` f32 special | 16.83 | 16.52 | Zig 11.03 → 10.51 |
+
+The `asin` f16 normal and wide rows improved 1.42x and 1.44x against
+their frozen zmath baseline. Both five-sample timing ranges are disjoint;
+the matching CORE-MATH controls improved only 1.07x and 1.05x.
+The retained `atan2pi` f64 normal row remains 1.24x slower than independent
+CORE-MATH; the frozen baseline was 1.37x slower. This is the largest
+retained CORE-MATH gap, and both five-repetition runs show it. The retained
+`atan2pi` f32 normal and `tgamma` f64 normal gaps are 1.15x and 1.13x.
+
+Against the fastest sample-matching reference, three retained rows exceed
+1.5x: `hypot` f16 normal/wide (1.92x/1.68x versus Zig) and `asin` f32
+special (1.57x versus Zig). Only 384 of the 1,024 `asin` special samples
+were finite. These Zig results are sampled matches, not certified
+replacements for the current correctly rounded kernels.
+CPU scaling and ASLR were enabled, and CPU 7 was not isolated from its
+SMT sibling. The median per-row timing CV was 7.1% for the frozen run
+and 3.0% for the retained run. Do not count near-ties or small changes
+between runs as source wins. Next target: investigate a certified
+`atan2pi` f64 normal-path improvement in
+`../zmath/src/coremath_pi_inversed.c`, while preserving the unresolved-result
+contract.
+
+The validated raw records and generated full reports are in
+`bench/results/superopt-20260927-buildhost-full-comparator/`. The separate
+one-repetition deployment probe is in
+`bench/results/superopt-20260927-buildhost-full-comparator-probe/`.
+
+### Proof-gated six-kernel pass on buildhost 9 (2026-09-27)
+
+This pass compared the retained binary above with a new `ReleaseSafe` Haswell
+binary. Their SHA256 digests are
+`2a2d2665b39da0c212f67c8e663ca118a7f98e8d35fcfe54c972931dda24af13`
+and `5e7b398a71c9de87f54c8661cd339a7c81b1f5a5ac01280bcefaf581e6736e83`.
+The new binary uses the same loader, libraries, pinned CORE-MATH revision,
+inputs, and rootless namespace as the comparator above. It is 7,154,320 bytes.
+Both full runs used CPU 7 at nice 10, a 1,024-call batch, 0.1 s warmup,
+0.2 s minimum time, and five randomized repetitions per row. The runs were
+separate processes. Randomization did not interleave the two binaries.
+
+The full receipts each have 1,476 MPFR-512 RNE audit rows and 1,173 timing
+rows with five repetitions. Their audit files are byte-identical, with SHA256
+`09e3db1c42efc690d3e40a9b804657fa0d2f0be436004234e01bb415b018940d`.
+All 369 zmath rows and 363 available CORE-MATH rows recorded zero audit
+discrepancies. The production loader checked timing coverage, build details,
+input hashes, and reference provenance. Remote and local receipt hashes match.
+The sampled audit does not prove whole-domain correct rounding.
+
+The only retained runtime changes are:
+
+- `../zmath/src/scalar_hypot.zig`: For finite f16 magnitudes `n <= m/64`,
+  return `m`. The exact increase is below the next f16 midpoint. Otherwise,
+  narrow the f32 square root only when endpoints eight f32 steps on each side
+  agree as f16. Keep the original f64 path when they disagree. An exact-integer
+  midpoint oracle checked all 503,856,640 unordered finite f16 magnitude
+  pairs without a mismatch. Special values keep their existing path.
+- `../zmath/src/coremath_pi_inversef.c`: Return the signed quadrant constant
+  when the existing quotient has `z² <= 2^-54` and its correction is below
+  the f32 midpoint near 0.5 or 1. Do not take this path for a positive-x
+  small angle, which can round to a nonzero f32 value.
+- `../zmath/src/scalar_asin.zig`: Classify out-of-domain f32 inputs once.
+  Preserve NaN payload quieting, canonical domain NaNs, and the finite kernel.
+
+The table uses the median CPU time per call from each **full** matrix.
+References in the last column processed the same inputs in the corresponding
+run. A faster sampled Zig row is not a correctly rounded replacement.
+
+| Case | Retained zmath ns/call | New zmath ns/call | Matching reference, retained → new ns/call |
+|---|---:|---:|---:|
+| `atan2pi` f32 normal | 30.18 | 29.39 | CORE-MATH 25.63 → 26.83 |
+| `atan2pi` f32 wide | 185.15 | 29.39 | CORE-MATH 179.28 → 176.71 |
+| `atan2pi` f32 special | 28.88 | 15.42 | CORE-MATH 56.52 → 56.46 |
+| `hypot` f16 normal | 25.43 | 17.19 | Zig 12.75 → 13.90 |
+| `hypot` f16 wide | 22.51 | 20.04 | Zig 12.97 → 13.89 |
+| `asin` f32 normal | 17.72 | 15.58 | CORE-MATH 22.20 → 22.49 |
+| `asin` f32 wide | 17.42 | 15.63 | CORE-MATH 22.36 → 22.65 |
+| `asin` f32 special | 17.69 | 18.29 | Zig 11.51 → 13.16 |
+
+The full `atan2pi` f32 wide and special rows improved 6.30x and 1.87x.
+A close focused pair measured 6.28x for wide, and a second focused pair
+measured 1.93x for special. The close pair measured normal at 30.82 → 30.45
+ns/call, so the earlier normal-path regression did not survive the revision.
+The full `hypot` f16 normal and wide rows improved 1.48x and 1.12x.
+Their close focused pair improved 1.39x and 1.10x. The full `asin` f32
+normal and wide rows improved 1.14x and 1.11x. Their close pair improved
+1.13x and 1.14x. Do not count the `asin` special full-run difference as a
+source slowdown: its focused pair measured 17.08 → 16.81 ns/call.
+
+The long full runs show host drift. Across all rows, the median zmath
+candidate/retained ratio was 1.048, while the independent CORE-MATH ratio
+was 1.066. For example, the full `asin` f16 normal row was
+11.11 → 14.36 ns/call, although its kernel did not change. A second close
+pair measured 14.34 → 14.36. The unchanged `sinh` f32 special and `sqrt`
+f64 wide rows also changed by less than 0.4% in that pair. Thus the large
+full-run changes on these short paths do not reproduce as source regressions.
+CPU scaling, ASLR, and the active SMT sibling limit smaller claims.
+The `hypot` f16 wide and `asin` f32 special gaps versus sampled Zig results
+still exceed 1.5x in the close focused pair. The 1.5x target is not
+established across runs.
+
+Three experiments were discarded. A f32 quotient-gap test before division made
+`atan2pi` normal 15.8% slower in the first focused pair, despite a wide gain.
+Moving the certified return into the existing cold polynomial guard kept the
+wide gain without that normal loss. A proposed `atan2pi` f64 sign change had
+no repeatable win and was reverted. An `lgamma` f64 floor-reuse change slowed
+normal calls 5.3% with a stable CORE-MATH control and was reverted. The
+compiled `tgamma` f64 baseline already folds the duplicate source `floor`
+calls, so that experiment made no source change. No f64 `lgamma`, `tgamma`,
+or `atan2pi` speedup is attributed to a retained source change.
+
+The runtime house gate, qualified `ReleaseSafe` unit tests, qualified oracle,
+and testing-project unit tests passed. The qualified corpus replay checked
+315 descriptors and 63,160,084 records. `zig build docs` and `zig build run`
+also passed. The retained edge tests cover f16 midpoint rounding, f32
+quadrant neighbors, and `lgamma` signs near negative poles.
+
+The raw receipts are in `bench/results/optpass-20260927-buildhost/`.
+The full timing files `full-retained.json` and `full-refined.json` have SHA256
+`3e9d5fa219d80fb472f6715ffab81730b8a988cbe3dbfcf9decf6a9af15acadc`
+and `09f7688da7ea68c900d8cd5d792039a02dafce8b9ccb25de745ca8276104cce8`.
+The close focused pair is `focused-refined-{retained,candidate}.json`, with
+SHA256 `b89e3f567c4ce2301b3b865a6cc28c05adea73692636e418871bdccbbb89f15b`
+and `ef5f3c86d8b7c2bce698d3294f0685e932a42902cff0163f2ae1d5e9a4d11a17`.
+The drift pair is `focused-refined-drift-{retained,candidate}.json`, with
+SHA256 `fb166b93d5533f26bf5b67b5929f0b5b5ec8bcb8667d55573bfb4562f0995344`
+and `317d04249c3119f75f0ded8aaaa0d69091bfe94b04adfd8d2f21d170a98c9f85`.
+Each timing file has a matching `-accuracy.json` receipt.
+
+### Focused `rootn` and `tgamma` follow-on (2026-09-27)
+
+The retained changes affect the exact-power multiplier and the f64 gamma
+entry. In `../zmath/src/scalar_power_exact.zig`, the 32-limb (f16) multiplication
+initializes its first product row directly and writes each later row's new
+high carry. It no longer clears the active destination prefix. This
+multiplier is shared by `rootn`, `pown`, and `compoundn`; only `rootn`
+was timed in this focused trial. The 256- and 2048-limb (f32/f64)
+paths retain the old clearing and carry propagation: a trial that
+applied the change to larger formats slowed both in alternating
+measurements and was reverted. A late f64 `rootn` CPU profile
+attributed 93.3% of samples to `compiler_rt.memset`; this f16-only
+change is not a claim to have removed the remaining f64 clearing cost.
+
+In `../zmath/src/scalar_tgamma.zig` and `../zmath/src/coremath_tgammad.c`,
+the private f64 C entry is now `cr_tgamma_finite`. The Zig wrapper already
+handles NaNs, infinities, signed zero, and negative-integer poles, so the
+finite entry no longer repeats those classifications. The finite numerical
+algorithm is otherwise unchanged; `build.zig` retains the renamed C symbol
+in its ABI guard. The public `tgammad` contract and exceptional results
+did not change.
+
+For `rootn`, six local alternating ReleaseSafe Haswell processes ran
+old/new/new/old/old/new on CPU 4 at nice 10. Each processed 64 published
+samples per format with 11 repetitions. The median of the three
+per-process f16 medians was 3,904.79 ns/call before and 3,064.81 ns/call
+after (1.27x). Individual f16 process medians were
+3,706.85/3,895.94, 3,904.79/2,246.83, and
+5,529.34/3,064.81 ns/call (old/new), so the first pair did **not**
+improve. The host drift and variable f16 call counts prevent a tighter
+speed claim. The f32/f64 paths were not changed by this experiment;
+their timing differences are not source wins. The matching input digests
+and raw samples are in
+`bench/results/optpass-round2-local/rootn-final-rotations.json`
+(SHA256 `9bf5974a34d3370bfc6466ac8e1ad5b380e486f6a886d7f59d4b6160e7a86e54`).
+The frozen/new typed executable SHA256 digests are
+`5505fcfb4159c52e3d55ef1c3c3fe007a3061e46531b1e55af6a6e9dfac05d1e`
+and `eefca978c5aafaba346d37ab9f5b044872ca9fcafb9718c495721c30bef8c8f3`.
+
+For `tgamma` f64, the frozen/new comparative executable SHA256 digests
+are `5e7b398a71c9de87f54c8661cd339a7c81b1f5a5ac01280bcefaf581e6736e83`
+and `202d8b803e30fa44ca6a2d6fda9a457db9c89dc74f404d61498fd15078c0f9cb`.
+On buildhost 9 the four separate processes ran old/new/new/old on CPU 7
+at nice 10 in the same rootless namespace and pinned reference environment
+as above. Each timed the six selected zmath/CORE-MATH `tgamma` f64
+normal/wide/special rows: 1,024 calls per iteration, 0.1 s warmup,
+0.3 s minimum time, and nine randomized repetitions. The table takes
+the median of each process's nine-sample CPU-time median, then the
+median of the two process medians per binary. The control column reports
+the corresponding independent CORE-MATH medians. Speedup is
+`(old zmath / old CORE-MATH) / (new zmath / new CORE-MATH)`.
+
+| Input | Old → new zmath ns/call | Old → new CORE-MATH ns/call | Control-adjusted speedup |
+|---|---:|---:|---:|
+| normal | 75.447 → 74.051 | 66.473 → 66.589 | 1.021x |
+| wide | 72.524 → 70.645 | 63.937 → 63.915 | 1.026x |
+| special | 19.141 → 18.980 | 26.520 → 26.520 | 1.009x |
+
+Both new processes improved the normal and wide ratios relative to both
+old processes. The improvement is small and workload-specific; the new
+normal row is still about 1.11x slower than the matching CORE-MATH row.
+CPU scaling, ASLR, and an active SMT sibling remain sources of noise.
+Each of the four MPFR-512 audits has 1,476 accepted rows; all available
+zmath and CORE-MATH rows recorded zero ULP, nonfinite, and signed-zero
+discrepancies. All four audit files are byte-identical (SHA256
+`09e3db1c42efc690d3e40a9b804657fa0d2f0be436004234e01bb415b018940d`).
+Each timing receipt has all six selected rows and nine repetitions; remote
+and downloaded local receipt hashes match. The eight JSON files are in
+`bench/results/optpass-round2-20260927-buildhost/`. This sampled audit
+does not prove whole-domain correctly rounded behavior.
+
+The final qualified unit tests and the sibling testing-project build pass.
+The final corpus replay covered 315 descriptors and 63,160,084 records.
+
+The sections below describe the 2026-09-09 snapshot, not new recommendations
+for the current runtime tree.
+
 ## Decisions
 
 The 1.5x target is not met across the matrix. Correctness comes first.

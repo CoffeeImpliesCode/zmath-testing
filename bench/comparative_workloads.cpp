@@ -672,6 +672,13 @@ template <typename T> std::uint64_t ordered_bits(T value) {
                                  : sign_mask + magnitude;
 }
 
+bool signaling_nan(double value) {
+  const std::uint64_t magnitude =
+      value_to_bits(value) & UINT64_C(0x7fffffffffffffff);
+  return magnitude > UINT64_C(0x7ff0000000000000) &&
+         (magnitude & UINT64_C(0x0008000000000000)) == 0;
+}
+
 void evaluate_reference(std::uint32_t operation, mpfr_t output,
                         mpfr_srcptr first, mpfr_srcptr second) {
   switch (operation) {
@@ -783,7 +790,11 @@ void evaluate_reference(std::uint32_t operation, mpfr_t output,
     (void)mpfr_log2p1(output, first, MPFR_RNDN);
     return;
   case COMPARE_RSQRT:
-    (void)mpfr_rec_sqrt(output, first, MPFR_RNDN);
+    if (mpfr_zero_p(first)) {
+      mpfr_set_inf(output, mpfr_signbit(first) ? -1 : 1);
+    } else {
+      (void)mpfr_rec_sqrt(output, first, MPFR_RNDN);
+    }
     return;
   case COMPARE_SINH:
     (void)mpfr_sinh(output, first, MPFR_RNDN);
@@ -846,6 +857,8 @@ Audit audit_impl(std::uint32_t operation, const Inputs &inputs,
 
   Audit result;
   result.samples = sample_count;
+  const bool binary = operation == COMPARE_HYPOT || operation == COMPARE_ATAN2 ||
+                      operation == COMPARE_POW || operation == COMPARE_ATAN2PI;
 
   mpfr_t first;
   mpfr_t second;
@@ -877,7 +890,14 @@ Audit audit_impl(std::uint32_t operation, const Inputs &inputs,
     const double second_double = static_cast<double>(second_value);
     (void)mpfr_set_d(first, first_double, MPFR_RNDN);
     (void)mpfr_set_d(second, second_double, MPFR_RNDN);
-    evaluate_reference(operation, reference, first, second);
+    // MPFR has one NaN class. Preserve signaling precedence before pow
+    // identities or hypot's infinity rule can hide that information.
+    if (signaling_nan(inputs.x[index]) ||
+        (binary && signaling_nan(inputs.y[index]))) {
+      mpfr_set_nan(reference);
+    } else {
+      evaluate_reference(operation, reference, first, second);
+    }
 
     const T expected = mpfr_to_target<T>(reference);
     const T actual = function(first_value, second_value);
@@ -1010,6 +1030,58 @@ _Float16 self_check_positive_zero_f16(_Float16 first, _Float16 second) {
   (void)first;
   (void)second;
   return bits_to_value<_Float16>(UINT16_C(0x0000));
+}
+
+template <typename T> bool self_check_ieee_reference(std::string *error) {
+  const auto nan = +[](T, T) -> T {
+    return static_cast<T>(std::numeric_limits<double>::quiet_NaN());
+  };
+  const auto inf = +[](T, T) -> T {
+    return static_cast<T>(std::numeric_limits<double>::infinity());
+  };
+  const auto negative_inf = +[](T, T) -> T {
+    return static_cast<T>(-std::numeric_limits<double>::infinity());
+  };
+  const auto one = +[](T, T) -> T { return static_cast<T>(1.0); };
+  const auto check = [&](std::uint32_t operation, double first, double second,
+                         T (*function)(T, T), const char *message) {
+    Inputs inputs{};
+    inputs.x.fill(first);
+    inputs.y.fill(second);
+    const Audit result = audit(operation, inputs, function);
+    if (result.max_ulp || result.nonfinite_mismatches ||
+        result.signed_zero_mismatches) {
+      set_error(error, message);
+      return false;
+    }
+    return true;
+  };
+  const double signaling =
+      bits_to_value<double>(UINT64_C(0x7ff4000000000001));
+  const double quiet = std::numeric_limits<double>::quiet_NaN();
+  const double infinity = std::numeric_limits<double>::infinity();
+  return check(COMPARE_HYPOT, signaling, infinity, nan,
+               "hypot: signaling NaN must precede infinity") &&
+         check(COMPARE_HYPOT, -infinity, signaling, nan,
+               "hypot: signaling second operand must precede infinity") &&
+         check(COMPARE_HYPOT, quiet, infinity, inf,
+               "hypot: infinity must precede quiet NaN") &&
+         check(COMPARE_HYPOT, -infinity, quiet, inf,
+               "hypot: quiet second operand must not hide infinity") &&
+         check(COMPARE_POW, signaling, 0.0, nan,
+               "pow: signaling base must precede zero exponent") &&
+         check(COMPARE_POW, 1.0, signaling, nan,
+               "pow: signaling exponent must precede unit base") &&
+         check(COMPARE_POW, quiet, 0.0, one,
+               "pow: quiet base must preserve zero-exponent identity") &&
+         check(COMPARE_POW, 1.0, quiet, one,
+               "pow: quiet exponent must preserve unit-base identity") &&
+         check(COMPARE_RSQRT, -0.0, 0.0, negative_inf,
+               "rsqrt: negative zero must yield negative infinity") &&
+         check(COMPARE_RSQRT, 0.0, 0.0, inf,
+               "rsqrt: positive zero must yield positive infinity") &&
+         check(COMPARE_SQRT, 1.0, signaling, one,
+               "unary oracle must ignore its unused second argument");
 }
 
 double self_check_lgamma_f64(double first, double second) {
@@ -1615,6 +1687,12 @@ bool self_check(std::string *error) {
             audit(COMPARE_SIN, boundary_inputs, self_check_positive_zero_f16),
             sample_count, 0, 0, sample_count,
             "comparative: f16 negative-zero mismatch is not reported")) {
+      return false;
+    }
+
+    if (!self_check_ieee_reference<_Float16>(error) ||
+        !self_check_ieee_reference<float>(error) ||
+        !self_check_ieee_reference<double>(error)) {
       return false;
     }
 

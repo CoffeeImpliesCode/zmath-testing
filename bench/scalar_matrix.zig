@@ -2,11 +2,13 @@ const std = @import("std");
 const target_mode = @import("active_target_mode");
 const corpus = @import("corpus_support");
 const runner = @import("scalar_runner");
+const references = @import("scalar_references.zig");
 const corpus_set = @import("corpus_set");
 
 const sample_count_max = 64;
 const encoded_record_capacity = corpus_set.record_buffer_capacity;
 const repetitions_max: u64 = 1024;
+const timing_repetitions_max: u8 = 100;
 const target_duration_ns: u64 = 5_000_000;
 const Inputs = [corpus.max_argument_count]corpus.OracleInputField;
 const Digest = corpus_set.Digest;
@@ -28,6 +30,8 @@ const Options = struct {
     root: []const u8 = "test/corpus",
     operation: ?[]const u8 = null,
     format: ?corpus.Format = null,
+    repetitions: u8 = 1,
+    with_zig: bool = false,
 
     fn matches(self: Options, function: corpus.Function) bool {
         if (self.operation) |operation| {
@@ -42,6 +46,7 @@ const Options = struct {
 fn parseOptions(args: []const []const u8) !Options {
     if (args.len == 0) return error.InvalidArguments;
     var options = Options{};
+    var repetitions_seen = false;
     var index: usize = 1;
     if (args.len > 1 and !std.mem.startsWith(u8, args[1], "--")) {
         options.root = args[1];
@@ -57,6 +62,24 @@ fn parseOptions(args: []const []const u8) !Options {
             if (options.format != null) return error.InvalidArguments;
             options.format = std.meta.stringToEnum(corpus.Format, argument["--format=".len..]) orelse
                 return error.InvalidArguments;
+        } else if (std.mem.startsWith(u8, argument, "--repetitions=")) {
+            if (repetitions_seen) return error.InvalidRepetitions;
+            repetitions_seen = true;
+            const text = argument["--repetitions=".len..];
+            if (text.len == 0) return error.InvalidRepetitions;
+            for (text) |digit| {
+                if (digit < '0' or digit > '9') return error.InvalidRepetitions;
+            }
+            options.repetitions = std.fmt.parseInt(u8, text, 10) catch
+                return error.InvalidRepetitions;
+            if (options.repetitions == 0 or options.repetitions > timing_repetitions_max) {
+                return error.InvalidRepetitions;
+            }
+        } else if (std.mem.eql(u8, argument, "--with-zig")) {
+            if (options.with_zig) return error.InvalidArguments;
+            options.with_zig = true;
+        } else if (std.mem.startsWith(u8, argument, "--repetitions")) {
+            return error.InvalidRepetitions;
         } else return error.InvalidArguments;
     }
     return options;
@@ -65,7 +88,20 @@ fn parseOptions(args: []const []const u8) !Options {
 pub fn main(init: std.process.Init) !void {
     if (!target_mode.approved_corpus_pair) return error.UnapprovedCorpusProfile;
     const args = try init.minimal.args.toSlice(init.arena.allocator());
-    const options = try parseOptions(args);
+    const options = parseOptions(args) catch |err| {
+        if (err == error.InvalidRepetitions) {
+            std.debug.print(
+                "invalid --repetitions: expected a decimal integer from 1 to {d}\n",
+                .{timing_repetitions_max},
+            );
+        }
+        std.debug.print(
+            "usage: zmath-scalar-matrix [corpus-root] [--operation=<manifest-op>] " ++
+                "[--format=h|f|d] [--repetitions=1..{d}] [--with-zig] (default 1)\n",
+            .{timing_repetitions_max},
+        );
+        return err;
+    };
     const manifest = try corpus.parseManifest(corpus.manifest_text);
     var expected_count: usize = 0;
     for (manifest.function_values[0..manifest.function_count]) |function| {
@@ -96,7 +132,7 @@ pub fn main(init: std.process.Init) !void {
     for (published.entries[0..published.count]) |entry| {
         const function = manifest.function_values[entry.signature_index];
         if (!options.matches(function)) return error.CorpusSelectionMismatch;
-        try benchmarkFunction(init, entry, function);
+        try benchmarkFunction(init, entry, function, options.repetitions, options.with_zig);
     }
 }
 
@@ -104,6 +140,8 @@ fn benchmarkFunction(
     init: std.process.Init,
     entry: corpus_set.Entry,
     function: corpus.Function,
+    timing_repetitions: u8,
+    with_zig: bool,
 ) !void {
     const path = entry.artifact;
     const file = try std.Io.Dir.cwd().openFile(init.io, path, .{});
@@ -122,15 +160,82 @@ fn benchmarkFunction(
         1,
         repetitions_max,
     );
-    const result = measure(init.io, &prepared, &samples, repetitions);
     const digest_hex = std.fmt.bytesToHex(summary.digest, .lower);
-    std.debug.print(
-        "signature={} operation={s} artifact={s} corpus_records={} samples={} calls={} elapsed_ns={} checksum={x:0>16} corpus_sha256={s}\n",
-        .{
-            entry.signature_index, function.op,       path,            samples.corpus_count, samples.count,
-            result.calls,          result.elapsed_ns, result.checksum, digest_hex,
-        },
+    for (0..timing_repetitions) |repetition| {
+        const result = measure(init.io, &prepared, &samples, repetitions);
+        std.debug.print(
+            "signature={} operation={s} repetition={} artifact={s} corpus_records={} samples={} calls={} elapsed_ns={} checksum={x:0>16} corpus_sha256={s} provider=zmath\n",
+            .{
+                entry.signature_index, function.op,   repetition,   path,
+                samples.corpus_count,  samples.count, result.calls, result.elapsed_ns,
+                result.checksum,       digest_hex,
+            },
+        );
+    }
+    if (with_zig) benchmarkZigReference(
+        init.io,
+        entry,
+        function,
+        &prepared,
+        &samples,
+        repetitions,
+        timing_repetitions,
+        digest_hex[0..],
     );
+}
+
+fn benchmarkZigReference(
+    io: std.Io,
+    entry: corpus_set.Entry,
+    function: corpus.Function,
+    runtime: *const runner.PreparedRuntime,
+    samples: *const Samples,
+    repetitions: u64,
+    timing_repetitions: u8,
+    digest_hex: []const u8,
+) void {
+    const reference_entry = references.entryFor(function, runtime.entry) orelse {
+        std.debug.print(
+            "signature={} operation={s} provider=zig available=false reason=unsupported_signature artifact={s} corpus_records={} samples={} corpus_sha256={s}\n",
+            .{ entry.signature_index, function.op, entry.artifact, samples.corpus_count, samples.count, digest_hex },
+        );
+        return;
+    };
+    const reference: runner.PreparedRuntime = .{ .entry = &reference_entry };
+    var mismatches: usize = 0;
+    for (samples.inputs[0..samples.count]) |*inputs| {
+        const expected = runtime.invoke(inputs);
+        const actual = reference.invoke(inputs);
+        if (actual.field_count != expected.field_count or
+            actual.field_count > actual.values.len or
+            expected.field_count > expected.values.len)
+        {
+            mismatches += 1;
+            continue;
+        }
+        for (actual.values[0..actual.field_count], expected.values[0..expected.field_count]) |a, b| {
+            if (a != b) mismatches += 1;
+        }
+    }
+    if (mismatches != 0) {
+        std.debug.print(
+            "signature={} operation={s} provider=zig available=false reason=sample_result_mismatch mismatches={} artifact={s} corpus_records={} samples={} corpus_sha256={s}\n",
+            .{ entry.signature_index, function.op, mismatches, entry.artifact, samples.corpus_count, samples.count, digest_hex },
+        );
+        return;
+    }
+
+    for (0..timing_repetitions) |repetition| {
+        const result = measure(io, &reference, samples, repetitions);
+        std.debug.print(
+            "signature={} operation={s} repetition={} artifact={s} corpus_records={} samples={} calls={} elapsed_ns={} checksum={x:0>16} corpus_sha256={s} provider=zig\n",
+            .{
+                entry.signature_index, function.op,   repetition,   entry.artifact,
+                samples.corpus_count,  samples.count, result.calls, result.elapsed_ns,
+                result.checksum,       digest_hex,
+            },
+        );
+    }
 }
 
 fn countRecords(io: std.Io, file: std.Io.File) !struct { count: u64, digest: Digest } {

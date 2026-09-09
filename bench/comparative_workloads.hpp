@@ -56,8 +56,9 @@ struct Audit {
   std::uint64_t signed_zero_mismatches = 0;
 };
 
-// Compare a provider against an MPFR-512, round-to-nearest-even reference.
-// This is numerical audit evidence, not a formal correctly-rounded proof;
+// Audit IEEE special-value rules and use MPFR-512, round-to-nearest-even
+// for the remaining reference values. Preserve signaling-NaN precedence
+// and rsqrt(-0) = -Inf. This is audit evidence, not a formal rounding proof:
 // the fixed MPFR precision can double-round an exact result. NaN payloads
 // are ignored. `nonfinite_mismatches` counts finite/non-finite or NaN/Inf
 // class differences and opposite infinity signs; `signed_zero_mismatches`

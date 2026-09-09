@@ -779,6 +779,26 @@ pub fn build(b: *std.Build) void {
     const run_scalar_bench_step = b.step("run-bench-scalar", "Benchmark typed scalar corpora");
     run_scalar_bench_step.dependOn(&run_scalar_benchmark.step);
 
+    const helpers_module = b.createModule(.{
+        .root_source_file = b.path("bench/public_helpers.zig"),
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{.{ .name = "zmath", .module = zmath_module }},
+    });
+    helpers_module.addOptions("active_target_mode", active_options);
+    const helpers_executable = b.addExecutable(.{
+        .name = "zmath-public-helpers",
+        .root_module = helpers_module,
+    });
+    const install_helpers = b.addInstallArtifact(helpers_executable, .{});
+    const bench_helpers_step = b.step("bench-helpers", "Build and install public helper benchmarks");
+    bench_helpers_step.dependOn(&install_helpers.step);
+    const run_helpers = b.addRunArtifact(helpers_executable);
+    run_helpers.step.dependOn(&install_helpers.step);
+    if (b.args) |args| run_helpers.addArgs(args);
+    const run_helpers_step = b.step("run-bench-helpers", "Benchmark public helper evaluators");
+    run_helpers_step.dependOn(&run_helpers.step);
+
     const power_module = b.createModule(.{
         .root_source_file = b.path("bench/power_resource.zig"),
         .target = target,
@@ -966,4 +986,12 @@ pub fn build(b: *std.Build) void {
     if (b.args) |args| run_comparative.addArgs(args);
     const run_compare_step = b.step("run-compare", "Run the comparative benchmark");
     run_compare_step.dependOn(&run_comparative.step);
+
+    const install_docs = b.addInstallDirectory(.{
+        .source_dir = comparative_bridge.getEmittedDocs(),
+        .install_dir = .prefix,
+        .install_subdir = "docs",
+    });
+    const docs_step = b.step("docs", "Generate documentation");
+    docs_step.dependOn(&install_docs.step);
 }

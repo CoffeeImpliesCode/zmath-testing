@@ -1352,7 +1352,7 @@ def report_lines(
     lines.append("Unsupported reference rows have no timing baseline and are never substituted with another provider.")
     lines.append("Throughput is scalar batch throughput only; it is not a latency or SIMD/vectorization claim.")
     lines.append("Accuracy mismatch counts are visible status data. NaN payload differences are ignored by the audit contract.")
-    lines.append("The MPFR audit conversion may quiet signaling NaNs; special-value policies differ, so non-finite and signed-zero differences are not automatic library bugs or certification failures.")
+    lines.append("The oracle preserves signaling-NaN precedence and rsqrt zero signs. Reference-provider special-value policies can still differ.")
     lines.append("")
     return lines
 
