@@ -840,8 +840,13 @@ pub fn build(b: *std.Build) void {
     const gmp_include_dir = requiredBuildEnv(b, "ZMATH_COMPARE_GMP_INCLUDE_DIR");
     const gmp_library_dir = requiredBuildEnv(b, "ZMATH_COMPARE_GMP_LIBRARY_DIR");
     const compare_libm_path = requiredBuildEnv(b, "ZMATH_COMPARE_LIBM_PATH");
+    const compare_coremath_path =
+        requiredBuildEnv(b, "ZMATH_COMPARE_COREMATH_PATH");
     if (compare_libm_path.len == 0 or compare_libm_path[0] != '/') {
         @panic("ZMATH_COMPARE_LIBM_PATH must be absolute");
+    }
+    if (compare_coremath_path.len == 0 or compare_coremath_path[0] != '/') {
+        @panic("ZMATH_COMPARE_COREMATH_PATH must be absolute");
     }
     const compare_target_name = "x86_64-linux-haswell";
     const compare_build_mode = @tagName(compare_optimize);
@@ -858,6 +863,10 @@ pub fn build(b: *std.Build) void {
     };
     const compare_c_definitions = [_][]const u8{
         b.fmt("-DCOMPARATIVE_LIBM_PATH=\"{s}\"", .{compare_libm_path}),
+        b.fmt(
+            "-DCOMPARATIVE_COREMATH_PATH=\"{s}\"",
+            .{compare_coremath_path},
+        ),
     };
     const compare_cxx_flags = [_][]const u8{
         "-std=c++17",
@@ -873,6 +882,10 @@ pub fn build(b: *std.Build) void {
         b.fmt("-DCOMPARATIVE_TARGET=\"{s}\"", .{compare_target_name}),
         b.fmt("-DCOMPARATIVE_COMPILER=\"{s}\"", .{compare_compiler}),
         b.fmt("-DCOMPARATIVE_CXX_FLAGS=\"{s}\"", .{compare_cxx_flags_text}),
+        b.fmt(
+            "-DCOMPARATIVE_COREMATH_PATH=\"{s}\"",
+            .{compare_coremath_path},
+        ),
     };
     const compare_include_dirs = [_][]const u8{
         "bench",

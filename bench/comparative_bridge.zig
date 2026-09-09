@@ -6,326 +6,322 @@
 //! and compiler codegen.
 //!
 //! Unary operations ignore the second parameter.
-//! For zmath atan2, returned Atan2Result(T) is checked; unresolved results
-//! explicitly panic rather than returning a fabricated fallback.
+//! For zmath atan2 and atan2pi, unresolved results explicitly panic rather
+//! than returning a fabricated fallback.
 
 const std = @import("std");
 const zmath = @import("zmath");
 
 pub const CompareF32 = ?*const fn (f32, f32) callconv(.c) f32;
 pub const CompareF64 = ?*const fn (f64, f64) callconv(.c) f64;
+pub const CompareF16 = ?*const fn (f16, f16) callconv(.c) f16;
 
-// -----------------------------------------------------------------------------
-// zmath f32 wrappers
-// -----------------------------------------------------------------------------
+const Operation = enum(u8) {
+    exp = 0,
+    log = 1,
+    sin = 2,
+    cos = 3,
+    tan = 4,
+    sqrt = 5,
+    hypot = 6,
+    atan2 = 7,
+    pow = 8,
+    acos = 9,
+    acosh = 10,
+    acospi = 11,
+    asin = 12,
+    asinh = 13,
+    asinpi = 14,
+    atan = 15,
+    atan2pi = 16,
+    atanh = 17,
+    atanpi = 18,
+    cbrt = 19,
+    cosh = 20,
+    cospi = 21,
+    erf = 22,
+    erfc = 23,
+    exp10 = 24,
+    exp10m1 = 25,
+    exp2 = 26,
+    exp2m1 = 27,
+    expm1 = 28,
+    lgamma = 29,
+    log10 = 30,
+    log10p1 = 31,
+    log1p = 32,
+    log2 = 33,
+    log2p1 = 34,
+    rsqrt = 35,
+    sinh = 36,
+    sinpi = 37,
+    tanh = 38,
+    tanpi = 39,
+    tgamma = 40,
+};
 
-pub noinline fn compare_zmath_exp_f32(a: f32, b: f32) callconv(.c) f32 {
-    @setFloatMode(.strict);
-    _ = b;
-    return zmath.exp(a);
+const operation_count = 41;
+
+fn Compare(comptime T: type) type {
+    return ?*const fn (T, T) callconv(.c) T;
 }
 
-pub noinline fn compare_zmath_log_f32(a: f32, b: f32) callconv(.c) f32 {
-    @setFloatMode(.strict);
-    _ = b;
-    return zmath.log(a);
+inline fn callZmath(
+    comptime T: type,
+    comptime operation: Operation,
+    a: T,
+    b: T,
+) T {
+    return switch (operation) {
+        .exp => zmath.exp(a),
+        .log => zmath.log(a),
+        .sin => zmath.sin(a),
+        .cos => zmath.cos(a),
+        .tan => zmath.tan(a),
+        .sqrt => zmath.sqrt(a),
+        .hypot => zmath.hypot(a, b),
+        .atan2 => result: {
+            const value = zmath.atan2(a, b);
+            if (!value.resolved) {
+                @panic(
+                    "zmath.atan2(" ++ @typeName(T) ++ ") returned unresolved result",
+                );
+            }
+            break :result value.value;
+        },
+        .pow => zmath.pow(a, b),
+        .acos => zmath.acos(a),
+        .acosh => zmath.acosh(a),
+        .acospi => zmath.acospi(a),
+        .asin => zmath.asin(a),
+        .asinh => zmath.asinh(a),
+        .asinpi => zmath.asinpi(a),
+        .atan => zmath.atan(a),
+        .atan2pi => result: {
+            const value = zmath.atan2pi(a, b);
+            if (!value.resolved) {
+                @panic(
+                    "zmath.atan2pi(" ++ @typeName(T) ++ ") returned unresolved result",
+                );
+            }
+            break :result value.value;
+        },
+        .atanh => zmath.atanh(a),
+        .atanpi => zmath.atanpi(a),
+        .cbrt => zmath.cbrt(a),
+        .cosh => zmath.cosh(a),
+        .cospi => zmath.cospi(a),
+        .erf => zmath.erf(a),
+        .erfc => zmath.erfc(a),
+        .exp10 => zmath.exp10(a),
+        .exp10m1 => zmath.exp10m1(a),
+        .exp2 => zmath.exp2(a),
+        .exp2m1 => zmath.exp2m1(a),
+        .expm1 => zmath.expm1(a),
+        .lgamma => result: {
+            // The float-only comparison ABI intentionally excludes sign metadata.
+            break :result zmath.lgamma(a).value;
+        },
+        .log10 => zmath.log10(a),
+        .log10p1 => zmath.log10p1(a),
+        .log1p => zmath.log1p(a),
+        .log2 => zmath.log2(a),
+        .log2p1 => zmath.log2p1(a),
+        .rsqrt => zmath.rsqrt(a),
+        .sinh => zmath.sinh(a),
+        .sinpi => zmath.sinpi(a),
+        .tanh => zmath.tanh(a),
+        .tanpi => zmath.tanpi(a),
+        .tgamma => zmath.tgamma(a),
+    };
 }
 
-pub noinline fn compare_zmath_sin_f32(a: f32, b: f32) callconv(.c) f32 {
-    @setFloatMode(.strict);
-    _ = b;
-    return zmath.sin(a);
+fn ZmathWrapper(comptime T: type, comptime operation: Operation) type {
+    return struct {
+        noinline fn call(a: T, b: T) callconv(.c) T {
+            @setFloatMode(.strict);
+            return callZmath(T, operation, a, b);
+        }
+    };
 }
 
-pub noinline fn compare_zmath_cos_f32(a: f32, b: f32) callconv(.c) f32 {
-    @setFloatMode(.strict);
-    _ = b;
-    return zmath.cos(a);
+fn zigSupports(comptime T: type, comptime operation: Operation) bool {
+    return switch (operation) {
+        .exp,
+        .log,
+        .sin,
+        .cos,
+        .tan,
+        .sqrt,
+        .hypot,
+        .acos,
+        .asin,
+        .atan,
+        .exp2,
+        .log10,
+        .log2,
+        => T == f16 or T == f32 or T == f64,
+
+        .atan2,
+        .pow,
+        .acosh,
+        .asinh,
+        .atanh,
+        .cbrt,
+        .cosh,
+        .expm1,
+        .lgamma,
+        .log1p,
+        .sinh,
+        .tanh,
+        .tgamma,
+        => T == f32 or T == f64,
+
+        else => false,
+    };
 }
 
-pub noinline fn compare_zmath_tan_f32(a: f32, b: f32) callconv(.c) f32 {
-    @setFloatMode(.strict);
-    _ = b;
-    return zmath.tan(a);
+inline fn callZig(
+    comptime T: type,
+    comptime operation: Operation,
+    a: T,
+    b: T,
+) T {
+    return switch (operation) {
+        .exp => @exp(a),
+        .log => @log(a),
+        .sin => @sin(a),
+        .cos => @cos(a),
+        .tan => @tan(a),
+        .sqrt => @sqrt(a),
+        .hypot => std.math.hypot(a, b),
+        .atan2 => std.math.atan2(a, b),
+        .pow => std.math.pow(T, a, b),
+        .acos => std.math.acos(a),
+        .acosh => std.math.acosh(a),
+        .asin => std.math.asin(a),
+        .asinh => std.math.asinh(a),
+        .atan => std.math.atan(a),
+        .atanh => std.math.atanh(a),
+        .cbrt => std.math.cbrt(a),
+        .cosh => std.math.cosh(a),
+        .exp2 => @exp2(a),
+        .expm1 => std.math.expm1(a),
+        .lgamma => std.math.lgamma(T, a),
+        .log10 => @log10(a),
+        .log1p => std.math.log1p(a),
+        .log2 => @log2(a),
+        .sinh => std.math.sinh(a),
+        .tanh => std.math.tanh(a),
+        .tgamma => std.math.gamma(T, a),
+        else => unreachable,
+    };
 }
 
-pub noinline fn compare_zmath_sqrt_f32(a: f32, b: f32) callconv(.c) f32 {
-    @setFloatMode(.strict);
-    _ = b;
-    return zmath.sqrt(a);
-}
-
-pub noinline fn compare_zmath_hypot_f32(a: f32, b: f32) callconv(.c) f32 {
-    @setFloatMode(.strict);
-    return zmath.hypot(a, b);
-}
-
-pub noinline fn compare_zmath_atan2_f32(a: f32, b: f32) callconv(.c) f32 {
-    @setFloatMode(.strict);
-    const result = zmath.atan2(a, b);
-    if (!result.resolved) {
-        @panic("zmath.atan2(f32) returned unresolved result");
+fn ZigWrapper(comptime T: type, comptime operation: Operation) type {
+    if (!zigSupports(T, operation)) {
+        @compileError(
+            "Zig baseline does not support " ++
+                @tagName(operation) ++
+                " for " ++
+                @typeName(T),
+        );
     }
-    return result.value;
+
+    return struct {
+        noinline fn call(a: T, b: T) callconv(.c) T {
+            @setFloatMode(.strict);
+            return callZig(T, operation, a, b);
+        }
+    };
 }
 
-pub noinline fn compare_zmath_pow_f32(a: f32, b: f32) callconv(.c) f32 {
-    @setFloatMode(.strict);
-    return zmath.pow(a, b);
-}
-
-// -----------------------------------------------------------------------------
-// zmath f64 wrappers
-// -----------------------------------------------------------------------------
-
-pub noinline fn compare_zmath_exp_f64(a: f64, b: f64) callconv(.c) f64 {
-    @setFloatMode(.strict);
-    _ = b;
-    return zmath.exp(a);
-}
-
-pub noinline fn compare_zmath_log_f64(a: f64, b: f64) callconv(.c) f64 {
-    @setFloatMode(.strict);
-    _ = b;
-    return zmath.log(a);
-}
-
-pub noinline fn compare_zmath_sin_f64(a: f64, b: f64) callconv(.c) f64 {
-    @setFloatMode(.strict);
-    _ = b;
-    return zmath.sin(a);
-}
-
-pub noinline fn compare_zmath_cos_f64(a: f64, b: f64) callconv(.c) f64 {
-    @setFloatMode(.strict);
-    _ = b;
-    return zmath.cos(a);
-}
-
-pub noinline fn compare_zmath_tan_f64(a: f64, b: f64) callconv(.c) f64 {
-    @setFloatMode(.strict);
-    _ = b;
-    return zmath.tan(a);
-}
-
-pub noinline fn compare_zmath_sqrt_f64(a: f64, b: f64) callconv(.c) f64 {
-    @setFloatMode(.strict);
-    _ = b;
-    return zmath.sqrt(a);
-}
-
-pub noinline fn compare_zmath_hypot_f64(a: f64, b: f64) callconv(.c) f64 {
-    @setFloatMode(.strict);
-    return zmath.hypot(a, b);
-}
-
-pub noinline fn compare_zmath_atan2_f64(a: f64, b: f64) callconv(.c) f64 {
-    @setFloatMode(.strict);
-    const result = zmath.atan2(a, b);
-    if (!result.resolved) {
-        @panic("zmath.atan2(f64) returned unresolved result");
+fn makeZmathTable(comptime T: type) [operation_count]Compare(T) {
+    var table: [operation_count]Compare(T) = undefined;
+    inline for (std.enums.values(Operation), 0..) |operation, index| {
+        table[index] = &ZmathWrapper(T, operation).call;
     }
-    return result.value;
+    return table;
 }
 
-pub noinline fn compare_zmath_pow_f64(a: f64, b: f64) callconv(.c) f64 {
-    @setFloatMode(.strict);
-    return zmath.pow(a, b);
+fn makeZigTable(comptime T: type) [operation_count]Compare(T) {
+    var table: [operation_count]Compare(T) = undefined;
+    inline for (std.enums.values(Operation), 0..) |operation, index| {
+        if (zigSupports(T, operation)) {
+            table[index] = &ZigWrapper(T, operation).call;
+        } else {
+            table[index] = null;
+        }
+    }
+    return table;
 }
 
-// -----------------------------------------------------------------------------
-// Zig standard library / builtin f32 wrappers
-// -----------------------------------------------------------------------------
+const zmath_f32_functions = makeZmathTable(f32);
+const zmath_f64_functions = makeZmathTable(f64);
+const zmath_f16_functions = makeZmathTable(f16);
+const zig_f32_functions = makeZigTable(f32);
+const zig_f64_functions = makeZigTable(f64);
+const zig_f16_functions = makeZigTable(f16);
 
-pub noinline fn compare_zig_exp_f32(a: f32, b: f32) callconv(.c) f32 {
-    _ = b;
-    return @exp(a);
+fn exportName(
+    comptime provider: []const u8,
+    comptime operation: Operation,
+    comptime T: type,
+) []const u8 {
+    return "compare_" ++ provider ++ "_" ++ @tagName(operation) ++ "_" ++ @typeName(T);
 }
 
-pub noinline fn compare_zig_log_f32(a: f32, b: f32) callconv(.c) f32 {
-    _ = b;
-    return @log(a);
-}
-
-pub noinline fn compare_zig_sin_f32(a: f32, b: f32) callconv(.c) f32 {
-    _ = b;
-    return @sin(a);
-}
-
-pub noinline fn compare_zig_cos_f32(a: f32, b: f32) callconv(.c) f32 {
-    _ = b;
-    return @cos(a);
-}
-
-pub noinline fn compare_zig_tan_f32(a: f32, b: f32) callconv(.c) f32 {
-    _ = b;
-    return @tan(a);
-}
-
-pub noinline fn compare_zig_sqrt_f32(a: f32, b: f32) callconv(.c) f32 {
-    _ = b;
-    return @sqrt(a);
-}
-
-pub noinline fn compare_zig_hypot_f32(a: f32, b: f32) callconv(.c) f32 {
-    return std.math.hypot(a, b);
-}
-
-pub noinline fn compare_zig_atan2_f32(a: f32, b: f32) callconv(.c) f32 {
-    return std.math.atan2(a, b);
-}
-
-pub noinline fn compare_zig_pow_f32(a: f32, b: f32) callconv(.c) f32 {
-    return std.math.pow(f32, a, b);
-}
-
-// -----------------------------------------------------------------------------
-// Zig standard library / builtin f64 wrappers
-// -----------------------------------------------------------------------------
-
-pub noinline fn compare_zig_exp_f64(a: f64, b: f64) callconv(.c) f64 {
-    _ = b;
-    return @exp(a);
-}
-
-pub noinline fn compare_zig_log_f64(a: f64, b: f64) callconv(.c) f64 {
-    _ = b;
-    return @log(a);
-}
-
-pub noinline fn compare_zig_sin_f64(a: f64, b: f64) callconv(.c) f64 {
-    _ = b;
-    return @sin(a);
-}
-
-pub noinline fn compare_zig_cos_f64(a: f64, b: f64) callconv(.c) f64 {
-    _ = b;
-    return @cos(a);
-}
-
-pub noinline fn compare_zig_tan_f64(a: f64, b: f64) callconv(.c) f64 {
-    _ = b;
-    return @tan(a);
-}
-
-pub noinline fn compare_zig_sqrt_f64(a: f64, b: f64) callconv(.c) f64 {
-    _ = b;
-    return @sqrt(a);
-}
-
-pub noinline fn compare_zig_hypot_f64(a: f64, b: f64) callconv(.c) f64 {
-    return std.math.hypot(a, b);
-}
-
-pub noinline fn compare_zig_atan2_f64(a: f64, b: f64) callconv(.c) f64 {
-    return std.math.atan2(a, b);
-}
-
-pub noinline fn compare_zig_pow_f64(a: f64, b: f64) callconv(.c) f64 {
-    return std.math.pow(f64, a, b);
-}
-
-// Keep the wrapper symbols available for C inspection as well as through the
-// getters. The getter path is what the benchmark uses for every timed call.
 comptime {
-    @export(&compare_zmath_exp_f32, .{ .name = "compare_zmath_exp_f32" });
-    @export(&compare_zmath_log_f32, .{ .name = "compare_zmath_log_f32" });
-    @export(&compare_zmath_sin_f32, .{ .name = "compare_zmath_sin_f32" });
-    @export(&compare_zmath_cos_f32, .{ .name = "compare_zmath_cos_f32" });
-    @export(&compare_zmath_tan_f32, .{ .name = "compare_zmath_tan_f32" });
-    @export(&compare_zmath_sqrt_f32, .{ .name = "compare_zmath_sqrt_f32" });
-    @export(&compare_zmath_hypot_f32, .{ .name = "compare_zmath_hypot_f32" });
-    @export(&compare_zmath_atan2_f32, .{ .name = "compare_zmath_atan2_f32" });
-    @export(&compare_zmath_pow_f32, .{ .name = "compare_zmath_pow_f32" });
-    @export(&compare_zmath_exp_f64, .{ .name = "compare_zmath_exp_f64" });
-    @export(&compare_zmath_log_f64, .{ .name = "compare_zmath_log_f64" });
-    @export(&compare_zmath_sin_f64, .{ .name = "compare_zmath_sin_f64" });
-    @export(&compare_zmath_cos_f64, .{ .name = "compare_zmath_cos_f64" });
-    @export(&compare_zmath_tan_f64, .{ .name = "compare_zmath_tan_f64" });
-    @export(&compare_zmath_sqrt_f64, .{ .name = "compare_zmath_sqrt_f64" });
-    @export(&compare_zmath_hypot_f64, .{ .name = "compare_zmath_hypot_f64" });
-    @export(&compare_zmath_atan2_f64, .{ .name = "compare_zmath_atan2_f64" });
-    @export(&compare_zmath_pow_f64, .{ .name = "compare_zmath_pow_f64" });
-    @export(&compare_zig_exp_f32, .{ .name = "compare_zig_exp_f32" });
-    @export(&compare_zig_log_f32, .{ .name = "compare_zig_log_f32" });
-    @export(&compare_zig_sin_f32, .{ .name = "compare_zig_sin_f32" });
-    @export(&compare_zig_cos_f32, .{ .name = "compare_zig_cos_f32" });
-    @export(&compare_zig_tan_f32, .{ .name = "compare_zig_tan_f32" });
-    @export(&compare_zig_sqrt_f32, .{ .name = "compare_zig_sqrt_f32" });
-    @export(&compare_zig_hypot_f32, .{ .name = "compare_zig_hypot_f32" });
-    @export(&compare_zig_atan2_f32, .{ .name = "compare_zig_atan2_f32" });
-    @export(&compare_zig_pow_f32, .{ .name = "compare_zig_pow_f32" });
-    @export(&compare_zig_exp_f64, .{ .name = "compare_zig_exp_f64" });
-    @export(&compare_zig_log_f64, .{ .name = "compare_zig_log_f64" });
-    @export(&compare_zig_sin_f64, .{ .name = "compare_zig_sin_f64" });
-    @export(&compare_zig_cos_f64, .{ .name = "compare_zig_cos_f64" });
-    @export(&compare_zig_tan_f64, .{ .name = "compare_zig_tan_f64" });
-    @export(&compare_zig_sqrt_f64, .{ .name = "compare_zig_sqrt_f64" });
-    @export(&compare_zig_hypot_f64, .{ .name = "compare_zig_hypot_f64" });
-    @export(&compare_zig_atan2_f64, .{ .name = "compare_zig_atan2_f64" });
-    @export(&compare_zig_pow_f64, .{ .name = "compare_zig_pow_f64" });
-}
+    if (std.enums.values(Operation).len != operation_count) {
+        @compileError("comparative operation count does not match the canonical mapping");
+    }
 
-// -----------------------------------------------------------------------------
-// Getters for zmath and Zig providers
-// -----------------------------------------------------------------------------
+    for (std.enums.values(Operation), 0..) |operation, index| {
+        if (@intFromEnum(operation) != @as(u8, @intCast(index))) {
+            @compileError("comparative operation IDs must remain contiguous and append-only");
+        }
+
+        for (.{ f32, f64, f16 }) |T| {
+            @export(
+                &ZmathWrapper(T, operation).call,
+                .{ .name = exportName("zmath", operation, T) },
+            );
+            if (zigSupports(T, operation)) {
+                @export(
+                    &ZigWrapper(T, operation).call,
+                    .{ .name = exportName("zig", operation, T) },
+                );
+            }
+        }
+    }
+}
 
 export fn compare_zmath_f32(op: u32) callconv(.c) CompareF32 {
-    return switch (op) {
-        0 => &compare_zmath_exp_f32,
-        1 => &compare_zmath_log_f32,
-        2 => &compare_zmath_sin_f32,
-        3 => &compare_zmath_cos_f32,
-        4 => &compare_zmath_tan_f32,
-        5 => &compare_zmath_sqrt_f32,
-        6 => &compare_zmath_hypot_f32,
-        7 => &compare_zmath_atan2_f32,
-        8 => &compare_zmath_pow_f32,
-        else => null,
-    };
+    if (op >= operation_count) return null;
+    return zmath_f32_functions[@intCast(op)];
 }
 
 export fn compare_zmath_f64(op: u32) callconv(.c) CompareF64 {
-    return switch (op) {
-        0 => &compare_zmath_exp_f64,
-        1 => &compare_zmath_log_f64,
-        2 => &compare_zmath_sin_f64,
-        3 => &compare_zmath_cos_f64,
-        4 => &compare_zmath_tan_f64,
-        5 => &compare_zmath_sqrt_f64,
-        6 => &compare_zmath_hypot_f64,
-        7 => &compare_zmath_atan2_f64,
-        8 => &compare_zmath_pow_f64,
-        else => null,
-    };
+    if (op >= operation_count) return null;
+    return zmath_f64_functions[@intCast(op)];
+}
+
+export fn compare_zmath_f16(op: u32) callconv(.c) CompareF16 {
+    if (op >= operation_count) return null;
+    return zmath_f16_functions[@intCast(op)];
 }
 
 export fn compare_zig_f32(op: u32) callconv(.c) CompareF32 {
-    return switch (op) {
-        0 => &compare_zig_exp_f32,
-        1 => &compare_zig_log_f32,
-        2 => &compare_zig_sin_f32,
-        3 => &compare_zig_cos_f32,
-        4 => &compare_zig_tan_f32,
-        5 => &compare_zig_sqrt_f32,
-        6 => &compare_zig_hypot_f32,
-        7 => &compare_zig_atan2_f32,
-        8 => &compare_zig_pow_f32,
-        else => null,
-    };
+    if (op >= operation_count) return null;
+    return zig_f32_functions[@intCast(op)];
 }
 
 export fn compare_zig_f64(op: u32) callconv(.c) CompareF64 {
-    return switch (op) {
-        0 => &compare_zig_exp_f64,
-        1 => &compare_zig_log_f64,
-        2 => &compare_zig_sin_f64,
-        3 => &compare_zig_cos_f64,
-        4 => &compare_zig_tan_f64,
-        5 => &compare_zig_sqrt_f64,
-        6 => &compare_zig_hypot_f64,
-        7 => &compare_zig_atan2_f64,
-        8 => &compare_zig_pow_f64,
-        else => null,
-    };
+    if (op >= operation_count) return null;
+    return zig_f64_functions[@intCast(op)];
+}
+
+export fn compare_zig_f16(op: u32) callconv(.c) CompareF16 {
+    if (op >= operation_count) return null;
+    return zig_f16_functions[@intCast(op)];
 }

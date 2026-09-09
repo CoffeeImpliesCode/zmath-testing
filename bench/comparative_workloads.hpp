@@ -26,27 +26,26 @@ struct Inputs {
   std::array<double, sample_count> y{};
 };
 
-// `single=true` narrows each generated finite value to binary32 and promotes
-// it back to double. Thus the arrays carry exact f32 values for a fair f32
-// call through CompareF32. `single=false` retains binary64 values.
-//
-// Binary calls consume fn(x[i], y[i]) in this order. For atan2, x is the
-// standard first (y-coordinate) argument and y is the standard second
-// (x-coordinate) argument. Unary wrappers ignore y.
+// `format` narrows each generated finite value to the selected IEEE format
+// and promotes it back to double. Thus the arrays carry exact call values for
+// a fair comparison. Binary calls consume fn(x[i], y[i]) in this order. For
+// atan2 and atan2pi, x is the standard first (y-coordinate) argument and y is
+// the standard second (x-coordinate) argument. Unary wrappers ignore y.
 Inputs make_inputs(std::uint32_t operation, Distribution distribution,
-                   bool single);
+                   CompareFormat format);
 
 // Stable, lowercase hexadecimal FNV-1a-64 digest over the complete ordered
-// call-input bit representation of x and y, including the single flag. For
-// single=true each value contributes its exact f32 encoding via input_f32;
-// otherwise each value contributes its f64 encoding. This is a
+// call-input bit representation of x and y, including the format tag. Each
+// value contributes its exact target-format encoding. This is a
 // reproducibility digest, not a cryptographic hash. The byte order is fixed
 // little-endian so the digest does not depend on host endianness.
-std::string input_hash(const Inputs &inputs, bool single);
-// Convert a generated binary64 input to its binary32 call value. Finite
-// values use the ordinary IEEE narrowing conversion. NaNs are reconstructed
-// from raw bits so their sign, quiet/signaling class, and high-order payload
-// bits survive preparation; lower payload bits are outside binary32.
+std::string input_hash(const Inputs &inputs, CompareFormat format);
+// Convert a generated binary64 input to its binary16 or binary32 call value.
+// Finite values use the ordinary IEEE narrowing conversion. NaNs are
+// reconstructed from raw bits so their sign, quiet/signaling class, and
+// high-order payload bits survive preparation; lower payload bits are outside
+// the target format.
+_Float16 input_f16(double value);
 float input_f32(double value);
 
 struct Audit {
@@ -64,12 +63,14 @@ struct Audit {
 // class differences and opposite infinity signs; `signed_zero_mismatches`
 // reports zero sign differences separately. ULP distance is collected only
 // for finite results, with an overflow-safe monotonic IEEE ordering.
+Audit audit(std::uint32_t operation, const Inputs &inputs, CompareF16 function);
 Audit audit(std::uint32_t operation, const Inputs &inputs, CompareF32 function);
 Audit audit(std::uint32_t operation, const Inputs &inputs, CompareF64 function);
 
-// Check deterministic generation, f32 truncation, special-value coverage,
-// and digest stability without invoking a provider. Returns true on success;
-// when false and `error` is non-null, stores a concise failure description.
+// Check deterministic generation, exact target-format narrowing,
+// special-value coverage, reference-oracle behavior, and digest stability
+// without invoking a provider. Returns true on success; when false and
+// `error` is non-null, stores a concise failure description.
 bool self_check(std::string *error = nullptr);
 
 } // namespace comparative

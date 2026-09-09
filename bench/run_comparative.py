@@ -33,13 +33,70 @@ OPERATIONS: Tuple[str, ...] = (
     "hypot",
     "atan2",
     "pow",
+    "acos",
+    "acosh",
+    "acospi",
+    "asin",
+    "asinh",
+    "asinpi",
+    "atan",
+    "atan2pi",
+    "atanh",
+    "atanpi",
+    "cbrt",
+    "cosh",
+    "cospi",
+    "erf",
+    "erfc",
+    "exp10",
+    "exp10m1",
+    "exp2",
+    "exp2m1",
+    "expm1",
+    "lgamma",
+    "log10",
+    "log10p1",
+    "log1p",
+    "log2",
+    "log2p1",
+    "rsqrt",
+    "sinh",
+    "sinpi",
+    "tanh",
+    "tanpi",
+    "tgamma",
 )
-FORMATS: Tuple[str, ...] = ("f32", "f64")
+FORMATS: Tuple[str, ...] = ("f32", "f64", "f16")
 DISTRIBUTIONS: Tuple[str, ...] = ("normal", "wide", "special")
 PROVIDERS: Tuple[str, ...] = ("zmath", "zig", "glibc", "coremath")
-REQUIRED_PROVIDERS: Tuple[str, ...] = ("zmath", "zig", "glibc")
+REQUIRED_PROVIDERS: Tuple[str, ...] = ("zmath",)
+COREMATH_UNSUPPORTED_KEYS: Tuple[Tuple[str, str], ...] = (
+    ("sqrt", "f32"),
+    ("sqrt", "f64"),
+)
+GLIBC_UNSUPPORTED_FORMATS: Tuple[str, ...] = ("f16",)
+ZIG_F16_OPERATIONS: Tuple[str, ...] = (
+    "exp", "log", "sin", "cos", "tan", "sqrt", "hypot",
+    "acos", "asin", "atan", "exp2", "log10", "log2",
+)
+ZIG_F32_F64_OPERATIONS: Tuple[str, ...] = (
+    "exp", "log", "sin", "cos", "tan", "sqrt", "hypot", "atan2", "pow",
+    "acos", "acosh", "asin", "asinh", "atan", "atanh", "cbrt", "cosh",
+    "exp2", "expm1", "lgamma", "log10", "log1p", "log2", "sinh", "tanh",
+    "tgamma",
+)
+COREMATH_REVISION = "3bafed75e3c22399531857d63a3fa0e24bfb42fa"
 BATCH_SIZE = 1024
-GLIBC_ORIGIN_COUNT = len(OPERATIONS) * len(FORMATS)
+GLIBC_ORIGIN_COUNT = len(OPERATIONS) * (
+    len(FORMATS) - len(GLIBC_UNSUPPORTED_FORMATS)
+)
+COREMATH_ORIGIN_KEYS: Tuple[Tuple[str, str], ...] = tuple(
+    (operation, fmt)
+    for operation in OPERATIONS
+    for fmt in FORMATS
+    if (operation, fmt) not in COREMATH_UNSUPPORTED_KEYS
+)
+COREMATH_ORIGIN_COUNT = len(COREMATH_ORIGIN_KEYS)
 
 Key = Tuple[str, str, str, str]
 TupleKey = Tuple[str, str, str]
@@ -51,7 +108,7 @@ class RunnerError(RuntimeError):
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Run zmath versus Zig, glibc, and vendored CORE-MATH."
+        description="Run zmath versus Zig, glibc, and independent pinned CORE-MATH."
     )
     parser.add_argument(
         "--binary",
@@ -309,7 +366,7 @@ def read_json(path: pathlib.Path, description: str) -> Any:
 def valid_glibc_origin_path(value: Any) -> bool:
     if not isinstance(value, str) or not value.startswith("/"):
         return False
-    if ";" in value or "compiler_rt" in value or "compiler-rt" in value:
+    if ";" in value or "=" in value or "compiler_rt" in value or "compiler-rt" in value:
         return False
     name = pathlib.Path(value).name
     if name == "libm.so":
@@ -318,6 +375,14 @@ def valid_glibc_origin_path(value: Any) -> bool:
         return False
     components = name[len("libm.so.") :].split(".")
     return bool(components) and all(component.isdigit() for component in components)
+
+
+def valid_coremath_origin_path(value: Any) -> bool:
+    if not isinstance(value, str) or not value.startswith("/"):
+        return False
+    if ";" in value or "=" in value:
+        return False
+    return pathlib.Path(value).name == "libzmath-coremath.so"
 
 
 def normalize_glibc_provenance(value: Any, description: str) -> Dict[str, Any]:
@@ -334,7 +399,12 @@ def normalize_glibc_provenance(value: Any, description: str) -> Dict[str, Any]:
             f"{description} must contain exactly {GLIBC_ORIGIN_COUNT} glibc origins"
         )
 
-    expected = [(operation, fmt) for operation in OPERATIONS for fmt in FORMATS]
+    expected = [
+        (operation, fmt)
+        for operation in OPERATIONS
+        for fmt in FORMATS
+        if fmt not in GLIBC_UNSUPPORTED_FORMATS
+    ]
     seen: Set[Tuple[str, str]] = set()
     normalized_origins: List[Dict[str, str]] = []
     for origin in origins:
@@ -360,39 +430,138 @@ def normalize_glibc_provenance(value: Any, description: str) -> Dict[str, Any]:
         )
     if set(seen) != set(expected):
         missing = sorted(set(expected) - seen)
-        raise RunnerError(f"{description} is missing glibc origin {missing[0]}")
+        extra = sorted(set(seen) - set(expected))
+        if missing:
+            raise RunnerError(f"{description} is missing glibc origin {missing[0]}")
+        raise RunnerError(f"{description} has an unexpected glibc origin {extra[0]}")
     normalized_origins.sort(
         key=lambda origin: (OPERATIONS.index(origin["operation"]), FORMATS.index(origin["format"]))
     )
     return {"version": version, "origins": normalized_origins}
 
 
-def load_accuracy_provenance(
-    path: pathlib.Path,
-) -> Dict[str, Any]:
+def normalize_coremath_provenance(value: Any, description: str) -> Dict[str, Any]:
+    required_fields = {"revision", "compiler", "flags", "source_path", "origins"}
+    if not isinstance(value, dict):
+        raise RunnerError(f"{description} has no CORE-MATH provenance object")
+    if set(value) != required_fields:
+        raise RunnerError(f"{description} CORE-MATH provenance fields are invalid")
+    revision = value.get("revision")
+    compiler = value.get("compiler")
+    flags = value.get("flags")
+    source_path = value.get("source_path")
+    for field, field_value in (
+        ("revision", revision),
+        ("compiler", compiler),
+        ("flags", flags),
+        ("source_path", source_path),
+    ):
+        if not isinstance(field_value, str) or not field_value.strip():
+            raise RunnerError(f"{description} CORE-MATH {field} is missing or empty")
+    if revision != COREMATH_REVISION:
+        raise RunnerError(
+            f"{description} CORE-MATH revision is not pinned to {COREMATH_REVISION}"
+        )
+    if not pathlib.PurePosixPath(source_path).is_absolute():
+        raise RunnerError(f"{description} CORE-MATH source_path is not absolute")
+
+    origins = value.get("origins")
+    if not isinstance(origins, list) or len(origins) != COREMATH_ORIGIN_COUNT:
+        raise RunnerError(
+            f"{description} must contain exactly {COREMATH_ORIGIN_COUNT} CORE-MATH origins"
+        )
+    expected = set(COREMATH_ORIGIN_KEYS)
+    seen: Set[Tuple[str, str]] = set()
+    normalized_origins: List[Dict[str, str]] = []
+    for origin in origins:
+        if not isinstance(origin, dict) or set(origin) != {"operation", "format", "path"}:
+            raise RunnerError(f"{description} has a malformed CORE-MATH origin")
+        operation = origin.get("operation")
+        fmt = origin.get("format")
+        path = origin.get("path")
+        if (
+            not isinstance(operation, str)
+            or not isinstance(fmt, str)
+            or not isinstance(path, str)
+            or (operation, fmt) not in expected
+        ):
+            raise RunnerError(f"{description} has an invalid CORE-MATH origin identity")
+        if (operation, fmt) in seen:
+            raise RunnerError(f"{description} repeats CORE-MATH origin {(operation, fmt)}")
+        if not valid_coremath_origin_path(path):
+            raise RunnerError(f"{description} has an invalid CORE-MATH origin path: {path!r}")
+        seen.add((operation, fmt))
+        normalized_origins.append(
+            {"operation": operation, "format": fmt, "path": path}
+        )
+    if seen != expected:
+        missing = sorted(expected - seen)
+        extra = sorted(seen - expected)
+        if missing:
+            raise RunnerError(f"{description} is missing CORE-MATH origin {missing[0]}")
+        raise RunnerError(f"{description} has an unexpected CORE-MATH origin {extra[0]}")
+    normalized_origins.sort(
+        key=lambda origin: (OPERATIONS.index(origin["operation"]), FORMATS.index(origin["format"]))
+    )
+    return {
+        "revision": revision,
+        "compiler": compiler,
+        "flags": flags,
+        "source_path": source_path,
+        "origins": normalized_origins,
+    }
+
+
+def load_accuracy_provenance(path: pathlib.Path) -> Dict[str, Any]:
     data = read_json(path, "accuracy output")
     value = data.get("glibc_provenance") if isinstance(data, dict) else None
     return normalize_glibc_provenance(value, "accuracy output")
 
 
-def load_context_glibc_provenance(context: Dict[str, Any]) -> Dict[str, Any]:
-    version = context.get("comparison.glibc_version")
-    encoded = context.get("comparison.glibc_origins")
-    if not isinstance(version, str) or not version.strip():
-        raise RunnerError("benchmark context has no GNU libc version")
-    if not isinstance(encoded, str) or not encoded:
-        raise RunnerError("benchmark context has no glibc origins")
+def load_accuracy_coremath_provenance(path: pathlib.Path) -> Dict[str, Any]:
+    data = read_json(path, "accuracy output")
+    value = data.get("coremath_provenance") if isinstance(data, dict) else None
+    return normalize_coremath_provenance(value, "accuracy output")
 
+
+def decode_context_origins(encoded: Any, description: str) -> List[Dict[str, str]]:
+    if not isinstance(encoded, str) or not encoded:
+        raise RunnerError(f"{description} has no origins")
     origins: List[Dict[str, str]] = []
     for entry in encoded.split(";"):
         name, separator, path = entry.partition("=")
         parts = name.split("/")
         if not separator or len(parts) != 2 or not path:
-            raise RunnerError(f"benchmark context has a malformed glibc origin: {entry!r}")
+            raise RunnerError(f"{description} has a malformed origin: {entry!r}")
         origins.append({"operation": parts[0], "format": parts[1], "path": path})
+    return origins
+
+
+def load_context_glibc_provenance(context: Dict[str, Any]) -> Dict[str, Any]:
+    version = context.get("comparison.glibc_version")
+    if not isinstance(version, str) or not version.strip():
+        raise RunnerError("benchmark context has no GNU libc version")
+    origins = decode_context_origins(
+        context.get("comparison.glibc_origins"), "benchmark context glibc origins"
+    )
     return normalize_glibc_provenance(
         {"version": version, "origins": origins}, "benchmark context"
     )
+
+
+def load_context_coremath_provenance(context: Dict[str, Any]) -> Dict[str, Any]:
+    fields = {
+        "revision": context.get("comparison.coremath_revision"),
+        "compiler": context.get("comparison.coremath_compiler"),
+        "flags": context.get("comparison.coremath_flags"),
+        "source_path": context.get("comparison.coremath_source"),
+    }
+    origins = decode_context_origins(
+        context.get("comparison.coremath_origins"),
+        "benchmark context CORE-MATH origins",
+    )
+    fields["origins"] = origins
+    return normalize_coremath_provenance(fields, "benchmark context")
 
 
 def reconcile_glibc_provenance(
@@ -402,6 +571,38 @@ def reconcile_glibc_provenance(
         raise RunnerError(
             "accuracy glibc provenance disagrees with benchmark context"
         )
+
+
+def reconcile_coremath_provenance(
+    accuracy: Dict[str, Any], context: Dict[str, Any]
+) -> None:
+    if accuracy != context:
+        raise RunnerError(
+            "accuracy CORE-MATH provenance disagrees with benchmark context"
+        )
+
+
+def _hash_elf_shared_object(
+    path: pathlib.Path, binary_path: pathlib.Path, provider: str
+) -> str:
+    if path == binary_path:
+        raise RunnerError(f"{provider} provider is the comparison executable: {path}")
+    if not path.is_file():
+        raise RunnerError(f"{provider} provider is not a regular file: {path}")
+    try:
+        with path.open("rb") as stream:
+            header = stream.read(18)
+    except OSError as error:
+        raise RunnerError(f"cannot read {provider} provider {path}: {error}") from error
+    if len(header) < 18 or header[:4] != b"\x7fELF" or header[5] not in (1, 2):
+        raise RunnerError(f"{provider} provider is not an ELF shared object: {path}")
+    byteorder = "little" if header[5] == 1 else "big"
+    if int.from_bytes(header[16:18], byteorder=byteorder) != 3:
+        raise RunnerError(f"{provider} provider is not an ELF shared object: {path}")
+    try:
+        return sha256_file(path)
+    except OSError as error:
+        raise RunnerError(f"cannot hash {provider} provider {path}: {error}") from error
 
 
 def hash_glibc_provenance(
@@ -422,25 +623,8 @@ def hash_glibc_provenance(
             raise RunnerError(
                 f"cannot resolve glibc provider {path}: {error}"
             ) from error
-        if resolved == binary_path:
-            raise RunnerError(f"glibc provider is the comparison executable: {path}")
-        if not resolved.is_file():
-            raise RunnerError(f"glibc provider is not a regular file: {path}")
-        try:
-            with resolved.open("rb") as stream:
-                header = stream.read(18)
-        except OSError as error:
-            raise RunnerError(f"cannot read glibc provider {path}: {error}") from error
-        if len(header) < 18 or header[:4] != b"\x7fELF" or header[5] not in (1, 2):
-            raise RunnerError(f"glibc provider is not an ELF shared object: {path}")
-        byteorder = "little" if header[5] == 1 else "big"
-        if int.from_bytes(header[16:18], byteorder=byteorder) != 3:
-            raise RunnerError(f"glibc provider is not an ELF shared object: {path}")
         if resolved not in hashes:
-            try:
-                hashes[resolved] = sha256_file(resolved)
-            except OSError as error:
-                raise RunnerError(f"cannot hash glibc provider {path}: {error}") from error
+            hashes[resolved] = _hash_elf_shared_object(resolved, binary_path, "glibc")
         records.append(
             {
                 "operation": origin["operation"],
@@ -450,6 +634,122 @@ def hash_glibc_provenance(
             }
         )
     return {"version": provenance["version"], "origins": records}
+
+
+def _configured_coremath_dso() -> pathlib.Path:
+    configured = os.environ.get("ZMATH_COMPARE_COREMATH_PATH")
+    if not configured:
+        raise RunnerError("ZMATH_COMPARE_COREMATH_PATH is missing")
+    path = pathlib.Path(configured).expanduser()
+    if not path.is_absolute():
+        raise RunnerError("ZMATH_COMPARE_COREMATH_PATH must be absolute")
+    if path.name != "libzmath-coremath.so":
+        raise RunnerError(
+            "ZMATH_COMPARE_COREMATH_PATH must name libzmath-coremath.so"
+        )
+    try:
+        return path.resolve(strict=True)
+    except OSError as error:
+        raise RunnerError(
+            f"cannot resolve ZMATH_COMPARE_COREMATH_PATH {path}: {error}"
+        ) from error
+
+
+def hash_coremath_provenance(
+    provenance: Dict[str, Any],
+    binary: pathlib.Path,
+    dso_path: Optional[pathlib.Path] = None,
+) -> Dict[str, Any]:
+    try:
+        binary_path = binary.resolve(strict=True)
+    except OSError as error:
+        raise RunnerError(f"cannot resolve comparison binary for provenance: {error}") from error
+    if dso_path is not None:
+        if not dso_path.is_absolute():
+            raise RunnerError("CORE-MATH DSO path must be absolute")
+        try:
+            expected_dso = dso_path.resolve(strict=True)
+        except OSError as error:
+            raise RunnerError(
+                f"cannot resolve CORE-MATH DSO {dso_path}: {error}"
+            ) from error
+    else:
+        expected_dso = _configured_coremath_dso()
+    if expected_dso.name != "libzmath-coremath.so":
+        raise RunnerError("CORE-MATH DSO must be libzmath-coremath.so")
+    dso_hash = _hash_elf_shared_object(expected_dso, binary_path, "CORE-MATH")
+    records: List[Dict[str, str]] = []
+    for origin in provenance["origins"]:
+        path = pathlib.Path(origin["path"])
+        try:
+            resolved = path.resolve(strict=True)
+        except OSError as error:
+            raise RunnerError(
+                f"cannot resolve CORE-MATH provider {path}: {error}"
+            ) from error
+        if resolved != expected_dso:
+            raise RunnerError(
+                f"CORE-MATH provider does not match configured DSO: {path}"
+            )
+        records.append(
+            {
+                "operation": origin["operation"],
+                "format": origin["format"],
+                "path": origin["path"],
+                "sha256": dso_hash,
+            }
+        )
+    return {
+        "revision": provenance["revision"],
+        "compiler": provenance["compiler"],
+        "flags": provenance["flags"],
+        "source_path": provenance["source_path"],
+        "dso_path": str(expected_dso),
+        "dso_sha256": dso_hash,
+        "origins": records,
+    }
+
+
+def validate_reference_source_evidence(
+    coremath_provenance: Dict[str, Any],
+) -> Dict[str, str]:
+    core_env = os.environ.get("ZMATH_CORE_MATH_SOURCE_DIR")
+    glibc_env = os.environ.get("ZMATH_GLIBC_SOURCE_DIR")
+    if not core_env:
+        raise RunnerError("ZMATH_CORE_MATH_SOURCE_DIR is missing")
+    if not glibc_env:
+        raise RunnerError("ZMATH_GLIBC_SOURCE_DIR is missing")
+    paths: Dict[str, pathlib.Path] = {}
+    for variable, value in (
+        ("ZMATH_CORE_MATH_SOURCE_DIR", core_env),
+        ("ZMATH_GLIBC_SOURCE_DIR", glibc_env),
+    ):
+        path = pathlib.Path(value).expanduser()
+        if not path.is_absolute():
+            raise RunnerError(f"{variable} must be absolute")
+        try:
+            resolved = path.resolve(strict=True)
+        except OSError as error:
+            raise RunnerError(f"cannot resolve {variable} {path}: {error}") from error
+        if not resolved.is_dir():
+            raise RunnerError(f"{variable} is not a source directory: {path}")
+        paths[variable] = resolved
+    try:
+        declared_core = pathlib.Path(coremath_provenance["source_path"]).resolve(strict=True)
+    except OSError as error:
+        raise RunnerError(
+            f"cannot resolve CORE-MATH metadata source path "
+            f"{coremath_provenance['source_path']}: {error}"
+        ) from error
+    if declared_core != paths["ZMATH_CORE_MATH_SOURCE_DIR"]:
+        raise RunnerError(
+            "CORE-MATH metadata source_path disagrees with "
+            "ZMATH_CORE_MATH_SOURCE_DIR"
+        )
+    return {
+        "coremath_source_path": str(declared_core),
+        "glibc_source_path": str(paths["ZMATH_GLIBC_SOURCE_DIR"]),
+    }
 
 
 def load_binary_build(path: pathlib.Path) -> Dict[str, str]:
@@ -645,10 +945,14 @@ def load_accuracy(path: pathlib.Path) -> Dict[Key, Dict[str, Any]]:
         raise RunnerError("accuracy output must use MPFR-512 round-to-nearest-even")
     if reference.get("formal_correct_rounding_proof") is not False:
         raise RunnerError("accuracy output must state that this is not a formal proof")
-    if data.get("sample_count") != BATCH_SIZE:
-        raise RunnerError(f"accuracy output sample_count must be {BATCH_SIZE}")
     if tuple(data.get("providers", ())) != PROVIDERS:
         raise RunnerError("accuracy output provider list is incomplete or reordered")
+    normalize_glibc_provenance(
+        data.get("glibc_provenance"), "accuracy output"
+    )
+    normalize_coremath_provenance(
+        data.get("coremath_provenance"), "accuracy output"
+    )
     records = data.get("records")
     if not isinstance(records, list):
         raise RunnerError("accuracy output has no records list")
@@ -705,6 +1009,54 @@ def load_accuracy(path: pathlib.Path) -> Dict[Key, Dict[str, Any]]:
         ]
         if unavailable:
             raise RunnerError(f"required provider {provider} is unavailable: {unavailable[0]}")
+    for operation, fmt, distribution in matrix_keys():
+        supported_operations = (
+            ZIG_F16_OPERATIONS if fmt == "f16" else ZIG_F32_F64_OPERATIONS
+        )
+        expected = operation in supported_operations
+        if indexed[(operation, fmt, distribution, "zig")]["available"] != expected:
+            raise RunnerError(
+                f"Zig availability differs from the supported matrix: "
+                f"{(operation, fmt, distribution)}"
+            )
+    glibc_half_available = [
+        (operation, fmt, distribution)
+        for operation, fmt, distribution in matrix_keys()
+        if fmt in GLIBC_UNSUPPORTED_FORMATS
+        and indexed[(operation, fmt, distribution, "glibc")].get("available")
+    ]
+    glibc_missing = [
+        (operation, fmt)
+        for operation, fmt, distribution in matrix_keys()
+        if fmt not in GLIBC_UNSUPPORTED_FORMATS
+        and not indexed[(operation, fmt, distribution, "glibc")].get("available")
+    ]
+    if glibc_missing:
+        raise RunnerError(f"required glibc provider is unavailable: {glibc_missing[0]}")
+    if glibc_half_available:
+        raise RunnerError(
+            f"glibc unexpectedly provides binary16 rows: {glibc_half_available[0]}"
+        )
+    for operation, fmt in COREMATH_ORIGIN_KEYS:
+        unavailable = [
+            distribution
+            for distribution in DISTRIBUTIONS
+            if not indexed[(operation, fmt, distribution, "coremath")].get("available")
+        ]
+        if unavailable:
+            raise RunnerError(
+                f"required CORE-MATH provider is unavailable: {(operation, fmt)}"
+            )
+    for operation, fmt in COREMATH_UNSUPPORTED_KEYS:
+        available = [
+            distribution
+            for distribution in DISTRIBUTIONS
+            if indexed[(operation, fmt, distribution, "coremath")].get("available")
+        ]
+        if available:
+            raise RunnerError(
+                f"CORE-MATH unexpectedly provides an unsupported row: {(operation, fmt)}"
+            )
     return indexed
 
 
@@ -928,15 +1280,19 @@ def report_lines(
     if audit_only:
         header = f"{'op':<7} {'fmt':<5} {'dist':<8} {'provider':<10} {'available':<12} {'max_ulp':<9} {'nonfinite':<10} {'signed_zero':<12} {'status':<14}"
     else:
-        header = f"{'op':<7} {'fmt':<5} {'dist':<8} {'provider':<10} {'median_ns':<12} {'min..max_ns':<25} {'stdev_ns':<12} {'CV%':<8} {'vs_glibc':<11} {'max_ulp':<8} {'nonfinite':<10} {'signed_zero':<12} {'status':<16}"
+        header = f"{'op':<7} {'fmt':<5} {'dist':<8} {'provider':<10} {'median_ns':<12} {'min..max_ns':<25} {'stdev_ns':<12} {'CV%':<8} {'vs_glibc':<11} {'vs_coremath':<13} {'max_ulp':<8} {'nonfinite':<10} {'signed_zero':<12} {'status':<16}"
     lines.append(header)
     lines.append("-" * len(header))
 
     for operation, fmt, distribution in matrix_keys():
         glibc_key = (operation, fmt, distribution, "glibc")
+        coremath_key = (operation, fmt, distribution, "coremath")
         glibc_median: Optional[float] = None
+        coremath_median: Optional[float] = None
         if timings is not None and glibc_key in timings:
             glibc_median = statistics.median(timings[glibc_key])
+        if timings is not None and coremath_key in timings:
+            coremath_median = statistics.median(timings[coremath_key])
         for provider in PROVIDERS:
             key = (operation, fmt, distribution, provider)
             record = accuracy[key]
@@ -945,7 +1301,11 @@ def report_lines(
             if not available:
                 lines.append(
                     f"{operation:<7} {fmt:<5} {distribution:<8} {provider:<10} "
-                    + (f"{'no':<12} {'-':<9} {'-':<10} {'-':<12} {'UNSUPPORTED':<14}" if audit_only else f"{'-':<12} {'-':<25} {'-':<12} {'-':<8} {'-':<11} {'-':<8} {'-':<10} {'-':<12} {'UNSUPPORTED':<16}")
+                    + (
+                        f"{'no':<12} {'-':<9} {'-':<10} {'-':<12} {'UNSUPPORTED':<14}"
+                        if audit_only
+                        else f"{'-':<12} {'-':<25} {'-':<12} {'-':<8} {'-':<11} {'-':<13} {'-':<8} {'-':<10} {'-':<12} {'UNSUPPORTED':<16}"
+                    )
                 )
                 continue
 
@@ -963,7 +1323,8 @@ def report_lines(
             if key not in timings:
                 lines.append(
                     f"{operation:<7} {fmt:<5} {distribution:<8} {provider:<10} "
-                    f"{'-':<12} {'-':<25} {'-':<12} {'-':<8} {'-':<11} {str(max_ulp):<8} {str(nonfinite):<10} {str(signed_zero):<12} {'FILTERED':<16}"
+                    f"{'-':<12} {'-':<25} {'-':<12} {'-':<8} {'-':<11} {'-':<13} "
+                    f"{str(max_ulp):<8} {str(nonfinite):<10} {str(signed_zero):<12} {'FILTERED':<16}"
                 )
                 continue
             samples = timings[key]
@@ -972,20 +1333,23 @@ def report_lines(
             stdev = statistics.stdev(samples) if len(samples) > 1 else 0.0
             mean = statistics.fmean(samples)
             cv = 100.0 * stdev / mean if mean > 0 else 0.0
-            ratio = median / glibc_median if glibc_median and glibc_median > 0 else None
-            ratio_text = f"{ratio:.3f}x" if ratio is not None else "N/A"
+            glibc_ratio = median / glibc_median if glibc_median and glibc_median > 0 else None
+            coremath_ratio = median / coremath_median if coremath_median and coremath_median > 0 else None
+            glibc_ratio_text = f"{glibc_ratio:.3f}x" if glibc_ratio is not None else "N/A"
+            coremath_ratio_text = f"{coremath_ratio:.3f}x" if coremath_ratio is not None else "N/A"
             status = "MISMATCH" if any(
                 isinstance(value, int) and value > 0
                 for value in (max_ulp, nonfinite, signed_zero)
             ) else "OK"
             lines.append(
                 f"{operation:<7} {fmt:<5} {distribution:<8} {provider:<10} "
-                f"{median:<12.4f} {low:.4f}..{high:.4f}{'':<8} {stdev:<12.4f} {cv:<8.2f} {ratio_text:<11} "
+                f"{median:<12.4f} {low:.4f}..{high:.4f}{'':<8} {stdev:<12.4f} "
+                f"{cv:<8.2f} {glibc_ratio_text:<11} {coremath_ratio_text:<13} "
                 f"{str(max_ulp):<8} {str(nonfinite):<10} {str(signed_zero):<12} {status:<16}"
             )
-    lines.append("=" * 150)
-    lines.append("Ratios are provider median ns/call divided by matching glibc median; lower than 1.000x is faster.")
-    lines.append("CORE-MATH unsupported rows have no timing baseline and are never substituted with glibc or another provider.")
+    lines.append("=" * 170)
+    lines.append("Ratios are provider median ns/call divided by the matching glibc or CORE-MATH median; lower than 1.000x is faster.")
+    lines.append("Unsupported reference rows have no timing baseline and are never substituted with another provider.")
     lines.append("Throughput is scalar batch throughput only; it is not a latency or SIMD/vectorization claim.")
     lines.append("Accuracy mismatch counts are visible status data. NaN payload differences are ignored by the audit contract.")
     lines.append("The MPFR audit conversion may quiet signaling NaNs; special-value policies differ, so non-finite and signed-zero differences are not automatic library bugs or certification failures.")
@@ -1076,9 +1440,17 @@ def main() -> int:
 
         accuracy = load_accuracy(accuracy_path)
         accuracy_provenance = load_accuracy_provenance(accuracy_path)
+        coremath_provenance = load_accuracy_coremath_provenance(accuracy_path)
         metadata["glibc_provenance"] = hash_glibc_provenance(
             accuracy_provenance, binary
         )
+        metadata["coremath_provenance"] = hash_coremath_provenance(
+            coremath_provenance, binary
+        )
+        source_evidence = validate_reference_source_evidence(coremath_provenance)
+        metadata["reference_sources"] = source_evidence
+        metadata["glibc_source_path"] = source_evidence["glibc_source_path"]
+        metadata["coremath_source_path"] = source_evidence["coremath_source_path"]
         binary_build = load_binary_build(accuracy_path)
         metadata["build"] = binary_build
         if args.audit_only:
@@ -1090,6 +1462,12 @@ def main() -> int:
             validate_benchmark_context(accuracy, benchmark_context)
             context_provenance = load_context_glibc_provenance(benchmark_context)
             reconcile_glibc_provenance(accuracy_provenance, context_provenance)
+            context_coremath_provenance = load_context_coremath_provenance(
+                benchmark_context
+            )
+            reconcile_coremath_provenance(
+                coremath_provenance, context_coremath_provenance
+            )
             metadata["benchmark_context"] = benchmark_context
             metadata["build_source"] = "accuracy.json and benchmark.json binary-produced fields"
             timings = load_timings(benchmark_path, args.repetitions)

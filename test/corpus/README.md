@@ -324,8 +324,8 @@ none referenced MPFR, GMP, FLINT, Arb, or libc math symbols.
 
 The comparative executable is a separate, test-only C++ program. It does not
 change the runtime library. It consumes `bench/comparative.h` and
-`bench/comparative_workloads.hpp`; the bridge supplies the zmath, Zig, glibc,
-and already-vendored CORE-MATH C-ABI function pointers.
+`bench/comparative_workloads.hpp`; the bridge supplies zmath, Zig, glibc, and
+independent pinned CORE-MATH C-ABI function pointers.
 
 The qualified build profile is x86_64 Linux, Haswell, and ReleaseSafe. The
 build passes the required `COMPARATIVE_BUILD_MODE`, `COMPARATIVE_TARGET`,
@@ -337,12 +337,32 @@ binary-produced fields rather than inferring them. The packaged GCC flags are:
 -std=c++17 -O3 -march=haswell -ffp-contract=off -fno-builtin -fno-fast-math -fno-lto
 ```
 
+These flags apply to the wrapper and C++ harness. The independent CORE-MATH
+kernels use their own declared flags from DSO provenance. The build does not
+add `-fno-builtin` to those upstream kernels.
+
 Build the installed executable with the existing build module:
 
 ```text
 devenv shell
 zig build compare -Dcompare-optimize=ReleaseSafe
 ```
+
+The runner requires three local reference paths:
+
+```text
+ZMATH_CORE_MATH_SOURCE_DIR=/nix/store/<core-math-source>
+ZMATH_GLIBC_SOURCE_DIR=/nix/store/<glibc-source>
+ZMATH_COMPARE_COREMATH_PATH=/nix/store/<core-math-reference>/lib/libzmath-coremath.so
+```
+
+`ZMATH_CORE_MATH_SOURCE_DIR` names the complete CORE-MATH source tree at
+revision `3bafed75e3c22399531857d63a3fa0e24bfb42fa`. The CORE-MATH DSO
+contains the revision, compiler, declared flags, and source path that the
+runner validates. `ZMATH_GLIBC_SOURCE_DIR` names the matching patched glibc
+source tree. `ZMATH_COMPARE_COREMATH_PATH` names the independent CORE-MATH
+shared object. The runner hashes this DSO and rejects stale, executable, or
+non-ELF origin paths before it calculates ratios.
 
 Run the complete matrix. `--out_dir` must name a new directory; this keeps
 prior raw evidence immutable:
@@ -370,8 +390,9 @@ metadata. The host is reported as shared and non-isolated; pinning reduces
 migration but does not isolate the selected core or its SMT sibling. The
 runner does not disable ASLR. Retained framework warnings, ranges, and
 coefficients of variation are part of the result, not noise to discard.
-Metadata records both Jujutsu revisions, all comparison sources, the Nix
-toolchain declarations, and Google Benchmark, MPFR, and Zig versions.
+Metadata records both Jujutsu revisions, all comparison sources, the local
+CORE-MATH and glibc source paths, the Nix toolchain declarations, and Google
+Benchmark, MPFR, and Zig versions.
 
 The executable parses Google Benchmark options before it runs workload
 self-checks or provider audits. `--help` prints framework usage and exits.
@@ -410,9 +431,9 @@ integer repetition index, and each provider row must contain exactly the
 indexes `0` through `repetitions - 1`.
 
 Before the audit or any timing run, the executable opens the absolute Nix
-`libm.so.6` path with `dlopen` and resolves all 18 glibc operation and format
-functions once with `dlsym`. The origin C ABI reports the actual resolved
-backend for each cached function, not a global `expf` lookup. Each wrapper
+`libm.so.6` path with `dlopen` and resolves all 82 glibc operation and
+format functions once with `dlsym`. The origin C ABI reports the actual
+resolved backend for each cached function, not a global lookup. Each wrapper
 calls its correctly typed backend pointer. This includes the normal C-library
 indirect-call overhead. Resolution, validation, and provenance hashing stay
 outside the timed loops.
@@ -423,27 +444,44 @@ compiler-runtime lowering; it does not promise an independent algorithm.
 Complete, matching provider provenance is required before ratios are computed.
 
 The benchmark registers
-`provider/operation/format/distribution` names for all nine operations
-(`exp`, `log`, `sin`, `cos`, `tan`, `sqrt`, `hypot`, `atan2`, `pow`), both
-formats (`f32`, `f64`), all three distributions (`normal`, `wide`, `special`),
-and every available provider. Inputs are generated once, converted once, and
-audited before Google Benchmark starts. Every timed row invokes the returned
-opaque binary function pointer with the same 1,024-call layout and
-`DoNotOptimize` policy. No operation switch, input generation, audit, or
-serialization occurs in the timed loop. Results use Google Benchmark CPU time
-per iteration divided by 1,024 calls; they measure scalar throughput only,
-not single-call latency or SIMD/vector performance.
+`provider/operation/format/distribution` names for all 41 operations:
+`exp`, `log`, `sin`, `cos`, `tan`, `sqrt`, `hypot`, `atan2`, `pow`, `acos`,
+`acosh`, `acospi`, `asin`, `asinh`, `asinpi`, `atan`, `atan2pi`, `atanh`,
+`atanpi`, `cbrt`, `cosh`, `cospi`, `erf`, `erfc`, `exp10`, `exp10m1`, `exp2`,
+`exp2m1`, `expm1`, `lgamma`, `log10`, `log10p1`, `log1p`, `log2`, `log2p1`,
+`rsqrt`, `sinh`, `sinpi`, `tanh`, `tanpi`, and `tgamma`. It uses three formats
+(`f32`, `f64`, `f16`), all three distributions (`normal`, `wide`, `special`),
+and every available provider. It writes 1,476 accuracy records. The matrix has
+1,173 available timing rows: 369 zmath, 363 CORE-MATH, 246 glibc, and 195 Zig
+rows. Inputs are generated once, converted once, and audited before Google
+Benchmark starts.
+Every timed row invokes the returned opaque binary function pointer with the
+same 1,024-call layout and `DoNotOptimize` policy. No operation switch, input
+generation, audit, or serialization occurs in the timed loop. Results use
+Google Benchmark CPU time per iteration divided by 1,024 calls. They measure
+scalar throughput only, not single-call latency or SIMD/vector performance.
 
-CORE-MATH getters may return `NULL` for operations without a matching symbol.
-Such rows are emitted as `UNSUPPORTED` and omitted from timing registration.
-They never receive a glibc fallback or a fabricated timing baseline. The
-CORE-MATH label remains “vendored CORE-MATH”; it is not an independent
-algorithm when zmath shares that vendored code. Paired ratios are computed
-only against the glibc row with the same operation, format, and distribution.
-The ratio is provider median time divided by glibc median time; values below
-one are faster. CV is sample standard deviation divided by arithmetic mean.
-The `pow` row is an implementation comparison; approximate power identities
-are not advertised as timing baselines or proofs.
+CORE-MATH is an independent pinned reference, not vendored or shared zmath
+code. The DSO exports 121 cached kernels: all 41 binary16 operations and 40
+binary32 and 40 binary64 operations. Binary32 and binary64 `sqrt` have no
+CORE-MATH source and produce six unsupported accuracy rows across the three
+distributions. The runner rejects missing, extra, duplicate, mismatched,
+non-ELF, executable, or stale origin paths before it calculates ratios.
+It also checks the revision, compiler, declared flags, full source path, DSO
+path, DSO hash, and matching glibc source path. The glibc provider has no
+binary16 symbols, so its 123 half-format rows remain unsupported. Zig
+availability is explicit: it provides 195 timing rows and 174 unsupported rows.
+The executable and runner require the exact Zig support set: 13 operations
+for binary16 and 26 each for binary32 and binary64. Missing supported entries
+and available unsupported entries both fail validation.
+The matrix therefore has 303 explicit unsupported records: 123 glibc, 174 Zig,
+and six CORE-MATH rows.
+Unsupported rows are omitted from timing registration. They never receive a
+fallback or a fabricated baseline. The report includes `vs_glibc` and
+`vs_coremath`, each computed from the provider median divided by the matching
+reference median for the same operation, format, and distribution. The target
+analysis is `zmath/reference <= 1.5` per case against each available reference.
+CV is sample standard deviation divided by arithmetic mean.
 
 The accuracy file uses an MPFR 512-bit, round-to-nearest-even numerical
 reference. It reports finite ULP distance, non-finite class/sign differences,
@@ -460,3 +498,9 @@ For the framework's standard measurement and command-line behavior, see
 [Google Benchmark user guide](https://github.com/google/benchmark/blob/main/docs/user_guide.md).
 For affinity, frequency, warmup, and other variance controls, see
 [Google Benchmark reducing variance](https://github.com/google/benchmark/blob/main/docs/reducing_variance.md).
+
+The [reference performance analysis](../../docs/reference-performance-analysis.md)
+covers all 41 functions, the full timing matrix, focused repeats, source
+differences, and portable correctly-rounded optimization candidates. The
+[CSV evidence](../../docs/reference-performance-matrix.csv) retains each
+provider's timing and numerical audit results.
