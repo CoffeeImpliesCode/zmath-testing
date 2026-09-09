@@ -24,12 +24,28 @@ rec {
     hyperfine
     valgrind
     perf-tools
+    gbenchmark
+    clang-tools
+    gcc
+    python3
+    util-linux
   ];
 
   env = {
     C_INCLUDE_PATH = pkgs.lib.makeIncludePath packages;
+    CPLUS_INCLUDE_PATH = pkgs.lib.makeIncludePath packages;
     LIBRARY_PATH = pkgs.lib.makeLibraryPath packages;
     LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath packages;
+    ZMATH_COMPARE_CC = "${pkgs.gcc}/bin/gcc";
+    ZMATH_COMPARE_CXX = "${pkgs.gcc}/bin/g++";
+    ZMATH_COMPARE_COMPILER = "GNU g++ ${pkgs.gcc.version} (Nixpkgs)";
+    ZMATH_COMPARE_LIBM_PATH = "${pkgs.lib.getLib pkgs.glibc}/lib/libm.so.6";
+    ZMATH_COMPARE_GBENCHMARK_INCLUDE_DIR = "${pkgs.lib.getDev pkgs.gbenchmark}/include";
+    ZMATH_COMPARE_GBENCHMARK_LIBRARY_DIR = "${pkgs.lib.getLib pkgs.gbenchmark}/lib";
+    ZMATH_COMPARE_MPFR_INCLUDE_DIR = "${pkgs.lib.getDev pkgs.mpfr}/include";
+    ZMATH_COMPARE_MPFR_LIBRARY_DIR = "${pkgs.lib.getLib pkgs.mpfr}/lib";
+    ZMATH_COMPARE_GMP_INCLUDE_DIR = "${pkgs.lib.getDev pkgs.gmp}/include";
+    ZMATH_COMPARE_GMP_LIBRARY_DIR = "${pkgs.lib.getLib pkgs.gmp}/lib";
   };
 
   scripts.gate.exec = "zig-gate";

@@ -275,6 +275,40 @@ fn addOracleSources(b: *std.Build, module: *std.Build.Module) void {
     module.addIncludePath(b.path("test/oracle"));
 }
 
+fn requiredBuildEnv(b: *std.Build, name: []const u8) []const u8 {
+    return b.graph.environ_map.get(name) orelse
+        @panic(b.fmt(
+            "comparative build requires {s}; enter the declared devenv shell",
+            .{name},
+        ));
+}
+
+fn addComparativeObject(
+    b: *std.Build,
+    compiler: []const u8,
+    source_path: []const u8,
+    output_name: []const u8,
+    flags: []const []const u8,
+    include_dirs: []const []const u8,
+    definitions: []const []const u8,
+    input_paths: []const []const u8,
+) std.Build.LazyPath {
+    const compile = b.addSystemCommand(&.{compiler});
+    compile.addArgs(flags);
+    for (include_dirs) |include_dir| {
+        compile.addArg(b.fmt("-I{s}", .{include_dir}));
+    }
+    compile.addArgs(definitions);
+    for (input_paths) |input_path| {
+        compile.addFileInput(b.path(input_path));
+    }
+    compile.addArg("-c");
+    compile.addArg("-o");
+    const object = compile.addOutputFileArg(output_name);
+    compile.addFileArg(b.path(source_path));
+    return object;
+}
+
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
@@ -767,4 +801,156 @@ pub fn build(b: *std.Build) void {
     if (b.args) |args| run_power.addArgs(args);
     const run_power_step = b.step("run-power", "Run the power resource benchmark");
     run_power_step.dependOn(&run_power.step);
+    // The comparative lane uses an explicit GNU toolchain so its C++ ABI is
+    // identical to the packaged Google Benchmark library.
+    const compare_target_query = std.Target.Query.parse(.{
+        .arch_os_abi = "x86_64-linux-gnu.2.38",
+        .cpu_features = "haswell",
+    }) catch @panic("invalid comparative benchmark target");
+    const compare_target = b.resolveTargetQuery(compare_target_query);
+    const compare_optimize =
+        b.option(std.builtin.OptimizeMode, "compare-optimize", "Optimization mode for the comparative benchmark") orelse
+        .ReleaseSafe;
+    const compare_zmath_dependency = b.dependency("zmath", .{
+        .target = compare_target,
+        .optimize = compare_optimize,
+    });
+    const compare_zmath_module = compare_zmath_dependency.module("zmath");
+    const comparative_bridge_module = b.createModule(.{
+        .root_source_file = b.path("bench/comparative_bridge.zig"),
+        .target = compare_target,
+        .optimize = compare_optimize,
+        .imports = &.{.{ .name = "zmath", .module = compare_zmath_module }},
+        .link_libc = true,
+    });
+    const comparative_bridge = b.addLibrary(.{
+        .name = "comparative_bridge",
+        .linkage = .static,
+        .root_module = comparative_bridge_module,
+    });
+    comparative_bridge.bundle_compiler_rt = true;
+
+    const compare_cc = requiredBuildEnv(b, "ZMATH_COMPARE_CC");
+    const compare_cxx = requiredBuildEnv(b, "ZMATH_COMPARE_CXX");
+    const compare_compiler = requiredBuildEnv(b, "ZMATH_COMPARE_COMPILER");
+    const gbenchmark_include_dir = requiredBuildEnv(b, "ZMATH_COMPARE_GBENCHMARK_INCLUDE_DIR");
+    const gbenchmark_library_dir = requiredBuildEnv(b, "ZMATH_COMPARE_GBENCHMARK_LIBRARY_DIR");
+    const mpfr_include_dir = requiredBuildEnv(b, "ZMATH_COMPARE_MPFR_INCLUDE_DIR");
+    const mpfr_library_dir = requiredBuildEnv(b, "ZMATH_COMPARE_MPFR_LIBRARY_DIR");
+    const gmp_include_dir = requiredBuildEnv(b, "ZMATH_COMPARE_GMP_INCLUDE_DIR");
+    const gmp_library_dir = requiredBuildEnv(b, "ZMATH_COMPARE_GMP_LIBRARY_DIR");
+    const compare_libm_path = requiredBuildEnv(b, "ZMATH_COMPARE_LIBM_PATH");
+    if (compare_libm_path.len == 0 or compare_libm_path[0] != '/') {
+        @panic("ZMATH_COMPARE_LIBM_PATH must be absolute");
+    }
+    const compare_target_name = "x86_64-linux-haswell";
+    const compare_build_mode = @tagName(compare_optimize);
+    const compare_cxx_flags_text =
+        "-std=c++17 -O3 -march=haswell -ffp-contract=off -fno-builtin -fno-fast-math -fno-lto";
+    const compare_c_flags = [_][]const u8{
+        "-std=c11",
+        "-O3",
+        "-march=haswell",
+        "-ffp-contract=off",
+        "-fno-builtin",
+        "-fno-fast-math",
+        "-fno-lto",
+    };
+    const compare_c_definitions = [_][]const u8{
+        b.fmt("-DCOMPARATIVE_LIBM_PATH=\"{s}\"", .{compare_libm_path}),
+    };
+    const compare_cxx_flags = [_][]const u8{
+        "-std=c++17",
+        "-O3",
+        "-march=haswell",
+        "-ffp-contract=off",
+        "-fno-builtin",
+        "-fno-fast-math",
+        "-fno-lto",
+    };
+    const compare_cxx_definitions = [_][]const u8{
+        b.fmt("-DCOMPARATIVE_BUILD_MODE=\"{s}\"", .{compare_build_mode}),
+        b.fmt("-DCOMPARATIVE_TARGET=\"{s}\"", .{compare_target_name}),
+        b.fmt("-DCOMPARATIVE_COMPILER=\"{s}\"", .{compare_compiler}),
+        b.fmt("-DCOMPARATIVE_CXX_FLAGS=\"{s}\"", .{compare_cxx_flags_text}),
+    };
+    const compare_include_dirs = [_][]const u8{
+        "bench",
+        gbenchmark_include_dir,
+        mpfr_include_dir,
+        gmp_include_dir,
+    };
+    const comparative_libm_object = addComparativeObject(
+        b,
+        compare_cc,
+        "bench/comparative_libm.c",
+        "comparative_libm.o",
+        &compare_c_flags,
+        &compare_include_dirs,
+        &compare_c_definitions,
+        &.{"bench/comparative.h"},
+    );
+    const comparative_object = addComparativeObject(
+        b,
+        compare_cxx,
+        "bench/comparative.cpp",
+        "comparative.o",
+        &compare_cxx_flags,
+        &compare_include_dirs,
+        &compare_cxx_definitions,
+        &.{
+            "bench/comparative.h",
+            "bench/comparative_workloads.hpp",
+        },
+    );
+    const comparative_workloads_object = addComparativeObject(
+        b,
+        compare_cxx,
+        "bench/comparative_workloads.cpp",
+        "comparative_workloads.o",
+        &compare_cxx_flags,
+        &compare_include_dirs,
+        &compare_cxx_definitions,
+        &.{
+            "bench/comparative.h",
+            "bench/comparative_workloads.hpp",
+        },
+    );
+
+    const compare_link_flags = [_][]const u8{
+        "-O3",
+        "-march=haswell",
+        "-ffp-contract=off",
+        "-fno-builtin",
+        "-fno-fast-math",
+        "-fno-lto",
+        "-pthread",
+    };
+    const compare_link = b.addSystemCommand(&.{compare_cxx});
+    compare_link.addArgs(&compare_link_flags);
+    compare_link.addArg("-o");
+    const compare_binary = compare_link.addOutputFileArg("zmath-compare");
+    compare_link.addFileArg(comparative_libm_object);
+    compare_link.addFileArg(comparative_object);
+    compare_link.addFileArg(comparative_workloads_object);
+    compare_link.addFileArg(comparative_bridge.getEmittedBin());
+    compare_link.addArg(b.fmt("-L{s}", .{gbenchmark_library_dir}));
+    compare_link.addArg("-lbenchmark");
+    compare_link.addArg(b.fmt("-L{s}", .{mpfr_library_dir}));
+    compare_link.addArg("-lmpfr");
+    compare_link.addArg(b.fmt("-L{s}", .{gmp_library_dir}));
+    compare_link.addArg("-lgmp");
+    compare_link.addArg("-lm");
+    compare_link.addArg("-ldl");
+
+    const install_comparative = b.addInstallBinFile(compare_binary, "zmath-compare");
+    const compare_step = b.step("compare", "Build and install zmath-compare");
+    compare_step.dependOn(&install_comparative.step);
+
+    const run_comparative = std.Build.Step.Run.create(b, "run zmath-compare");
+    run_comparative.addFileArg(compare_binary);
+    run_comparative.step.dependOn(&install_comparative.step);
+    if (b.args) |args| run_comparative.addArgs(args);
+    const run_compare_step = b.step("run-compare", "Run the comparative benchmark");
+    run_compare_step.dependOn(&run_comparative.step);
 }

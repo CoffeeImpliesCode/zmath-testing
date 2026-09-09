@@ -319,3 +319,144 @@ Do not use instrumented elapsed times as native latency measurements.
 `readelf -d` found no dynamic section in all six historical scalar benchmark
 binaries or either power measurement binary. `nm -u` listed only `_DYNAMIC`;
 none referenced MPFR, GMP, FLINT, Arb, or libc math symbols.
+
+## Comparative Google Benchmark matrix
+
+The comparative executable is a separate, test-only C++ program. It does not
+change the runtime library. It consumes `bench/comparative.h` and
+`bench/comparative_workloads.hpp`; the bridge supplies the zmath, Zig, glibc,
+and already-vendored CORE-MATH C-ABI function pointers.
+
+The qualified build profile is x86_64 Linux, Haswell, and ReleaseSafe. The
+build passes the required `COMPARATIVE_BUILD_MODE`, `COMPARATIVE_TARGET`,
+`COMPARATIVE_COMPILER`, and `COMPARATIVE_CXX_FLAGS` macros to C++. The binary
+records their values plus the compiler's `__VERSION__`; the runner reads those
+binary-produced fields rather than inferring them. The packaged GCC flags are:
+
+```text
+-std=c++17 -O3 -march=haswell -ffp-contract=off -fno-builtin -fno-fast-math -fno-lto
+```
+
+Build the installed executable with the existing build module:
+
+```text
+devenv shell
+zig build compare -Dcompare-optimize=ReleaseSafe
+```
+
+Run the complete matrix. `--out_dir` must name a new directory; this keeps
+prior raw evidence immutable:
+
+```text
+python3 bench/run_comparative.py \
+  --binary=zig-out/bin/zmath-compare \
+  --out_dir=bench/results/comparative-YYYYMMDD-HHMMSS
+```
+
+Run the standard-library evidence-loader checks without a C++ build:
+
+```text
+python3 -m unittest discover -s bench -p test_comparative_runner.py
+```
+
+The default procedure uses 0.1 seconds of warmup, 0.2 seconds minimum time,
+five repetitions, one CPU selected from the process affinity mask, and
+Google Benchmark random interleaving. The runner passes warmup as decimal
+seconds and minimum time with an explicit `s` suffix. `--cpu=N` is allowed
+only when `N` is in that mask. The runner invokes
+`taskset`, never changes a governor or turbo control, and records CPU, kernel,
+affinity, governor, turbo, build-version, source-hash, and binary-hash
+metadata. The host is reported as shared and non-isolated; pinning reduces
+migration but does not isolate the selected core or its SMT sibling. The
+runner does not disable ASLR. Retained framework warnings, ranges, and
+coefficients of variation are part of the result, not noise to discard.
+Metadata records both Jujutsu revisions, all comparison sources, the Nix
+toolchain declarations, and Google Benchmark, MPFR, and Zig versions.
+
+The executable parses Google Benchmark options before it runs workload
+self-checks or provider audits. `--help` prints framework usage and exits.
+`--benchmark_list_tests=true` lists registered rows without running the MPFR
+audit. Unknown framework options fail with exit status 2. A filter that matches
+no registered row fails.
+
+The runner asks the same binary for `--benchmark_list_tests=true` with the
+requested filter. It uses the returned names as the selected set, so `all`,
+negative filters, and framework regular-expression behavior remain unchanged.
+
+One run writes all of these artifacts into the selected directory:
+
+```text
+benchmark.json       raw Google Benchmark timing rows
+accuracy.json        full MPFR-512 audit and availability matrix
+metadata.json        machine, build, command, and hash metadata
+report.txt           readable paired comparison report
+process.stdout.txt   benchmark process stdout
+process.stderr.txt   benchmark process stderr
+```
+
+Use `--quick` only for a smoke run (0.05 seconds warmup, 0.05 seconds minimum
+time, one repetition). Use `--audit_only` to run and serialize the full
+accuracy audit without registering timing benchmarks. `--filter=REGEX` is
+forwarded to Google Benchmark; the report gives selected-row coverage and
+marks excluded rows as `FILTERED`. A filtered run is not a full matrix result.
+Malformed options, missing rows, duplicate or missing repetition indices,
+errored rows, invalid timing values, incomplete accuracy records, and
+inconsistent input digests fail the runner.
+
+Before it calculates ratios, the runner requires `comparison.batch_size` to
+equal `1024`. It also requires every `comparison.input_digests` entry to match
+the corresponding digest in `accuracy.json`. Every timing row must report an
+integer repetition index, and each provider row must contain exactly the
+indexes `0` through `repetitions - 1`.
+
+Before the audit or any timing run, the executable opens the absolute Nix
+`libm.so.6` path with `dlopen` and resolves all 18 glibc operation and format
+functions once with `dlsym`. The origin C ABI reports the actual resolved
+backend for each cached function, not a global `expf` lookup. Each wrapper
+calls its correctly typed backend pointer. This includes the normal C-library
+indirect-call overhead. Resolution, validation, and provenance hashing stay
+outside the timed loops.
+
+The comparison bridge retains the full Zig CRT and normal Zig panic behavior.
+The Zig label denotes the compiled builtin or `std.math` path, including
+compiler-runtime lowering; it does not promise an independent algorithm.
+Complete, matching provider provenance is required before ratios are computed.
+
+The benchmark registers
+`provider/operation/format/distribution` names for all nine operations
+(`exp`, `log`, `sin`, `cos`, `tan`, `sqrt`, `hypot`, `atan2`, `pow`), both
+formats (`f32`, `f64`), all three distributions (`normal`, `wide`, `special`),
+and every available provider. Inputs are generated once, converted once, and
+audited before Google Benchmark starts. Every timed row invokes the returned
+opaque binary function pointer with the same 1,024-call layout and
+`DoNotOptimize` policy. No operation switch, input generation, audit, or
+serialization occurs in the timed loop. Results use Google Benchmark CPU time
+per iteration divided by 1,024 calls; they measure scalar throughput only,
+not single-call latency or SIMD/vector performance.
+
+CORE-MATH getters may return `NULL` for operations without a matching symbol.
+Such rows are emitted as `UNSUPPORTED` and omitted from timing registration.
+They never receive a glibc fallback or a fabricated timing baseline. The
+CORE-MATH label remains “vendored CORE-MATH”; it is not an independent
+algorithm when zmath shares that vendored code. Paired ratios are computed
+only against the glibc row with the same operation, format, and distribution.
+The ratio is provider median time divided by glibc median time; values below
+one are faster. CV is sample standard deviation divided by arithmetic mean.
+The `pow` row is an implementation comparison; approximate power identities
+are not advertised as timing baselines or proofs.
+
+The accuracy file uses an MPFR 512-bit, round-to-nearest-even numerical
+reference. It reports finite ULP distance, non-finite class/sign differences,
+and signed-zero differences while ignoring NaN payload differences. This is
+audit evidence, not a formal correctly-rounded proof. MPFR input conversion
+may quiet signaling NaNs, and special-value policies differ between providers;
+therefore non-finite and signed-zero differences are visible status data, not
+automatic library bugs or certification failures. Accuracy results remain
+side-by-side with speed results and do not filter or reorder timing runs.
+`wide` means broad finite exponent stress, not a certified rounding-hard
+corpus.
+
+For the framework's standard measurement and command-line behavior, see
+[Google Benchmark user guide](https://github.com/google/benchmark/blob/main/docs/user_guide.md).
+For affinity, frequency, warmup, and other variance controls, see
+[Google Benchmark reducing variance](https://github.com/google/benchmark/blob/main/docs/reducing_variance.md).
