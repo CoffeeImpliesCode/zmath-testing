@@ -20,8 +20,8 @@ pub fn main(init: std.process.Init) !void {
 
     const directory = std.Io.Dir.cwd();
     var published = try corpus_set.load(
-        init.io,
         init.gpa,
+        init.io,
         directory,
         run_root,
         &manifest,
@@ -77,7 +77,7 @@ const EncodedInput = struct {
 };
 
 fn parseArguments(arguments: []const []const u8) !ParsedArguments {
-    var parsed = ParsedArguments{
+    var parsed: ParsedArguments = .{
         .output_root = default_output_root,
         .filters = .{},
     };

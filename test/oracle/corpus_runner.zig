@@ -6,7 +6,7 @@ comptime {
     @setEvalBranchQuota(2_000_000);
 }
 
-const Function = corpus.Function;
+pub const Function = corpus.Function;
 const OracleFieldDescriptor = corpus.OracleFieldDescriptor;
 const OracleFormatDescriptor = corpus.OracleFormatDescriptor;
 const OracleInputField = corpus.OracleInputField;
@@ -59,7 +59,7 @@ pub const VerifiedEvidence = struct {
     fields: [max_oracle_fields]OracleResultField,
     field_count: usize,
 
-    pub fn resultFields(self: *const @This()) []const OracleResultField {
+    pub fn resultFields(self: *const VerifiedEvidence) []const OracleResultField {
         return self.fields[0..self.field_count];
     }
 };
@@ -134,15 +134,18 @@ const RuntimeTable = struct {
 pub const PreparedRuntime = struct {
     entry: *const RuntimeEntry,
 
-    pub fn invoke(self: *const @This(), inputs: *const [corpus.max_argument_count]OracleInputField) RawRuntimeResult {
+    pub fn invoke(
+        self: *const PreparedRuntime,
+        inputs: *const [corpus.max_argument_count]OracleInputField,
+    ) RawRuntimeResult {
         return self.entry.invoke(inputs);
     }
 
-    pub fn resultFieldCount(self: *const @This()) usize {
+    pub fn resultFieldCount(self: *const PreparedRuntime) usize {
         return self.entry.result_count;
     }
 
-    pub fn resultDescriptors(self: *const @This()) []const OracleFieldDescriptor {
+    pub fn resultDescriptors(self: *const PreparedRuntime) []const OracleFieldDescriptor {
         return self.entry.result_descriptors[0..self.entry.result_count];
     }
 };
@@ -154,7 +157,7 @@ const RequestStorage = struct {
     request: OracleRequest,
 
     fn initialize(
-        self: *@This(),
+        self: *RequestStorage,
         function: Function,
         input_bits: []const u64,
         input_tags: []const []const u8,
@@ -253,7 +256,7 @@ fn unsupportedShapeReason(function: Function) Support {
 }
 
 pub fn runFunction(function: Function, input_bits: []const u64) RunError!RunOutcome {
-    const no_tags = [_][]const u8{};
+    const no_tags: []const []const u8 = &.{};
     return runFunctionInternal(function, input_bits, no_tags[0..], null, .accepted);
 }
 
@@ -269,7 +272,7 @@ pub fn evaluateFunction(
     function: Function,
     input_bits: []const u64,
 ) RunError!EvidenceOutcome {
-    const no_tags = [_][]const u8{};
+    const no_tags: []const []const u8 = &.{};
     return evaluateFunctionWithTags(function, input_bits, no_tags[0..]);
 }
 
@@ -660,7 +663,7 @@ fn emptyRawRuntimeResult() RawRuntimeResult {
     };
 }
 
-fn floatType(comptime format: corpus.Format) type {
+fn FloatType(comptime format: corpus.Format) type {
     return switch (format) {
         .h => f16,
         .f => f32,
@@ -668,7 +671,7 @@ fn floatType(comptime format: corpus.Format) type {
     };
 }
 
-fn floatBitsType(comptime format: corpus.Format) type {
+fn FloatBitsType(comptime format: corpus.Format) type {
     return switch (format) {
         .h => u16,
         .f => u32,
@@ -676,14 +679,14 @@ fn floatBitsType(comptime format: corpus.Format) type {
     };
 }
 
-fn decodeFloat(comptime format: corpus.Format, bits: u64) floatType(format) {
-    const Bits = floatBitsType(format);
-    return @bitCast(@as(Bits, @intCast(bits)));
+fn decodeFloat(comptime format: corpus.Format, bits: u64) FloatType(format) {
+    const bits_type = FloatBitsType(format);
+    return @bitCast(@as(bits_type, @intCast(bits)));
 }
 
-fn encodeFloat(comptime format: corpus.Format, value: floatType(format)) u64 {
-    const Bits = floatBitsType(format);
-    return @intCast(@as(Bits, @bitCast(value)));
+fn encodeFloat(comptime format: corpus.Format, value: FloatType(format)) u64 {
+    const bits_type = FloatBitsType(format);
+    return @intCast(@as(bits_type, @bitCast(value)));
 }
 
 fn integerWidth(comptime integer_type: corpus.IntegerType) u32 {
@@ -707,7 +710,7 @@ fn encodeInteger(comptime integer_type: corpus.IntegerType, value: anytype) u64 
     };
 }
 
-fn makeFloatResult(comptime format: corpus.Format, value: floatType(format)) RawRuntimeResult {
+fn makeFloatResult(comptime format: corpus.Format, value: FloatType(format)) RawRuntimeResult {
     var result = emptyRawRuntimeResult();
     result.values[0] = encodeFloat(format, value);
     result.field_count = 1;
@@ -723,7 +726,7 @@ fn makeUnaryFloatInvoker(
     const Adapter = struct {
         fn invoke(inputs: *const [max_oracle_fields]OracleInputField) RawRuntimeResult {
             const input = decodeFloat(input_format, inputs[0].value_bits);
-            const output: floatType(output_format) = if (comptime namespace == .root)
+            const output: FloatType(output_format) = if (comptime namespace == .root)
                 @call(.auto, @field(zmath, operation), .{input})
             else if (comptime namespace == .scalar)
                 @call(.auto, @field(zmath.scalar, operation), .{input})
@@ -746,7 +749,7 @@ fn makeBinaryFloatInvoker(
         fn invoke(inputs: *const [max_oracle_fields]OracleInputField) RawRuntimeResult {
             const first = decodeFloat(first_format, inputs[0].value_bits);
             const second = decodeFloat(second_format, inputs[1].value_bits);
-            const output: floatType(output_format) = if (comptime namespace == .root)
+            const output: FloatType(output_format) = if (comptime namespace == .root)
                 @call(.auto, @field(zmath, operation), .{ first, second })
             else if (comptime namespace == .scalar)
                 @call(.auto, @field(zmath.scalar, operation), .{ first, second })
@@ -769,7 +772,7 @@ fn makeTernaryFloatInvoker(
             const first = decodeFloat(input_format, inputs[0].value_bits);
             const second = decodeFloat(input_format, inputs[1].value_bits);
             const third = decodeFloat(input_format, inputs[2].value_bits);
-            const output: floatType(output_format) = if (comptime namespace == .root)
+            const output: FloatType(output_format) = if (comptime namespace == .root)
                 @call(.auto, @field(zmath, operation), .{ first, second, third })
             else if (comptime namespace == .scalar)
                 @call(.auto, @field(zmath.scalar, operation), .{ first, second, third })
@@ -799,7 +802,7 @@ fn makeBinaryIntegerInvoker(
                 integer_type,
                 inputs[1].value_bits,
             ));
-            const output: floatType(output_format) = @call(
+            const output: FloatType(output_format) = @call(
                 .auto,
                 @field(zmath, operation),
                 .{ input, integer_value },
@@ -839,7 +842,7 @@ fn makeFromFpInvoker(
                 @as(u32, @intCast(inputs[1].value_bits)),
             );
             const width: u32 = @intCast(inputs[2].value_bits);
-            const output: floatType(format) = @call(
+            const output: FloatType(format) = @call(
                 .auto,
                 @field(zmath, operation),
                 .{ input, direction, width },
@@ -860,7 +863,7 @@ fn makeTagInvoker(
                 ""
             else
                 inputs[0].tag_bytes[0..@intCast(inputs[0].tag_length)];
-            const output: floatType(format) = @call(
+            const output: FloatType(format) = @call(
                 .auto,
                 @field(zmath.ieee, operation),
                 .{tag},
@@ -1123,8 +1126,16 @@ fn integerArgument(comptime integer_type: corpus.IntegerType) corpus.InputDescri
 
 fn makeEntry(
     comptime operation: []const u8,
+    // The arguments tuple is deliberately placed before the result and invoker
+    // parameters. It is a comptime `anytype`, which the linter ranks as "other",
+    // so this order is flagged; but it is load-bearing across every call site
+    // below, and reordering it buys no correctness or clarity. Suppressed here
+    // rather than risk a fourth signature churn on the dispatch table.
+    // ziglint-ignore: Z023
     comptime arguments: anytype,
+    // ziglint-ignore: Z023
     comptime result: corpus.ResultDescriptor,
+    // ziglint-ignore: Z023
     comptime invoke: RuntimeInvoker,
 ) RuntimeEntry {
     var input_descriptors: [max_oracle_fields]OracleFieldDescriptor = undefined;
@@ -1479,8 +1490,8 @@ fn makeVectorUnaryInvoker(
     comptime vector_operation: []const u8,
     comptime format: corpus.Format,
 ) VectorRuntimeInvoker {
-    const Float = floatType(format);
-    const Lanes = @Vector(vector_lane_count, Float);
+    const lane_float = FloatType(format);
+    const Lanes = @Vector(vector_lane_count, lane_float);
     const Adapter = struct {
         fn invoke(
             groups: *const [vector_lane_count]VectorLaneGroup,
@@ -1493,7 +1504,7 @@ fn makeVectorUnaryInvoker(
             const result: Lanes = @call(
                 .auto,
                 @field(zmath.vector, vector_operation),
-                .{ lanes },
+                .{lanes},
             );
             // The entry has exactly one result field, so the packed word index
             // of a lane is the lane index.
@@ -1509,8 +1520,8 @@ fn makeVectorBinaryInvoker(
     comptime vector_operation: []const u8,
     comptime format: corpus.Format,
 ) VectorRuntimeInvoker {
-    const Float = floatType(format);
-    const Lanes = @Vector(vector_lane_count, Float);
+    const lane_float = FloatType(format);
+    const Lanes = @Vector(vector_lane_count, lane_float);
     const Adapter = struct {
         fn invoke(
             groups: *const [vector_lane_count]VectorLaneGroup,
@@ -1897,7 +1908,7 @@ pub fn campaignInputs(function: Function) ?[]const u64 {
     };
 }
 
-const no_inputs = [_]u64{};
+const no_inputs: []const u64 = &.{};
 
 fn expRuntimeBits(format: corpus.Format, input_bits: u64) u64 {
     return switch (format) {
@@ -1923,7 +1934,7 @@ fn runExpDirect(format: corpus.Format, input_bits: u64) RunError!void {
         return error.InvalidResultDescriptor;
     var inputs = [_]OracleInputField{corpus.oracleInputField(input_descriptor, input_bits)};
     var result_descriptors = [_]OracleFieldDescriptor{result_descriptor};
-    var request = OracleRequest{
+    var request: OracleRequest = .{
         .abi_version = corpus.oracle_abi_version,
         .reserved = 0,
         .operation = "exp",
@@ -1937,7 +1948,13 @@ fn runExpDirect(format: corpus.Format, input_bits: u64) RunError!void {
         .result_fields = &result_descriptors,
     };
     var reference_fields = [_]OracleResultField{undefined};
-    var reference = OracleResult{ .status = .@"error", .reserved = 0, .field_capacity = 1, .field_count = 0, .fields = &reference_fields };
+    var reference: OracleResult = .{
+        .status = .@"error",
+        .reserved = 0,
+        .field_capacity = 1,
+        .field_count = 0,
+        .fields = &reference_fields,
+    };
     corpus.zmath_testing_oracle_v2_mpfr_reference(&request, &reference);
     try oracleStatusOk(reference.status);
     const candidate_bits = expRuntimeBits(format, input_bits);
@@ -1947,10 +1964,27 @@ fn runExpDirect(format: corpus.Format, input_bits: u64) RunError!void {
     {
         return error.RuntimeMismatch;
     }
-    var candidate_fields = [_]OracleResultField{.{ .descriptor = result_descriptor, .value_bits = candidate_bits, .class_code = candidate_class, .reserved = 0 }};
-    var candidate = OracleResult{ .status = .ok, .reserved = 0, .field_capacity = 1, .field_count = 1, .fields = &candidate_fields };
+    var candidate_fields = [_]OracleResultField{.{
+        .descriptor = result_descriptor,
+        .value_bits = candidate_bits,
+        .class_code = candidate_class,
+        .reserved = 0,
+    }};
+    var candidate: OracleResult = .{
+        .status = .ok,
+        .reserved = 0,
+        .field_capacity = 1,
+        .field_count = 1,
+        .fields = &candidate_fields,
+    };
     var proof_fields = [_]OracleResultField{undefined};
-    var proof = OracleResult{ .status = .@"error", .reserved = 0, .field_capacity = 1, .field_count = 0, .fields = &proof_fields };
+    var proof: OracleResult = .{
+        .status = .@"error",
+        .reserved = 0,
+        .field_capacity = 1,
+        .field_count = 0,
+        .fields = &proof_fields,
+    };
     corpus.zmath_testing_oracle_v2_arb_prove(&request, &candidate, &proof);
     try oracleStatusOk(proof.status);
     if (proof.field_count != 1 or proof.fields[0].class_code != candidate_class) return error.ProofShapeMismatch;
@@ -1975,7 +2009,7 @@ pub fn fuzzSeeded(seed: u64, sample_count: usize) RunError!void {
     var index: usize = 0;
     while (index < sample_count) : (index += 1) {
         try runExp(.h, nextPrng(&state) & 0xffff);
-        try runExp(.f, @as(u64, @as(u32, @truncate(nextPrng(&state)))));
+        try runExp(.f, @as(u32, @truncate(nextPrng(&state))));
         try runExp(.d, nextPrng(&state));
     }
 }

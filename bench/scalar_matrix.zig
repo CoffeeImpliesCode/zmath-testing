@@ -45,7 +45,7 @@ const Options = struct {
 
 fn parseOptions(args: []const []const u8) !Options {
     if (args.len == 0) return error.InvalidArguments;
-    var options = Options{};
+    var options: Options = .{};
     var repetitions_seen = false;
     var index: usize = 1;
     if (args.len > 1 and !std.mem.startsWith(u8, args[1], "--")) {
@@ -116,8 +116,8 @@ pub fn main(init: std.process.Init) !void {
     else
         try std.fmt.bufPrint(&root_buffer, "{s}/generated", .{options.root});
     var published = try corpus_set.load(
-        init.io,
         init.gpa,
+        init.io,
         std.Io.Dir.cwd(),
         run_root,
         &manifest,
@@ -164,7 +164,9 @@ fn benchmarkFunction(
     for (0..timing_repetitions) |repetition| {
         const result = measure(init.io, &prepared, &samples, repetitions);
         std.debug.print(
-            "signature={} operation={s} repetition={} artifact={s} corpus_records={} samples={} calls={} elapsed_ns={} checksum={x:0>16} corpus_sha256={s} provider=zmath\n",
+            "signature={} operation={s} repetition={} artifact={s} corpus_records={} " ++
+                "samples={} calls={} elapsed_ns={} checksum={x:0>16} " ++
+                "corpus_sha256={s} provider=zmath\n",
             .{
                 entry.signature_index, function.op,   repetition,   path,
                 samples.corpus_count,  samples.count, result.calls, result.elapsed_ns,
@@ -196,7 +198,9 @@ fn benchmarkZigReference(
 ) void {
     const reference_entry = references.entryFor(function, runtime.entry) orelse {
         std.debug.print(
-            "signature={} operation={s} provider=zig available=false reason=unsupported_signature artifact={s} corpus_records={} samples={} corpus_sha256={s}\n",
+            "signature={} operation={s} provider=zig available=false " ++
+                "reason=unsupported_signature artifact={s} corpus_records={} " ++
+                "samples={} corpus_sha256={s}\n",
             .{ entry.signature_index, function.op, entry.artifact, samples.corpus_count, samples.count, digest_hex },
         );
         return;
@@ -219,8 +223,13 @@ fn benchmarkZigReference(
     }
     if (mismatches != 0) {
         std.debug.print(
-            "signature={} operation={s} provider=zig available=false reason=sample_result_mismatch mismatches={} artifact={s} corpus_records={} samples={} corpus_sha256={s}\n",
-            .{ entry.signature_index, function.op, mismatches, entry.artifact, samples.corpus_count, samples.count, digest_hex },
+            "signature={} operation={s} provider=zig available=false " ++
+                "reason=sample_result_mismatch mismatches={} artifact={s} " ++
+                "corpus_records={} samples={} corpus_sha256={s}\n",
+            .{
+                entry.signature_index, function.op,   mismatches, entry.artifact,
+                samples.corpus_count,  samples.count, digest_hex,
+            },
         );
         return;
     }
@@ -228,7 +237,9 @@ fn benchmarkZigReference(
     for (0..timing_repetitions) |repetition| {
         const result = measure(io, &reference, samples, repetitions);
         std.debug.print(
-            "signature={} operation={s} repetition={} artifact={s} corpus_records={} samples={} calls={} elapsed_ns={} checksum={x:0>16} corpus_sha256={s} provider=zig\n",
+            "signature={} operation={s} repetition={} artifact={s} corpus_records={} " ++
+                "samples={} calls={} elapsed_ns={} checksum={x:0>16} " ++
+                "corpus_sha256={s} provider=zig\n",
             .{
                 entry.signature_index, function.op,   repetition,   entry.artifact,
                 samples.corpus_count,  samples.count, result.calls, result.elapsed_ns,
@@ -277,7 +288,10 @@ fn selectSamples(
     while (try corpus.readEncodedRecord(&reader.interface, &frame)) |bytes| : (record_index += 1) {
         if (sample_index == samples.count) return error.RecordCountMismatch;
         hasher.update(bytes);
-        const selected_index = if (samples.count == 1) 0 else @divFloor(@as(u64, sample_index) * (samples.corpus_count - 1), samples.count - 1);
+        const selected_index = if (samples.count == 1) 0 else @divFloor(
+            @as(u64, sample_index) * (samples.corpus_count - 1),
+            samples.count - 1,
+        );
         if (record_index != selected_index) continue;
         const record = try corpus.decodeCorpusRecord(bytes);
         try storeSample(function, prepared, samples, sample_index, &record);

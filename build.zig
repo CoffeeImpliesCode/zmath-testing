@@ -165,7 +165,8 @@ fn addFunctionArtifact(
         break :blk b.fmt(
             "corpus.ArtifactMetadata{{\n" ++
                 "            .artifact_name = \"{s}\",\n" ++
-                "            .target_mode = corpus.TargetMode{{ .target = \"{s}\", .cpu = \"{s}\", .mode = \"{s}\" }},\n" ++
+                "            .target_mode = corpus.TargetMode{{ .target = \"{s}\", " ++
+                ".cpu = \"{s}\", .mode = \"{s}\" }},\n" ++
                 "            .required_row_count = {d},\n" ++
                 "        }}",
             .{
@@ -241,7 +242,8 @@ fn addEmbeddedArtifactModule(
         validateMetadataText(cpu_text.?);
         validateMetadataText(mode_text.?);
         break :blk b.fmt(
-            "pub const target_mode: ?corpus.TargetMode = corpus.TargetMode{{ .target = \"{s}\", .cpu = \"{s}\", .mode = \"{s}\" }};\n",
+            "pub const target_mode: ?corpus.TargetMode = corpus.TargetMode{{ " ++
+                ".target = \"{s}\", .cpu = \"{s}\", .mode = \"{s}\" }};\n",
             .{ target_text.?, cpu_text.?, mode_text.? },
         );
     } else "pub const target_mode: ?corpus.TargetMode = null;\n";

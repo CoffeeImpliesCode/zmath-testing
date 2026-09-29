@@ -562,10 +562,37 @@ pub const InputDescriptor = union(enum) {
 
     pub fn oracleDescriptor(descriptor: InputDescriptor) OracleFieldDescriptor {
         return switch (descriptor) {
-            .float => |format| .{ .kind = .float, .value_bits = @intCast(format.bitWidth()), .format = format.oracleDescriptor(), .reserved = 0 },
+            .float => |format| .{
+                .kind = .float,
+                .value_bits = @intCast(format.bitWidth()),
+                .format = format.oracleDescriptor(),
+                .reserved = 0,
+            },
             .integer => |integer_type| integer_type.oracleDescriptor(),
-            .tag => .{ .kind = .tag, .value_bits = 0, .format = .{ .code = .none, .storage_bits = 0, .exponent_bits = 0, .fraction_bits = 0, .reserved = 0 }, .reserved = 0 },
-            .fromfp_round => .{ .kind = .rounding, .value_bits = 32, .format = .{ .code = .none, .storage_bits = 0, .exponent_bits = 0, .fraction_bits = 0, .reserved = 0 }, .reserved = 0 },
+            .tag => .{
+                .kind = .tag,
+                .value_bits = 0,
+                .format = .{
+                    .code = .none,
+                    .storage_bits = 0,
+                    .exponent_bits = 0,
+                    .fraction_bits = 0,
+                    .reserved = 0,
+                },
+                .reserved = 0,
+            },
+            .fromfp_round => .{
+                .kind = .rounding,
+                .value_bits = 32,
+                .format = .{
+                    .code = .none,
+                    .storage_bits = 0,
+                    .exponent_bits = 0,
+                    .fraction_bits = 0,
+                    .reserved = 0,
+                },
+                .reserved = 0,
+            },
         };
     }
 };
@@ -792,10 +819,12 @@ pub const FromFpRound = enum {
 
 pub fn DescriptorList(comptime T: type, comptime capacity: usize) type {
     return struct {
+        const Self = @This();
+
         values: [capacity]T = undefined,
         count: usize = 0,
-        pub const empty: @This() = .{ .values = undefined, .count = 0 };
-        pub fn slice(self: *const @This()) []const T {
+        pub const empty: Self = .{ .values = undefined, .count = 0 };
+        pub fn slice(self: *const Self) []const T {
             return self.values[0..self.count];
         }
     };
@@ -1081,23 +1110,23 @@ const CorpusReader = struct {
     source: []const u8,
     index: usize = 0,
 
-    fn take(self: *@This(), count: usize) CorpusRecordError![]const u8 {
+    fn take(self: *CorpusReader, count: usize) CorpusRecordError![]const u8 {
         if (count > self.source.len -| self.index) return error.TruncatedRecord;
         const result = self.source[self.index .. self.index + count];
         self.index += count;
         return result;
     }
 
-    fn readU8(self: *@This()) CorpusRecordError!u8 {
+    fn readU8(self: *CorpusReader) CorpusRecordError!u8 {
         return (try self.take(1))[0];
     }
 
-    fn readU16(self: *@This()) CorpusRecordError!u16 {
+    fn readU16(self: *CorpusReader) CorpusRecordError!u16 {
         const bytes = try self.take(2);
         return @as(u16, bytes[0]) | (@as(u16, bytes[1]) << 8);
     }
 
-    fn readU32(self: *@This()) CorpusRecordError!u32 {
+    fn readU32(self: *CorpusReader) CorpusRecordError!u32 {
         const bytes = try self.take(4);
         return @as(u32, bytes[0]) |
             (@as(u32, bytes[1]) << 8) |
@@ -1105,7 +1134,7 @@ const CorpusReader = struct {
             (@as(u32, bytes[3]) << 24);
     }
 
-    fn readU64(self: *@This()) CorpusRecordError!u64 {
+    fn readU64(self: *CorpusReader) CorpusRecordError!u64 {
         const bytes = try self.take(8);
         var result: u64 = 0;
         for (bytes, 0..) |byte, shift| result |= @as(u64, byte) << @intCast(shift * 8);
@@ -1117,30 +1146,30 @@ const CorpusWriter = struct {
     target: []u8,
     index: usize = 0,
 
-    fn ensure(self: *@This(), count: usize) CorpusRecordError!void {
+    fn ensure(self: *CorpusWriter, count: usize) CorpusRecordError!void {
         if (count > self.target.len -| self.index) return error.OutputTooSmall;
     }
 
-    fn bytes(self: *@This(), source: []const u8) CorpusRecordError!void {
+    fn bytes(self: *CorpusWriter, source: []const u8) CorpusRecordError!void {
         try self.ensure(source.len);
         @memcpy(self.target[self.index .. self.index + source.len], source);
         self.index += source.len;
     }
 
-    fn writeU8(self: *@This(), value: u8) CorpusRecordError!void {
+    fn writeU8(self: *CorpusWriter, value: u8) CorpusRecordError!void {
         try self.ensure(1);
         self.target[self.index] = value;
         self.index += 1;
     }
 
-    fn writeU16(self: *@This(), value: u16) CorpusRecordError!void {
+    fn writeU16(self: *CorpusWriter, value: u16) CorpusRecordError!void {
         try self.ensure(2);
         self.target[self.index] = @intCast(value & 0xff);
         self.target[self.index + 1] = @intCast(value >> 8);
         self.index += 2;
     }
 
-    fn writeU32(self: *@This(), value: u32) CorpusRecordError!void {
+    fn writeU32(self: *CorpusWriter, value: u32) CorpusRecordError!void {
         try self.ensure(4);
         for (0..4) |shift| {
             self.target[self.index + shift] = @intCast((value >> @intCast(shift * 8)) & 0xff);
@@ -1148,7 +1177,7 @@ const CorpusWriter = struct {
         self.index += 4;
     }
 
-    fn writeU64(self: *@This(), value: u64) CorpusRecordError!void {
+    fn writeU64(self: *CorpusWriter, value: u64) CorpusRecordError!void {
         try self.ensure(8);
         for (0..8) |shift| {
             self.target[self.index + shift] = @intCast((value >> @intCast(shift * 8)) & 0xff);
@@ -1589,7 +1618,7 @@ pub fn encodeCorpusRecord(
 ) CorpusRecordError![]u8 {
     const length = try corpusRecordEncodedLength(record);
     if (target.len < length) return error.OutputTooSmall;
-    var writer = CorpusWriter{ .target = target[0..length] };
+    var writer: CorpusWriter = .{ .target = target[0..length] };
     try writer.bytes("ZCDR");
     try writer.writeU8(descriptor_corpus_codec_version);
     try writer.writeU32(@intCast(length));
@@ -1628,7 +1657,7 @@ pub fn decodeCorpusRecord(source: []const u8) CorpusRecordError!CorpusRecord {
     if (source.len < descriptor_record_header_length) return error.TruncatedRecord;
     if (!std.mem.eql(u8, source[0..4], "ZCDR")) return error.InvalidRecordMagic;
     if (source[4] != descriptor_corpus_codec_version) return error.UnknownRecordVersion;
-    var reader = CorpusReader{ .source = source };
+    var reader: CorpusReader = .{ .source = source };
     _ = try reader.take(5);
     const declared_length = try reader.readU32();
     if (@as(usize, declared_length) < descriptor_record_header_length) {
@@ -1822,7 +1851,7 @@ pub const CorpusRecordIterator = struct {
     offset: usize = 0,
     previous: ?CorpusRecord = null,
 
-    pub fn next(self: *@This()) CorpusRecordError!?CorpusRecord {
+    pub fn next(self: *CorpusRecordIterator) CorpusRecordError!?CorpusRecord {
         if (self.offset == self.source.len) return null;
         if (self.source.len - self.offset < 9) return error.TruncatedRecord;
         const length = @as(u32, self.source[self.offset + 5]) |
@@ -1941,7 +1970,7 @@ pub const RowIterator = struct {
         if (line.len == 0) return error.BlankCorpusLine;
 
         const row = try parseCorpusRow(line);
-        const current = SortKey{
+        const current: SortKey = .{
             .operation = row.operation,
             .format = row.format,
             .input_bits = row.input_bits,
@@ -1966,7 +1995,11 @@ fn narrowingSignature(operation: ManifestOperation) ?NarrowingSignature {
         .f16addf64, .f16subf64, .f16mulf64, .f16divf64 => .{ .source = .d, .destination = .h, .arity = 2 },
         .f16fmaf64 => .{ .source = .d, .destination = .h, .arity = 3 },
         .f16sqrtf64 => .{ .source = .d, .destination = .h, .arity = 1 },
-        .fadd, .fsub, .fmul, .fdiv, .f32addf64, .f32subf64, .f32mulf64, .f32divf64 => .{ .source = .d, .destination = .f, .arity = 2 },
+        .fadd, .fsub, .fmul, .fdiv, .f32addf64, .f32subf64, .f32mulf64, .f32divf64 => .{
+            .source = .d,
+            .destination = .f,
+            .arity = 2,
+        },
         .ffma, .f32fmaf64 => .{ .source = .d, .destination = .f, .arity = 3 },
         .fsqrt, .f32sqrtf64 => .{ .source = .d, .destination = .f, .arity = 1 },
         else => null,
@@ -2262,9 +2295,11 @@ fn isCoreMathOperation(operation: ManifestOperation) bool {
 
 fn signatureShape(operation: ManifestOperation) ?SignatureShape {
     return switch (operation) {
+        // ziglint-ignore: Z024
         .abs, .acos, .acosh, .asin, .asinh, .atan, .atanh, .cbrt, .ceil, .cos, .cosh, .erf, .exp, .exp10, .exp10m1, .exp2, .exp2m1, .expm1, .floor, .getPayload, .log, .log10, .log1p, .log2, .logb, .logp1, .nearbyint, .nextDown, .nextUp, .rint, .round, .roundeven, .rsqrt, .sin, .sinh, .sinpi, .sqrt, .tan, .tanh, .tanpi, .trunc, .acospi, .asinpi, .atanpi, .cospi, .erfc, .log10p1, .log2p1, .tgamma => .unary_float,
         .canonicalize => .unary_canonicalize,
         .compoundn, .pown, .rootn => .power,
+        // ziglint-ignore: Z024
         .copySign, .fdim, .fmax, .fmaximum, .fmaximum_mag, .fmaximum_mag_num, .fmaximum_num, .fmin, .fminimum, .fminimum_mag, .fminimum_mag_num, .fminimum_num, .fmod, .hypot, .nextAfter, .powr, .remainder, .pow => .binary_float,
         .fma => .ternary_float,
         .frexp => .unary_frexp,
@@ -2282,6 +2317,7 @@ fn signatureShape(operation: ManifestOperation) ?SignatureShape {
         .totalOrder, .totalOrderMag => .binary_boolean,
         .atan2, .atan2pi => .binary_atan2,
         .lgamma => .unary_lgamma,
+        // ziglint-ignore: Z024
         .fadd, .fdiv, .ffma, .fmul, .fsqrt, .fsub, .f16addf32, .f16addf64, .f16divf32, .f16divf64, .f16fmaf32, .f16fmaf64, .f16mulf32, .f16mulf64, .f16sqrtf32, .f16sqrtf64, .f16subf32, .f16subf64, .f32addf64, .f32divf64, .f32fmaf64, .f32mulf64, .f32sqrtf64, .f32subf64 => null,
     };
 }
@@ -2380,7 +2416,7 @@ pub fn validateTsv(source: []const u8) ValidationError!void {
     while (lines.next()) |line| {
         if (line.len == 0) return error.BlankCorpusLine;
         const row = try parseCorpusRow(line);
-        const current = SortKey{
+        const current: SortKey = .{
             .operation = row.operation,
             .format = row.format,
             .input_bits = row.input_bits,
@@ -2718,7 +2754,7 @@ fn finishFunction(builder: ManifestBuilder) ValidationError!Function {
     for (inputs.descriptors[0..inputs.count], 0..) |descriptor, index| {
         arguments.descriptors[index] = descriptor;
     }
-    const value = Function{
+    const value: Function = .{
         .op = @tagName(operation),
         .provenance = builder.provenance_values,
         .status = status,
@@ -2744,7 +2780,9 @@ fn validateCanonicalDescriptor(function: Function, expected: FunctionDescriptor)
     if (expected.provenance == .zmath and
         (function.provenance.count != 1 or function.provenance.values[0] != .zmath)) return error.InvalidProvenance;
     if (expected.provenance == .zmath_core_math and
-        (function.provenance.count != 2 or function.provenance.values[0] != .zmath or function.provenance.values[1] != .core_math)) return error.InvalidProvenance;
+        (function.provenance.count != 2 or
+            function.provenance.values[0] != .zmath or
+            function.provenance.values[1] != .core_math)) return error.InvalidProvenance;
     if (functionFormat(function) != expected.format or function.arity != expected.arity) return error.InvalidDescriptor;
     if (function.arguments().len != expected.inputs.count) return error.InvalidDescriptor;
     for (function.arguments(), expected.inputs.descriptors[0..expected.inputs.count]) |actual, wanted| {

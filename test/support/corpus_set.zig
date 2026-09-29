@@ -35,7 +35,7 @@ pub const Set = struct {
 const metadata_bytes_max: usize = 1024 * 1024;
 const completion_bytes_max: usize = 256;
 const source_unavailable_text = "source-metadata-unavailable";
-const OracleSignature = oracle_abi.zmath_testing_oracle_operation_signature;
+const oracle_signature = oracle_abi.zmath_testing_oracle_operation_signature;
 
 const GenerationScope = enum {
     full,
@@ -84,8 +84,8 @@ comptime {
 }
 
 pub fn load(
-    io: std.Io,
     allocator: std.mem.Allocator,
+    io: std.Io,
     dir: std.Io.Dir,
     run_root: []const u8,
     manifest: *const corpus.Manifest,
@@ -142,7 +142,7 @@ pub fn load(
         return error.MetadataDigestMismatch;
     }
 
-    var set = Set{
+    var set: Set = .{
         .source = source,
         .entries = undefined,
         .count = 0,
@@ -154,14 +154,14 @@ pub fn load(
     return set;
 }
 
-pub fn evaluatorSignature(function: *const corpus.Function) !*const OracleSignature {
+pub fn evaluatorSignature(function: *const corpus.Function) !*const oracle_signature {
     const signature_count: usize =
         @intCast(oracle_abi.zmath_testing_oracle_operation_table_count);
     if (signature_count != corpus.max_function_count) {
         return error.InvalidEvaluatorTable;
     }
 
-    var match: ?*const OracleSignature = null;
+    var match: ?*const oracle_signature = null;
     for (0..signature_count) |index| {
         const signature = &oracle_abi.zmath_testing_oracle_operation_table[index];
         if (!signatureMatchesFunction(signature, function)) continue;
@@ -171,7 +171,7 @@ pub fn evaluatorSignature(function: *const corpus.Function) !*const OracleSignat
     return match orelse error.MissingEvaluatorSignature;
 }
 
-pub fn evaluatorCategory(signature: *const OracleSignature) !corpus.Oracle {
+pub fn evaluatorCategory(signature: *const oracle_signature) !corpus.Oracle {
     const category: u32 = @intCast(signature.evaluator_category);
     return switch (category) {
         @as(u32, @intCast(oracle_abi.ZMATH_TESTING_ORACLE_EVALUATOR_EXACT_BITS)) => .exact_bits,
@@ -184,7 +184,7 @@ pub fn evaluatorCategory(signature: *const OracleSignature) !corpus.Oracle {
 pub fn descriptorEntryHash(
     profile: Profile,
     function: *const corpus.Function,
-    signature: *const OracleSignature,
+    signature: *const oracle_signature,
 ) Digest {
     var hasher = std.crypto.hash.sha2.Sha256.init(.{});
     hasher.update(profile.target);
@@ -265,20 +265,20 @@ fn parseMetadata(
     );
     const function_count = try parseCanonicalUnsigned(
         usize,
-        try takeLineValue(&lines, "function_count"),
         10,
+        try takeLineValue(&lines, "function_count"),
     );
     const selected_signature_count = try parseCanonicalUnsigned(
         usize,
-        try takeLineValue(&lines, "selected_signature_count"),
         10,
+        try takeLineValue(&lines, "selected_signature_count"),
     );
     const operation_filter_text = try takeLineValue(&lines, "operation_filter");
     const format_filter_text = try takeLineValue(&lines, "format_filter");
     const codec_version = try parseCanonicalUnsigned(
         u8,
-        try takeLineValue(&lines, "record_codec_version"),
         10,
+        try takeLineValue(&lines, "record_codec_version"),
     );
     try expectLine(&lines, "");
 
@@ -301,7 +301,7 @@ fn parseMetadata(
         return error.RecordCodecMismatch;
     }
 
-    const filters = Filters{
+    const filters: Filters = .{
         .operation = if (std.mem.eql(u8, operation_filter_text, "all"))
             null
         else
@@ -390,7 +390,7 @@ fn validateMetadataRow(
     run_root: []const u8,
     function: *const corpus.Function,
     definition: *const campaigns.CampaignDefinition,
-    signature: *const OracleSignature,
+    signature: *const oracle_signature,
     expected_source_hash: Digest,
 ) !corpus.Oracle {
     if (!std.mem.eql(u8, row.operation, function.op)) {
@@ -476,11 +476,11 @@ fn validateMetadataRow(
 
 fn parseMetadataRow(line: []const u8) !MetadataRow {
     var fields = std.mem.splitScalar(u8, line, ';');
-    const row = MetadataRow{
+    const row: MetadataRow = .{
         .signature_index = try parseCanonicalUnsigned(
             usize,
-            try takeFieldValue(&fields, "signature"),
             10,
+            try takeFieldValue(&fields, "signature"),
         ),
         .operation = try takeFieldValue(&fields, "operation"),
         .manifest_status = try parseEnum(
@@ -517,24 +517,24 @@ fn parseMetadataRow(line: []const u8) !MetadataRow {
         ),
         .campaign_seed = try parseCanonicalUnsigned(
             u64,
-            try takeFieldValue(&fields, "campaign_seed"),
             16,
+            try takeFieldValue(&fields, "campaign_seed"),
         ),
         .campaign_tuple_count = try parseCanonicalUnsigned(
             u64,
-            try takeFieldValue(&fields, "campaign_tuple_count"),
             10,
+            try takeFieldValue(&fields, "campaign_tuple_count"),
         ),
         .selection_rule = try takeFieldValue(&fields, "selection_rule"),
         .cardinality = try parseCanonicalUnsigned(
             u64,
-            try takeFieldValue(&fields, "cardinality"),
             10,
+            try takeFieldValue(&fields, "cardinality"),
         ),
         .records = try parseCanonicalUnsigned(
             u64,
-            try takeFieldValue(&fields, "records"),
             10,
+            try takeFieldValue(&fields, "records"),
         ),
         .claims_exhaustive_full_cartesian = try parseBoolean(
             try takeFieldValue(&fields, "claims_exhaustive_full_cartesian"),
@@ -619,8 +619,8 @@ fn parseBoolean(text: []const u8) !bool {
 
 fn parseCanonicalUnsigned(
     comptime T: type,
-    text: []const u8,
     comptime base: u8,
+    text: []const u8,
 ) !T {
     if (text.len == 0) return error.InvalidMetadata;
     if (text.len > 1 and text[0] == '0') return error.InvalidMetadata;
@@ -803,7 +803,7 @@ fn sourceUnavailableDigest() Digest {
 }
 
 fn signatureMatchesFunction(
-    signature: *const OracleSignature,
+    signature: *const oracle_signature,
     function: *const corpus.Function,
 ) bool {
     if (signature.operation == null) return false;
@@ -857,7 +857,7 @@ fn signatureProvenanceKnown(provenance_value: anytype) bool {
             @as(u32, @intCast(oracle_abi.ZMATH_TESTING_ORACLE_PROVENANCE_ANNEX_H));
 }
 
-fn signatureOperation(signature: *const OracleSignature) []const u8 {
+fn signatureOperation(signature: *const oracle_signature) []const u8 {
     const pointer: [*]const u8 = @ptrCast(signature.operation);
     return pointer[0..@intCast(signature.operation_length)];
 }

@@ -266,7 +266,12 @@ rec {
     ZMATH_COMPARE_COREMATH_PATH = "${coreMathReference}/lib/libzmath-coremath.so";
   };
 
-  scripts.gate.exec = "zig-gate";
+  # zig-gate builds its ziglint file list with `find`, which bypasses ziglint's own
+  # .gitignore handling, so generated artifacts would otherwise be linted as if
+  # they were source. Exclude the gitignored result directories here.
+  scripts.gate.exec = ''
+    GATE_EXCLUDE="./bench/results/ ./.devenv/ ./graphify-out/" zig-gate
+  '';
 
   scripts.coverage.exec = ''
     PATH=${coverageZig}:$PATH ~/tools/zcov/zig-out/bin/zig-cov test

@@ -157,7 +157,7 @@ pub fn main(init: std.process.Init) !void {
 
     for (scenarios, 0..) |scenario, index| {
         const start = benchTime(init.io);
-        var last = Measurement{ .result_bits = 0, .ok = false };
+        var last: Measurement = .{ .result_bits = 0, .ok = false };
         var repetition: u32 = 0;
         while (repetition < repetitions) : (repetition += 1) {
             last = measure(scenario);

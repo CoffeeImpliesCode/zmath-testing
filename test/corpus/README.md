@@ -127,10 +127,14 @@ Status promotion does not change numerical descriptor identity or record hashes.
 The loader checks both historical snapshots and the current manifest.
 
 `generated/verification.json` records test, formatting, replay, benchmark,
-and lint outcomes. Numerical verification passed. Its counters are the
-2026-09-09 publication snapshot: the runtime unit-test count is now 565, and
-the runtime house gate now passes. The harness style lint still reports
-diagnostics; it is not recorded as passing.
+and lint outcomes from the 2026-09-09 publication run. Its counters are that
+dated snapshot and are NOT current: it records 525 runtime unit tests and a
+failing runtime house gate with 1582 ziglint issues, whereas the tree now
+passes 596 runtime unit tests and the house gate passes cleanly. Treat the
+file as a historical publication record. It has no checked-in producer, so it
+is deliberately left byte-identical rather than hand-edited; regenerate it only
+with the external publication tool. The harness style lint still reports
+diagnostics and is not recorded as passing.
 
 The `replay-vector` and `run-bench-vector` lanes are additional evidence
 recorded by their own build steps, not by that file. They are not counters in

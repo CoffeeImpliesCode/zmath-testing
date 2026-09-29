@@ -121,8 +121,8 @@ fn inputValue(comptime T: type, input_bits: u64) T {
 }
 
 fn outputBits(comptime T: type, output: T) u64 {
-    if (T == f16) return @as(u64, @as(u16, @bitCast(output)));
-    if (T == f32) return @as(u64, @as(u32, @bitCast(output)));
+    if (T == f16) return @as(u16, @bitCast(output));
+    if (T == f32) return @as(u32, @bitCast(output));
     if (T == f64) return @bitCast(output);
     @compileError("benchmark outputs support only f16, f32, and f64");
 }

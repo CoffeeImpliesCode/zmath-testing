@@ -280,7 +280,13 @@ test "C23 IEEE and Annex-F operations fill all fields and classes" {
     try expectScalarBits("nextAfter", c.ZMATH_TESTING_ORACLE_FORMAT_H, &.{ 0x3c00, 0x0000 }, "", 0x3bff);
     try expectScalarBits("nextUp", c.ZMATH_TESTING_ORACLE_FORMAT_H, &.{0x8000}, "", 0x0001);
     try expectScalarBits("nextDown", c.ZMATH_TESTING_ORACLE_FORMAT_H, &.{0x0000}, "", 0x8001);
-    try expectScalarBits("nextToward", c.ZMATH_TESTING_ORACLE_FORMAT_H, &.{ 0x0000, 0x8000_0000_0000_0000 }, "", 0x8000);
+    try expectScalarBits(
+        "nextToward",
+        c.ZMATH_TESTING_ORACLE_FORMAT_H,
+        &.{ 0x0000, 0x8000_0000_0000_0000 },
+        "",
+        0x8000,
+    );
 
     signature = runOperation("getPayload", c.ZMATH_TESTING_ORACLE_FORMAT_H, &.{0x7e03}, "", &evaluation);
     try expectSuccessfulShape(signature, &evaluation);
@@ -330,6 +336,12 @@ test "subunit integral rounding encodes one with the biased exponent" {
 test "unsigned conversion accepts signed zero but rejects negative integers" {
     try expectScalarBits("ufromfp", c.ZMATH_TESTING_ORACLE_FORMAT_H, &.{ 0x8000, 0, 1 }, "", 0x8000);
     try expectScalarBits("ufromfp", c.ZMATH_TESTING_ORACLE_FORMAT_H, &.{ 0x8001, 2, 1 }, "", 0x8000);
-    try expectScalarBits("ufromfpx", c.ZMATH_TESTING_ORACLE_FORMAT_D, &.{ 0xbfd0_0000_0000_0000, 4, 32 }, "", 0x7ff8_0000_0000_0000);
+    try expectScalarBits(
+        "ufromfpx",
+        c.ZMATH_TESTING_ORACLE_FORMAT_D,
+        &.{ 0xbfd0_0000_0000_0000, 4, 32 },
+        "",
+        0x7ff8_0000_0000_0000,
+    );
     try expectScalarBits("ufromfp", c.ZMATH_TESTING_ORACLE_FORMAT_H, &.{ 0x8000, 0, 0 }, "", 0x7e00);
 }

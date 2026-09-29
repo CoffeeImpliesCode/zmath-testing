@@ -14,6 +14,14 @@ const max_results = corpus.max_result_field_count;
 const encoded_record_capacity = corpus_set.record_buffer_capacity;
 const default_output_root = "test/corpus";
 
+// Byte-exact metadata row schema; the corpus_set loader parses these fields by name.
+const metadata_row_format = "signature={d};operation={s};manifest_status={s};oracle={s};" ++
+    "evaluator={s};campaign={s};planned_campaign={s};availability={s};" ++
+    "coverage={s};evidence_state={s};campaign_seed={x};campaign_tuple_count={d};" ++
+    "selection_rule={s};cardinality={d};records={d};claims_exhaustive_full_cartesian={};" ++
+    "source_metadata_available={};evidence_available={};source_hash={s};artifact={s};" ++
+    "artifact_sha256={s}";
+
 const Digest = corpus_set.Digest;
 
 const GeneratorProfile = corpus_set.Profile;
@@ -136,27 +144,27 @@ const Publication = struct {
     root_dir: std.Io.Dir,
     paths: *const OutputPaths,
 
-    fn begin(self: *const @This()) !void {
+    fn begin(self: *const Publication) !void {
         try self.root_dir.createDirPath(self.io, self.paths.run_root);
         try self.root_dir.createDirPath(self.io, self.paths.records_root);
-        try deleteIfPresent(self.root_dir, self.io, self.paths.complete_marker);
-        try deleteIfPresent(self.root_dir, self.io, self.paths.metadata_path);
+        try deleteIfPresent(self.io, self.root_dir, self.paths.complete_marker);
+        try deleteIfPresent(self.io, self.root_dir, self.paths.metadata_path);
         try writeAtomicSynced(
-            self.root_dir,
             self.io,
+            self.root_dir,
             self.paths.incomplete_marker,
             "oracle-generate started\n",
         );
     }
 
-    fn finish(self: *const @This(), metadata: []const u8, digest: Digest) !void {
+    fn finish(self: *const Publication, metadata: []const u8, digest: Digest) !void {
         try writeAtomicSynced(
-            self.root_dir,
             self.io,
+            self.root_dir,
             self.paths.metadata_path,
             metadata,
         );
-        try deleteIfPresent(self.root_dir, self.io, self.paths.incomplete_marker);
+        try deleteIfPresent(self.io, self.root_dir, self.paths.incomplete_marker);
 
         var complete_text: [192]u8 = undefined;
         const digest_hex = std.fmt.bytesToHex(digest, .lower);
@@ -166,8 +174,8 @@ const Publication = struct {
             .{digest_hex[0..]},
         );
         try writeAtomicSynced(
-            self.root_dir,
             self.io,
+            self.root_dir,
             self.paths.complete_marker,
             complete,
         );
@@ -205,7 +213,7 @@ fn generateCorpus(options: GeneratorOptions) !void {
 
     var paths = try OutputPaths.init(options.allocator, parsed);
     defer paths.deinit(options.allocator);
-    const publication = Publication{
+    const publication: Publication = .{
         .io = options.io,
         .root_dir = options.root_dir,
         .paths = &paths,
@@ -230,9 +238,9 @@ fn generateCorpus(options: GeneratorOptions) !void {
     for (selection.indices[0..selection.count]) |index| {
         const definition = matrix.at(index) orelse return error.ManifestCountMismatch;
         try generateDefinition(
-            options.root_dir,
-            options.io,
             options.allocator,
+            options.io,
+            options.root_dir,
             &metadata,
             &paths,
             index,
@@ -246,7 +254,7 @@ fn generateCorpus(options: GeneratorOptions) !void {
 }
 
 fn parseArguments(args: []const []const u8) !ParsedArguments {
-    var parsed = ParsedArguments{
+    var parsed: ParsedArguments = .{
         .output_root = default_output_root,
         .filters = .{},
     };
@@ -282,7 +290,7 @@ fn selectDefinitions(
     matrix: *const campaigns.CampaignMatrix,
     filters: FilterOptions,
 ) !Selection {
-    var selection = Selection{
+    var selection: Selection = .{
         .scope = if (filters.operation == null and filters.format == null)
             .full
         else
@@ -322,30 +330,30 @@ fn appendMetadataHeader(
     selection: Selection,
     descriptor_hash: Digest,
 ) !void {
-    try appendFormat(allocator, metadata, "ZCDM version=1\n", .{});
+    try appendFormat("ZCDM version=1\n", allocator, metadata, .{});
     try appendDigestLine(allocator, metadata, "manifest_descriptor_sha256", descriptor_hash);
     try appendFormat(
+        "core_math_repository={s}\ncore_math_revision={s}\n",
         allocator,
         metadata,
-        "core_math_repository={s}\ncore_math_revision={s}\n",
         .{ campaigns.core_math_repository, campaigns.core_math_revision },
     );
     try appendFormat(
+        "profile_target={s}\nprofile_cpu={s}\nprofile_mode={s}\n",
         allocator,
         metadata,
-        "profile_target={s}\nprofile_cpu={s}\nprofile_mode={s}\n",
         .{ profile.target, profile.cpu, profile.mode },
     );
     try appendFormat(
+        "generation_scope={s}\nfunction_count={d}\nselected_signature_count={d}\n",
         allocator,
         metadata,
-        "generation_scope={s}\nfunction_count={d}\nselected_signature_count={d}\n",
         .{ @tagName(selection.scope), selection.count, selection.count },
     );
     try appendFormat(
+        "operation_filter={s}\nformat_filter={s}\nrecord_codec_version={d}\n\n",
         allocator,
         metadata,
-        "operation_filter={s}\nformat_filter={s}\nrecord_codec_version={d}\n\n",
         .{
             arguments.filters.operation orelse "all",
             if (arguments.filters.format) |format| @tagName(format) else "all",
@@ -355,9 +363,9 @@ fn appendMetadataHeader(
 }
 
 fn generateDefinition(
-    root_dir: std.Io.Dir,
-    io: std.Io,
     allocator: std.mem.Allocator,
+    io: std.Io,
+    root_dir: std.Io.Dir,
     metadata: *std.ArrayList(u8),
     paths: *const OutputPaths,
     index: usize,
@@ -400,7 +408,7 @@ fn generateDefinition(
         defer atomic.deinit(io);
         var write_buffer: [64 * 1024]u8 = undefined;
         var writer = atomic.file.writer(io, &write_buffer);
-        var context = RecordContext{
+        var context: RecordContext = .{
             .writer = &writer.interface,
             .record_hasher = std.crypto.hash.sha2.Sha256.init(.{}),
         };
@@ -420,9 +428,9 @@ fn generateDefinition(
     else
         definition.availability();
     try appendFormat(
+        metadata_row_format,
         allocator,
         metadata,
-        "signature={d};operation={s};manifest_status={s};oracle={s};evaluator={s};campaign={s};planned_campaign={s};availability={s};coverage={s};evidence_state={s};campaign_seed={x};campaign_tuple_count={d};selection_rule={s};cardinality={d};records={d};claims_exhaustive_full_cartesian={};source_metadata_available={};evidence_available={};source_hash={s};artifact={s};artifact_sha256={s}",
         .{
             index,
             function.op,
@@ -448,7 +456,7 @@ fn generateDefinition(
         },
     );
     try appendSourceFields(allocator, metadata, source);
-    try appendFormat(allocator, metadata, "\n", .{});
+    try appendFormat("\n", allocator, metadata, .{});
 }
 
 fn visitRecord(context: *RecordContext, visit: *const campaigns.RecordVisit) !void {
@@ -666,13 +674,18 @@ fn appendSourceFields(
 ) !void {
     if (source) |pin| {
         try appendFormat(
+            ";source_repository={s};source_revision={s};source_path={s}",
             allocator,
             metadata,
-            ";source_repository={s};source_revision={s};source_path={s}",
             .{ pin.repository, pin.revision, pin.path },
         );
     } else {
-        try appendFormat(allocator, metadata, ";source_repository=none;source_revision=none;source_path=none", .{});
+        try appendFormat(
+            ";source_repository=none;source_revision=none;source_path=none",
+            allocator,
+            metadata,
+            .{},
+        );
     }
 }
 
@@ -723,13 +736,13 @@ fn appendDigestLine(
     digest: [std.crypto.hash.sha2.Sha256.digest_length]u8,
 ) !void {
     const digest_hex = std.fmt.bytesToHex(digest, .lower);
-    try appendFormat(allocator, output, "{s}={s}\n", .{ name, digest_hex[0..] });
+    try appendFormat("{s}={s}\n", allocator, output, .{ name, digest_hex[0..] });
 }
 
 fn appendFormat(
+    comptime format: []const u8,
     allocator: std.mem.Allocator,
     output: *std.ArrayList(u8),
-    comptime format: []const u8,
     args: anytype,
 ) !void {
     var buffer: [1024]u8 = undefined;
@@ -737,7 +750,7 @@ fn appendFormat(
     try output.appendSlice(allocator, rendered);
 }
 
-fn deleteIfPresent(dir: std.Io.Dir, io: std.Io, path: []const u8) !void {
+fn deleteIfPresent(io: std.Io, dir: std.Io.Dir, path: []const u8) !void {
     dir.deleteFile(io, path) catch |err| switch (err) {
         error.FileNotFound => {},
         else => return err,
@@ -745,8 +758,8 @@ fn deleteIfPresent(dir: std.Io.Dir, io: std.Io, path: []const u8) !void {
 }
 
 fn writeAtomicSynced(
-    dir: std.Io.Dir,
     io: std.Io,
+    dir: std.Io.Dir,
     path: []const u8,
     bytes: []const u8,
 ) !void {
@@ -760,7 +773,7 @@ fn writeAtomicSynced(
     try atomic.replace(io);
 }
 
-const test_profile = GeneratorProfile{
+const test_profile: GeneratorProfile = .{
     .target = "x86_64-linux-gnu.2.38",
     .cpu = "haswell",
     .mode = "ReleaseSafe",
@@ -885,9 +898,9 @@ test "filtered publication preserves full completion marker" {
         &.{ options.output_root, "generated", "COMPLETE" },
     );
     defer allocator.free(full_marker);
-    try writeAtomicSynced(temporary.dir, io, full_marker, "full\n");
+    try writeAtomicSynced(io, temporary.dir, full_marker, "full\n");
 
-    const publication = Publication{
+    const publication: Publication = .{
         .io = io,
         .root_dir = temporary.dir,
         .paths = &paths,
@@ -913,15 +926,15 @@ test "failed artifact write never publishes metadata or completion" {
     const options = try parseArguments(arguments[0..]);
     var paths = try OutputPaths.init(allocator, options);
     defer paths.deinit(allocator);
-    const publication = Publication{
+    const publication: Publication = .{
         .io = io,
         .root_dir = temporary.dir,
         .paths = &paths,
     };
 
     try temporary.dir.createDirPath(io, paths.run_root);
-    try writeAtomicSynced(temporary.dir, io, paths.complete_marker, "stale\n");
-    try writeAtomicSynced(temporary.dir, io, paths.metadata_path, "stale metadata\n");
+    try writeAtomicSynced(io, temporary.dir, paths.complete_marker, "stale\n");
+    try writeAtomicSynced(io, temporary.dir, paths.metadata_path, "stale metadata\n");
     try publication.begin();
 
     const first_path = try generatedArtifactPath(
@@ -931,20 +944,20 @@ test "failed artifact write never publishes metadata or completion" {
         "exp",
     );
     defer allocator.free(first_path);
-    try writeAtomicSynced(temporary.dir, io, first_path, "first");
+    try writeAtomicSynced(io, temporary.dir, first_path, "first");
 
     const blocking_path = try std.fs.path.join(
         allocator,
         &.{ paths.records_root, "blocking" },
     );
     defer allocator.free(blocking_path);
-    try writeAtomicSynced(temporary.dir, io, blocking_path, "not a directory");
+    try writeAtomicSynced(io, temporary.dir, blocking_path, "not a directory");
     const failed_path = try std.fs.path.join(
         allocator,
         &.{ blocking_path, "001_log.zcdr" },
     );
     defer allocator.free(failed_path);
-    if (writeAtomicSynced(temporary.dir, io, failed_path, "second")) |_| {
+    if (writeAtomicSynced(io, temporary.dir, failed_path, "second")) |_| {
         return error.TestExpectedError;
     } else |_| {}
 
@@ -976,17 +989,17 @@ test "published candidates enforce profile, numerical identity, and integrity" {
         function.status = .unsupported;
         function.oracle = .none;
     }
-    var published = try corpus_set.load(io, allocator, temporary.dir, run_root, &manifest, test_profile);
+    var published = try corpus_set.load(allocator, io, temporary.dir, run_root, &manifest, test_profile);
     defer published.deinit(allocator);
     try std.testing.expectEqual(@as(usize, 1), published.count);
     const index = published.entries[0].signature_index;
     manifest.function_values[index].status = .correct;
     manifest.function_values[index].oracle = .exact_bits;
-    var accepted = try corpus_set.load(io, allocator, temporary.dir, run_root, &manifest, test_profile);
+    var accepted = try corpus_set.load(allocator, io, temporary.dir, run_root, &manifest, test_profile);
     defer accepted.deinit(allocator);
     try std.testing.expectEqual(published.entries[0].digest, accepted.entries[0].digest);
     manifest.function_values[index].oracle = .mpfr_arb;
-    if (corpus_set.load(io, allocator, temporary.dir, run_root, &manifest, test_profile)) |value| {
+    if (corpus_set.load(allocator, io, temporary.dir, run_root, &manifest, test_profile)) |value| {
         var unexpected = value;
         unexpected.deinit(allocator);
         return error.TestExpectedError;
@@ -996,14 +1009,26 @@ test "published candidates enforce profile, numerical identity, and integrity" {
     manifest.function_values[index].oracle = .exact_bits;
     var wrong_profile = test_profile;
     wrong_profile.cpu = "generic";
-    try std.testing.expectError(error.ProfileMismatch, corpus_set.load(io, allocator, temporary.dir, run_root, &manifest, wrong_profile));
+    try std.testing.expectError(
+        error.ProfileMismatch,
+        corpus_set.load(allocator, io, temporary.dir, run_root, &manifest, wrong_profile),
+    );
     manifest.function_values[index].max_ulp += 1;
-    try std.testing.expectError(error.DescriptorDigestMismatch, corpus_set.load(io, allocator, temporary.dir, run_root, &manifest, test_profile));
+    try std.testing.expectError(
+        error.DescriptorDigestMismatch,
+        corpus_set.load(allocator, io, temporary.dir, run_root, &manifest, test_profile),
+    );
     manifest.function_values[index].max_ulp -= 1;
-    try writeAtomicSynced(temporary.dir, io, run_root ++ "/metadata.txt", "tampered\n");
-    try std.testing.expectError(error.MetadataDigestMismatch, corpus_set.load(io, allocator, temporary.dir, run_root, &manifest, test_profile));
-    try writeAtomicSynced(temporary.dir, io, run_root ++ "/.incomplete", "pending\n");
-    try std.testing.expectError(error.IncompletePublication, corpus_set.load(io, allocator, temporary.dir, run_root, &manifest, test_profile));
+    try writeAtomicSynced(io, temporary.dir, run_root ++ "/metadata.txt", "tampered\n");
+    try std.testing.expectError(
+        error.MetadataDigestMismatch,
+        corpus_set.load(allocator, io, temporary.dir, run_root, &manifest, test_profile),
+    );
+    try writeAtomicSynced(io, temporary.dir, run_root ++ "/.incomplete", "pending\n");
+    try std.testing.expectError(
+        error.IncompletePublication,
+        corpus_set.load(allocator, io, temporary.dir, run_root, &manifest, test_profile),
+    );
 }
 
 fn testExpectPathExists(io: std.Io, dir: std.Io.Dir, path: []const u8) !void {

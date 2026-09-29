@@ -42,7 +42,7 @@ fn invokerFor(comptime format: corpus.Format, operation: Operation) Invoker {
     };
 }
 
-fn floatType(comptime format: corpus.Format) type {
+fn FloatType(comptime format: corpus.Format) type {
     return switch (format) {
         .h => f16,
         .f => f32,
@@ -50,7 +50,7 @@ fn floatType(comptime format: corpus.Format) type {
     };
 }
 
-fn bitsType(comptime format: corpus.Format) type {
+fn BitsType(comptime format: corpus.Format) type {
     return switch (format) {
         .h => u16,
         .f => u32,
@@ -58,13 +58,13 @@ fn bitsType(comptime format: corpus.Format) type {
     };
 }
 
-fn decode(comptime format: corpus.Format, bits: u64) floatType(format) {
-    return @bitCast(@as(bitsType(format), @intCast(bits)));
+fn decode(comptime format: corpus.Format, bits: u64) FloatType(format) {
+    return @bitCast(@as(BitsType(format), @intCast(bits)));
 }
 
-fn singleResult(comptime format: corpus.Format, value: floatType(format)) runner.RawRuntimeResult {
+fn singleResult(comptime format: corpus.Format, value: FloatType(format)) runner.RawRuntimeResult {
     var values = [_]u64{0} ** corpus.max_argument_count;
-    values[0] = @intCast(@as(bitsType(format), @bitCast(value)));
+    values[0] = @intCast(@as(BitsType(format), @bitCast(value)));
     return .{ .values = values, .field_count = 1 };
 }
 
@@ -72,7 +72,7 @@ fn unaryInvoker(comptime format: corpus.Format, comptime operation: UnaryOperati
     const Adapter = struct {
         fn invoke(inputs: *const [corpus.max_argument_count]corpus.OracleInputField) runner.RawRuntimeResult {
             const input = decode(format, inputs[0].value_bits);
-            const output: floatType(format) = switch (operation) {
+            const output: FloatType(format) = switch (operation) {
                 .abs => @abs(input),
                 .ceil => @ceil(input),
                 .floor => @floor(input),
@@ -91,7 +91,7 @@ fn fmaInvoker(comptime format: corpus.Format) Invoker {
             const first = decode(format, inputs[0].value_bits);
             const second = decode(format, inputs[1].value_bits);
             const third = decode(format, inputs[2].value_bits);
-            const output = @mulAdd(floatType(format), first, second, third);
+            const output = @mulAdd(FloatType(format), first, second, third);
             return singleResult(format, output);
         }
     };

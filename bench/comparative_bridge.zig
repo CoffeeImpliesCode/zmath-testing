@@ -264,9 +264,9 @@ const zig_f64_functions = makeZigTable(f64);
 const zig_f16_functions = makeZigTable(f16);
 
 fn exportName(
+    comptime T: type,
     comptime provider: []const u8,
     comptime operation: Operation,
-    comptime T: type,
 ) []const u8 {
     return "compare_" ++ provider ++ "_" ++ @tagName(operation) ++ "_" ++ @typeName(T);
 }
@@ -284,44 +284,56 @@ comptime {
         for (.{ f32, f64, f16 }) |T| {
             @export(
                 &ZmathWrapper(T, operation).call,
-                .{ .name = exportName("zmath", operation, T) },
+                .{ .name = exportName(T, "zmath", operation) },
             );
             if (zigSupports(T, operation)) {
                 @export(
                     &ZigWrapper(T, operation).call,
-                    .{ .name = exportName("zig", operation, T) },
+                    .{ .name = exportName(T, "zig", operation) },
                 );
             }
         }
     }
 }
 
-export fn compare_zmath_f32(op: u32) callconv(.c) CompareF32 {
+fn compareZmathF32(op: u32) callconv(.c) CompareF32 {
     if (op >= operation_count) return null;
     return zmath_f32_functions[@intCast(op)];
 }
 
-export fn compare_zmath_f64(op: u32) callconv(.c) CompareF64 {
+fn compareZmathF64(op: u32) callconv(.c) CompareF64 {
     if (op >= operation_count) return null;
     return zmath_f64_functions[@intCast(op)];
 }
 
-export fn compare_zmath_f16(op: u32) callconv(.c) CompareF16 {
+fn compareZmathF16(op: u32) callconv(.c) CompareF16 {
     if (op >= operation_count) return null;
     return zmath_f16_functions[@intCast(op)];
 }
 
-export fn compare_zig_f32(op: u32) callconv(.c) CompareF32 {
+fn compareZigF32(op: u32) callconv(.c) CompareF32 {
     if (op >= operation_count) return null;
     return zig_f32_functions[@intCast(op)];
 }
 
-export fn compare_zig_f64(op: u32) callconv(.c) CompareF64 {
+fn compareZigF64(op: u32) callconv(.c) CompareF64 {
     if (op >= operation_count) return null;
     return zig_f64_functions[@intCast(op)];
 }
 
-export fn compare_zig_f16(op: u32) callconv(.c) CompareF16 {
+fn compareZigF16(op: u32) callconv(.c) CompareF16 {
     if (op >= operation_count) return null;
     return zig_f16_functions[@intCast(op)];
+}
+
+// The C ABI spellings are fixed by `bench/comparative.h` and consumed by
+// `bench/comparative.cpp`, so the Zig-level names stay camelCase while the
+// exported symbols remain the published `compare_*` names.
+comptime {
+    @export(&compareZmathF32, .{ .name = "compare_zmath_f32" });
+    @export(&compareZmathF64, .{ .name = "compare_zmath_f64" });
+    @export(&compareZmathF16, .{ .name = "compare_zmath_f16" });
+    @export(&compareZigF32, .{ .name = "compare_zig_f32" });
+    @export(&compareZigF64, .{ .name = "compare_zig_f64" });
+    @export(&compareZigF16, .{ .name = "compare_zig_f16" });
 }

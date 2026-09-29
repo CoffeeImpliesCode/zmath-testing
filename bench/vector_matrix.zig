@@ -111,8 +111,8 @@ pub fn main(init: std.process.Init) !void {
     else
         try std.fmt.bufPrint(&root_buffer, "{s}/generated", .{options.root});
     var published = try corpus_set.load(
-        init.io,
         init.gpa,
+        init.io,
         std.Io.Dir.cwd(),
         run_root,
         &manifest,
@@ -201,26 +201,25 @@ fn benchmarkSelected(
     return switch (operation) {
         inline else => |comptime_operation| switch (format) {
             inline else => |comptime_format| benchmarkFunction(
+                comptime_operation,
+                comptime_format,
                 init,
                 entry,
                 function,
                 descriptor,
-                comptime_operation,
-                comptime_format,
                 timing_repetitions,
             ),
         },
     };
 }
 
-
 fn benchmarkFunction(
+    comptime operation: Operation,
+    comptime format: targets.Format,
     init: std.process.Init,
     entry: corpus_set.Entry,
     function: corpus.Function,
     descriptor: *const targets.VectorDescriptor,
-    comptime operation: Operation,
-    comptime format: targets.Format,
     timing_repetitions: u8,
 ) !void {
     const lane_width = comptime targets.laneWidthFor(format);
@@ -233,7 +232,6 @@ fn benchmarkFunction(
     if (descriptor.lane_width != lane_width) return error.LaneWidthMismatch;
     // The descriptor records the historical TSV fixture row count, which is
     // not the schema-3 publication record count, so the two are not compared.
-
 
     const path = entry.artifact;
     const file = try std.Io.Dir.cwd().openFile(init.io, path, .{});
@@ -255,9 +253,9 @@ fn benchmarkFunction(
     };
     const reference: runner.PreparedRuntime = .{ .entry = &reference_entry };
     var samples: Samples = .{ .corpus_count = summary.count };
-    const sampled_digest = try selectSamples(init.io, file, function, lane_width, &samples);
+    const sampled_digest = try selectSamples(lane_width, init.io, file, function, &samples);
     if (!std.mem.eql(u8, &summary.digest, &sampled_digest)) return error.CorpusChanged;
-    const warmup = measureZmath(init.io, operation, format, &samples, 1);
+    const warmup = measureZmath(operation, format, init.io, &samples, 1);
     const repetitions = std.math.clamp(
         @divFloor(target_duration_ns, @max(warmup.elapsed_ns, 1)),
         1,
@@ -265,22 +263,20 @@ fn benchmarkFunction(
     );
     const digest_hex = std.fmt.bytesToHex(summary.digest, .lower);
     for (0..timing_repetitions) |repetition| {
-        const zmath_result = measureZmath(init.io, operation, format, &samples, repetitions);
-        const reference_result = measureReference(init.io, &reference, format, &samples, repetitions);
+        const zmath_result = measureZmath(operation, format, init.io, &samples, repetitions);
+        const reference_result = measureReference(format, init.io, &reference, &samples, repetitions);
         std.debug.print(
             "target={s} cpu={s} optimize={s} corpus_id={s} signature={} operation={s} " ++
                 "repetition={} artifact={s} corpus_records={} corpus_input_count={} samples={} " ++
                 "groups={} lane_width={} calls={} lanes={} elapsed_ns={} checksum={x:0>16} " ++
                 "corpus_sha256={s} acceptance=none provider=zmath-vector\n",
             .{
-                target_mode.target, target_mode.cpu, target_mode.mode,
-                descriptor.corpus_id, entry.signature_index, function.op,
-                repetition, path,
-                samples.corpus_count, descriptor.input_count,
-                samples.count, samples.group_count,
-                lane_width, zmath_result.calls,
-                zmath_result.lanes, zmath_result.elapsed_ns,
-                zmath_result.checksum, digest_hex,
+                target_mode.target,      target_mode.cpu,       target_mode.mode,
+                descriptor.corpus_id,    entry.signature_index, function.op,
+                repetition,              path,                  samples.corpus_count,
+                descriptor.input_count,  samples.count,         samples.group_count,
+                lane_width,              zmath_result.calls,    zmath_result.lanes,
+                zmath_result.elapsed_ns, zmath_result.checksum, digest_hex,
             },
         );
         std.debug.print(
@@ -289,20 +285,18 @@ fn benchmarkFunction(
                 "groups={} lane_width={} calls={} lanes={} elapsed_ns={} checksum={x:0>16} " ++
                 "corpus_sha256={s} acceptance=none provider=zig-vector\n",
             .{
-                target_mode.target, target_mode.cpu, target_mode.mode,
-                descriptor.corpus_id, entry.signature_index, function.op,
-                repetition, path,
-                samples.corpus_count, descriptor.input_count,
-                samples.count, samples.group_count,
-                lane_width, reference_result.calls,
-                reference_result.lanes, reference_result.elapsed_ns,
-                reference_result.checksum, digest_hex,
+                target_mode.target,          target_mode.cpu,           target_mode.mode,
+                descriptor.corpus_id,        entry.signature_index,     function.op,
+                repetition,                  path,                      samples.corpus_count,
+                descriptor.input_count,      samples.count,             samples.group_count,
+                lane_width,                  reference_result.calls,    reference_result.lanes,
+                reference_result.elapsed_ns, reference_result.checksum, digest_hex,
             },
         );
     }
 }
 
-fn floatType(comptime format: targets.Format) type {
+fn FloatType(comptime format: targets.Format) type {
     return switch (format) {
         .h => f16,
         .f => f32,
@@ -310,7 +304,7 @@ fn floatType(comptime format: targets.Format) type {
     };
 }
 
-fn bitsType(comptime format: targets.Format) type {
+fn BitsType(comptime format: targets.Format) type {
     return switch (format) {
         .h => u16,
         .f => u32,
@@ -318,12 +312,12 @@ fn bitsType(comptime format: targets.Format) type {
     };
 }
 
-fn decodeLane(comptime format: targets.Format, bits: u64) floatType(format) {
-    return @bitCast(@as(bitsType(format), @truncate(bits)));
+fn decodeLane(comptime format: targets.Format, bits: u64) FloatType(format) {
+    return @bitCast(@as(BitsType(format), @truncate(bits)));
 }
 
-fn encodeLane(comptime format: targets.Format, value: floatType(format)) u64 {
-    return @as(bitsType(format), @bitCast(value));
+fn encodeLane(comptime format: targets.Format, value: FloatType(format)) u64 {
+    return @as(BitsType(format), @bitCast(value));
 }
 
 /// Applies the measured `zmath.vector` entry point to one lane group.
@@ -331,8 +325,8 @@ fn zmathVector(
     comptime operation: Operation,
     comptime format: targets.Format,
     comptime lane_width: u32,
-    lanes: @Vector(lane_width, floatType(format)),
-) @Vector(lane_width, floatType(format)) {
+    lanes: @Vector(lane_width, FloatType(format)),
+) @Vector(lane_width, FloatType(format)) {
     return switch (operation) {
         .exp => switch (format) {
             .h => zmath.vector.exphv(lanes),
@@ -363,8 +357,8 @@ fn loadGroup(
     comptime lane_width: u32,
     samples: *const Samples,
     group: usize,
-) @Vector(lane_width, floatType(format)) {
-    var lanes: @Vector(lane_width, floatType(format)) = undefined;
+) @Vector(lane_width, FloatType(format)) {
+    var lanes: @Vector(lane_width, FloatType(format)) = undefined;
     inline for (0..lane_width) |lane| {
         lanes[lane] = decodeLane(format, samples.inputs[group * lane_width + lane][0].value_bits);
     }
@@ -374,7 +368,7 @@ fn loadGroup(
 fn foldLanes(
     comptime format: targets.Format,
     comptime lane_width: u32,
-    lanes: @Vector(lane_width, floatType(format)),
+    lanes: @Vector(lane_width, FloatType(format)),
     checksum: u64,
 ) u64 {
     var folded = checksum;
@@ -385,14 +379,14 @@ fn foldLanes(
 }
 
 fn measureZmath(
-    io: std.Io,
     comptime operation: Operation,
     comptime format: targets.Format,
+    io: std.Io,
     samples: *const Samples,
     repetitions: u64,
 ) Measurement {
     const lane_width = comptime targets.laneWidthFor(format);
-    return measure(io, lane_width, repetitions, struct {
+    return measure(lane_width, struct {
         fn run(state: MeasureState) u64 {
             const batch = state.samples;
             var checksum: u64 = 0;
@@ -407,18 +401,18 @@ fn measureZmath(
             }
             return checksum;
         }
-    }.run, .{ .samples = samples });
+    }.run, io, repetitions, .{ .samples = samples });
 }
 
 fn measureReference(
+    comptime format: targets.Format,
     io: std.Io,
     reference: *const runner.PreparedRuntime,
-    comptime format: targets.Format,
     samples: *const Samples,
     repetitions: u64,
 ) Measurement {
     const lane_width = comptime targets.laneWidthFor(format);
-    return measure(io, lane_width, repetitions, struct {
+    return measure(lane_width, struct {
         fn run(state: MeasureState) u64 {
             const batch = state.samples;
             const provider = state.reference.?;
@@ -436,14 +430,14 @@ fn measureReference(
             }
             return checksum;
         }
-    }.run, .{ .samples = samples, .reference = reference });
+    }.run, io, repetitions, .{ .samples = samples, .reference = reference });
 }
 
 fn measure(
-    io: std.Io,
     comptime lane_width: u32,
-    repetitions: u64,
     comptime body: *const fn (state: MeasureState) u64,
+    io: std.Io,
+    repetitions: u64,
     state: MeasureState,
 ) Measurement {
     comptime std.debug.assert(lane_width > 0);
@@ -467,10 +461,9 @@ fn measure(
     };
 }
 
-
 fn parseOptions(args: []const []const u8) !Options {
     if (args.len == 0) return error.InvalidArguments;
-    var options = Options{};
+    var options: Options = .{};
     var repetitions_seen = false;
     var index: usize = 1;
     if (args.len > 1 and !std.mem.startsWith(u8, args[1], "--")) {
@@ -530,10 +523,10 @@ fn countRecords(io: std.Io, file: std.Io.File) !struct { count: u64, digest: Dig
 }
 
 fn selectSamples(
+    comptime lane_width: u32,
     io: std.Io,
     file: std.Io.File,
     function: corpus.Function,
-    comptime lane_width: u32,
     samples: *Samples,
 ) !Digest {
     samples.count = @intCast(@min(sample_count_max, samples.corpus_count));
@@ -548,7 +541,10 @@ fn selectSamples(
     while (try corpus.readEncodedRecord(&reader.interface, &frame)) |bytes| : (record_index += 1) {
         if (sample_index == samples.count) return error.RecordCountMismatch;
         hasher.update(bytes);
-        const selected_index = if (samples.count == 1) 0 else @divFloor(@as(u64, sample_index) * (samples.corpus_count - 1), samples.count - 1);
+        const selected_index = if (samples.count == 1) 0 else @divFloor(
+            @as(u64, sample_index) * (samples.corpus_count - 1),
+            samples.count - 1,
+        );
         if (record_index != selected_index) continue;
         const record = try corpus.decodeCorpusRecord(bytes);
         try storeSample(function, samples, sample_index, &record);

@@ -44,7 +44,6 @@ pub fn laneWidthFor(format: Format) u32 {
     };
 }
 
-
 pub const VectorDescriptor = struct {
     name: []const u8,
     corpus_id: []const u8,
@@ -66,7 +65,7 @@ pub const VectorDescriptor = struct {
 
 const repetitions: u64 = 16_384;
 
-pub const vector_exp_h = VectorDescriptor{
+pub const vector_exp_h: VectorDescriptor = .{
     .name = "vector-exp-h",
     .corpus_id = "exp/h",
     .corpus_path = "test/corpus/exp_h.tsv",
@@ -78,7 +77,7 @@ pub const vector_exp_h = VectorDescriptor{
     .corpus_sha256 = "8cdb9a218b9f39d0360979dc4611dd75e76dbd587131df51585fd61f8cb955de",
 };
 
-pub const vector_exp_f = VectorDescriptor{
+pub const vector_exp_f: VectorDescriptor = .{
     .name = "vector-exp-f",
     .corpus_id = "exp/f",
     .corpus_path = "test/corpus/exp_f.tsv",
@@ -90,7 +89,7 @@ pub const vector_exp_f = VectorDescriptor{
     .corpus_sha256 = "24e61b7dd6b49fe5b1b18071810f887e2f79d6c1e7b5a3827f36c127278b4b76",
 };
 
-pub const vector_exp_d = VectorDescriptor{
+pub const vector_exp_d: VectorDescriptor = .{
     .name = "vector-exp-d",
     .corpus_id = "exp/d",
     .corpus_path = "test/corpus/exp_d.tsv",
@@ -102,7 +101,7 @@ pub const vector_exp_d = VectorDescriptor{
     .corpus_sha256 = "cf2223e488905f0a427ec3bd19c39ab515ebedb74739cfd893adcaf734f744ae",
 };
 
-pub const vector_log_h = VectorDescriptor{
+pub const vector_log_h: VectorDescriptor = .{
     .name = "vector-log-h",
     .corpus_id = "log/h",
     .corpus_path = "test/corpus/log_h.tsv",
@@ -114,7 +113,7 @@ pub const vector_log_h = VectorDescriptor{
     .corpus_sha256 = "55ee40b00ef9ce039e8af197673cec9037e34069d74cbe01815c9a6a52b71e12",
 };
 
-pub const vector_log_f = VectorDescriptor{
+pub const vector_log_f: VectorDescriptor = .{
     .name = "vector-log-f",
     .corpus_id = "log/f",
     .corpus_path = "test/corpus/log_f.tsv",
@@ -126,7 +125,7 @@ pub const vector_log_f = VectorDescriptor{
     .corpus_sha256 = "7ba725bff8df9b746ebe8f455ebaf018e60d7fbc0d904f20e102b203e63f2315",
 };
 
-pub const vector_sin_h = VectorDescriptor{
+pub const vector_sin_h: VectorDescriptor = .{
     .name = "vector-sin-h",
     .corpus_id = "sin/h",
     .corpus_path = "test/corpus/sin_h.tsv",
@@ -208,7 +207,7 @@ pub fn validate(descriptor: VectorDescriptor) ParseError!void {
     if (!std.mem.eql(u8, descriptor.corpus_path, expected_path)) {
         return error.InvalidBenchmarkDescriptor;
     }
- }
+}
 
 pub fn parse(name: []const u8) ParseError!*const VectorDescriptor {
     for (&all) |*descriptor| {

@@ -103,8 +103,7 @@ pub fn laneWidthFor(format: targets.Format, operation: Operation) u32 {
         targets.laneWidthFor(format);
 }
 
-
-fn floatType(comptime format: targets.Format) type {
+fn FloatType(comptime format: targets.Format) type {
     return switch (format) {
         .h => f16,
         .f => f32,
@@ -112,7 +111,7 @@ fn floatType(comptime format: targets.Format) type {
     };
 }
 
-fn bitsType(comptime format: targets.Format) type {
+fn BitsType(comptime format: targets.Format) type {
     return switch (format) {
         .h => u16,
         .f => u32,
@@ -120,12 +119,12 @@ fn bitsType(comptime format: targets.Format) type {
     };
 }
 
-fn decodeLane(comptime format: targets.Format, bits: u64) floatType(format) {
-    return @bitCast(@as(bitsType(format), @truncate(bits)));
+fn decodeLane(comptime format: targets.Format, bits: u64) FloatType(format) {
+    return @bitCast(@as(BitsType(format), @truncate(bits)));
 }
 
-fn encodeLane(comptime format: targets.Format, value: floatType(format)) u64 {
-    return @as(bitsType(format), @bitCast(value));
+fn encodeLane(comptime format: targets.Format, value: FloatType(format)) u64 {
+    return @as(BitsType(format), @bitCast(value));
 }
 
 /// Applies the reference operation to one whole lane group. The benchmark times
@@ -134,8 +133,8 @@ fn applyVector(
     comptime format: targets.Format,
     comptime operation: Operation,
     comptime lane_width: u32,
-    input: @Vector(lane_width, floatType(format)),
-) @Vector(lane_width, floatType(format)) {
+    input: @Vector(lane_width, FloatType(format)),
+) @Vector(lane_width, FloatType(format)) {
     return switch (operation) {
         .abs => @abs(input),
         .ceil => @ceil(input),
@@ -153,11 +152,11 @@ fn applyVector(
 fn applyVectorFma(
     comptime format: targets.Format,
     comptime lane_width: u32,
-    first: @Vector(lane_width, floatType(format)),
-    second: @Vector(lane_width, floatType(format)),
-    third: @Vector(lane_width, floatType(format)),
-) @Vector(lane_width, floatType(format)) {
-    return @mulAdd(@Vector(lane_width, floatType(format)), first, second, third);
+    first: @Vector(lane_width, FloatType(format)),
+    second: @Vector(lane_width, FloatType(format)),
+    third: @Vector(lane_width, FloatType(format)),
+) @Vector(lane_width, FloatType(format)) {
+    return @mulAdd(@Vector(lane_width, FloatType(format)), first, second, third);
 }
 
 fn invokerFor(
@@ -167,8 +166,7 @@ fn invokerFor(
 ) Invoker {
     return switch (operation) {
         .fma => fmaInvoker(format, lane_width),
-        .abs, .ceil, .floor, .trunc, .round, .exp, .log, .sin =>
-            unaryInvoker(format, operation, lane_width),
+        .abs, .ceil, .floor, .trunc, .round, .exp, .log, .sin => unaryInvoker(format, operation, lane_width),
     };
 }
 
@@ -177,20 +175,19 @@ fn laneGroup(
     comptime lane_width: u32,
     inputs: *const [corpus.max_argument_count]corpus.OracleInputField,
     offset: usize,
-) @Vector(lane_width, floatType(format)) {
+) @Vector(lane_width, FloatType(format)) {
     std.debug.assert(offset + lane_width <= inputs.len);
-    var lanes: @Vector(lane_width, floatType(format)) = undefined;
+    var lanes: @Vector(lane_width, FloatType(format)) = undefined;
     inline for (0..lane_width) |lane| {
         lanes[lane] = decodeLane(format, inputs[offset + lane].value_bits);
     }
     return lanes;
 }
 
-
 fn laneResults(
     comptime format: targets.Format,
     comptime lane_width: u32,
-    lanes: @Vector(lane_width, floatType(format)),
+    lanes: @Vector(lane_width, FloatType(format)),
 ) runner.RawRuntimeResult {
     var values = [_]u64{0} ** corpus.max_argument_count;
     inline for (0..lane_width) |lane| {
@@ -227,7 +224,6 @@ fn fmaInvoker(
     };
     return &Adapter.invoke;
 }
-
 
 comptime {
     // Every reference operation must have an independent `@Vector` path.
