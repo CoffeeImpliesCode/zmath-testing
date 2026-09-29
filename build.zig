@@ -632,6 +632,20 @@ pub fn build(b: *std.Build) void {
     if (b.args) |args| run_corpus_replay.addArgs(args);
     const replay_step = b.step("replay-corpus", "Verify every published scalar corpus record");
     replay_step.dependOn(&run_corpus_replay.step);
+    // The vector lane is a flag on this executable, not a second module or a
+    // second codec version. It reuses the same ZCDR records and the same
+    // `corpus_runner` module, and `corpus-replay` above already installs the
+    // binary, so this step needs no separate install of its own. A second run
+    // artifact keeps the scalar and vector lanes from sharing one.
+    const run_vector_corpus_replay = b.addRunArtifact(corpus_replay);
+    run_vector_corpus_replay.addArg("test/corpus");
+    run_vector_corpus_replay.addArg("--vector");
+    if (b.args) |args| run_vector_corpus_replay.addArgs(args);
+    const replay_vector_step = b.step(
+        "replay-vector",
+        "Verify every published corpus record through the vector lane",
+    );
+    replay_vector_step.dependOn(&run_vector_corpus_replay.step);
 
     // Zig 0.16's built-in fuzzer expects every __sancov_cntrs byte to have
     // one entry in Zig's __sancov_pcs1. Clang writes two-word C records to
@@ -778,6 +792,39 @@ pub fn build(b: *std.Build) void {
     if (b.args) |args| run_scalar_benchmark.addArgs(args);
     const run_scalar_bench_step = b.step("run-bench-scalar", "Benchmark typed scalar corpora");
     run_scalar_bench_step.dependOn(&run_scalar_benchmark.step);
+
+    const vector_benchmark_module = b.createModule(.{
+        .root_source_file = b.path("bench/vector_matrix.zig"),
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{
+            .{ .name = "scalar_runner", .module = scalar_runner_module },
+            .{ .name = "corpus_support", .module = corpus_support_module },
+            .{ .name = "corpus_set", .module = corpus_set_module },
+            // `bench/vector_matrix.zig` times the `zmath.vector` entry points
+            // directly, so it needs the runtime the scalar matrix reaches only
+            // through its runner module.
+            .{ .name = "zmath", .module = zmath_module },
+        },
+    });
+    vector_benchmark_module.addOptions("active_target_mode", active_options);
+    vector_benchmark_module.addIncludePath(b.path("test/oracle"));
+    vector_benchmark_module.addCSourceFile(.{
+        .file = b.path("test/oracle/oracle_operation_table.c"),
+        .flags = &.{"-std=c11"},
+    });
+    const vector_benchmark = b.addExecutable(.{
+        .name = "zmath-vector-matrix",
+        .root_module = vector_benchmark_module,
+    });
+    const install_vector_benchmark = b.addInstallArtifact(vector_benchmark, .{});
+    const vector_bench_step = b.step("bench-vector", "Build typed vector corpus benchmarks");
+    vector_bench_step.dependOn(&install_vector_benchmark.step);
+    const run_vector_benchmark = b.addRunArtifact(vector_benchmark);
+    run_vector_benchmark.addArg("test/corpus");
+    if (b.args) |args| run_vector_benchmark.addArgs(args);
+    const run_vector_bench_step = b.step("run-bench-vector", "Benchmark typed vector corpora");
+    run_vector_bench_step.dependOn(&run_vector_benchmark.step);
 
     const helpers_module = b.createModule(.{
         .root_source_file = b.path("bench/public_helpers.zig"),

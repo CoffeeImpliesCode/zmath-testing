@@ -132,6 +132,10 @@ and lint outcomes. Numerical verification passed. Its counters are the
 the runtime house gate now passes. The harness style lint still reports
 diagnostics; it is not recorded as passing.
 
+The `replay-vector` and `run-bench-vector` lanes are additional evidence
+recorded by their own build steps, not by that file. They are not counters in
+the 2026-09-09 snapshot and change nothing it records.
+
 ## Deterministic replay and benchmark
 
 The qualified profile is:
@@ -148,6 +152,7 @@ Build the typed tools with:
 zig build oracle-generator -Dtarget=x86_64-linux-gnu.2.38 -Dcpu=haswell -Doptimize=ReleaseSafe
 zig build corpus-replay -Dtarget=x86_64-linux-gnu.2.38 -Dcpu=haswell -Doptimize=ReleaseSafe
 zig build bench-scalar -Dtarget=x86_64-linux-gnu.2.38 -Dcpu=haswell -Doptimize=ReleaseSafe
+zig build bench-vector -Dtarget=x86_64-linux-gnu.2.38 -Dcpu=haswell -Doptimize=ReleaseSafe
 ```
 
 The resulting executables are:
@@ -156,16 +161,21 @@ The resulting executables are:
 zig-out/bin/zmath-testing-corpus-producer
 zig-out/bin/zmath-corpus-replay
 zig-out/bin/zmath-scalar-matrix
+zig-out/bin/zmath-vector-matrix
 ```
 
 Each executable accepts an optional first positional corpus root. The default
 root is `test/corpus`. Each accepts `--operation=<manifest-op>` and
-`--format=h|f|d`; the filters can be used independently or together:
+`--format=h|f|d`; the filters can be used independently or together. The
+vector benchmark also accepts `--repetitions=1..100`; no other executable
+does:
 
 ```text
 zig-out/bin/zmath-testing-corpus-producer test/corpus --operation=atan2 --format=d
 zig-out/bin/zmath-corpus-replay test/corpus --operation=atan2 --format=d
 zig-out/bin/zmath-scalar-matrix test/corpus --operation=atan2 --format=d
+zig-out/bin/zmath-corpus-replay test/corpus --vector --operation=atan2 --format=d
+zig-out/bin/zmath-vector-matrix test/corpus --operation=atan2 --format=d --repetitions=3
 ```
 
 The build wrappers expose these commands:
@@ -174,6 +184,8 @@ The build wrappers expose these commands:
 zig build generate-corpus -Dtarget=x86_64-linux-gnu.2.38 -Dcpu=haswell -Doptimize=ReleaseSafe
 zig build replay-corpus -Dtarget=x86_64-linux-gnu.2.38 -Dcpu=haswell -Doptimize=ReleaseSafe
 zig build run-bench-scalar -Dtarget=x86_64-linux-gnu.2.38 -Dcpu=haswell -Doptimize=ReleaseSafe
+zig build replay-vector -Dtarget=x86_64-linux-gnu.2.38 -Dcpu=haswell -Doptimize=ReleaseSafe
+zig build run-bench-vector -Dtarget=x86_64-linux-gnu.2.38 -Dcpu=haswell -Doptimize=ReleaseSafe
 ```
 
 Append filters after `--` when using a build wrapper. The wrapper passes
@@ -183,7 +195,12 @@ Append filters after `--` when using a build wrapper. The wrapper passes
 zig build generate-corpus -Dtarget=x86_64-linux-gnu.2.38 -Dcpu=haswell -Doptimize=ReleaseSafe -- --operation=atan2 --format=d
 zig build replay-corpus -Dtarget=x86_64-linux-gnu.2.38 -Dcpu=haswell -Doptimize=ReleaseSafe -- --operation=atan2 --format=d
 zig build run-bench-scalar -Dtarget=x86_64-linux-gnu.2.38 -Dcpu=haswell -Doptimize=ReleaseSafe -- --operation=atan2 --format=d
+zig build replay-vector -Dtarget=x86_64-linux-gnu.2.38 -Dcpu=haswell -Doptimize=ReleaseSafe -- --operation=atan2 --format=d
+zig build run-bench-vector -Dtarget=x86_64-linux-gnu.2.38 -Dcpu=haswell -Doptimize=ReleaseSafe -- --operation=exp --format=h --repetitions=3
 ```
+
+Do not append `--vector` to `replay-vector`. The wrapper already supplies it,
+and a repeated `--vector` is rejected.
 
 The generator request and evaluator table use oracle ABI v2.
 Each request carries operation bytes, arity, typed input fields, result layout,
@@ -195,6 +212,32 @@ It does not link or invoke MPFR, Arb, GMP, or FLINT. The scalar benchmark
 validates publication metadata and artifact digests before measurement. It
 reports measurements only and does not grant manifest acceptance or
 whole-domain proof.
+
+The vector lane is a flag on that same executable, so
+`zig-out/bin/zmath-corpus-replay test/corpus --vector` and the
+`zig build replay-vector` wrapper reach it without a new module, a new root
+source file, or a new codec version.
+
+It replays the same stored records through the `zmath.vector` entry points,
+packing four records into each `@Vector(4, T)` group, and asserts every
+result field of lane `i` against the stored accepted bits of record `i`. That
+is corpus-level evidence that the vector surface is bit-identical to the
+accepted scalar results over the published tuples. It reuses the existing
+`ZCDR` version 1 record format, the existing `corpus_runner` module, and the
+published set, so the record codec and the scalar replay path are untouched.
+A descriptor with no `zmath.vector` entry point is reported as uncovered, and
+the lane fails when no descriptor is covered. The final partial group pads
+its unused lanes with the neutral positive zero bit pattern and asserts only
+the lanes that exist, so no record is invented for the tail. Its success line
+is distinct from the scalar one:
+`vector corpus replay verified: descriptors={d} records={d}`.
+
+`run-bench-vector` times that same lane-parallel API over the same published
+corpora and validates publication metadata and artifact digests before
+measurement, exactly as the scalar benchmark does. `zmath.vector` applies the
+identical accepted scalar kernel once per lane, so it is a uniform
+lane-parallel API rather than a hand-written SIMD kernel, and the benchmark
+measures it exactly as it exists.
 
 ## Historical TSV fixtures
 
@@ -460,8 +503,14 @@ Benchmark starts.
 Every timed row invokes the returned opaque binary function pointer with the
 same 1,024-call layout and `DoNotOptimize` policy. No operation switch, input
 generation, audit, or serialization occurs in the timed loop. Results use
-Google Benchmark CPU time per iteration divided by 1,024 calls. They measure
-scalar throughput only, not single-call latency or SIMD/vector performance.
+Google Benchmark CPU time per iteration divided by 1,024 calls. This
+comparative matrix still measures scalar throughput only, not single-call
+latency or SIMD/vector performance, because every provider row is a scalar
+function pointer. The separate `run-bench-vector` lane in this repository is
+the only vector measurement, and it is deliberately modest: `zmath.vector`
+applies the identical accepted scalar kernel once per lane, so it is a
+uniform lane-parallel API and not a hand-written SIMD kernel. The benchmark
+times it as it exists. No speedup over the scalar loop is claimed or implied.
 
 CORE-MATH is an independent pinned reference, not vendored or shared zmath
 code. The DSO exports 121 cached kernels: all 41 binary16 operations and 40

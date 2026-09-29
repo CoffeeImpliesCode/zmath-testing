@@ -15,6 +15,19 @@ const OracleResult = corpus.OracleResult;
 const OracleResultField = corpus.OracleResultField;
 const max_oracle_fields: usize = corpus.max_argument_count;
 
+// Four packed lanes times the two-field result ceiling fill the eight-slot raw
+// word buffer exactly, so a batch never truncates and never overwrites.
+pub const vector_lane_count: usize = 4;
+
+comptime {
+    if (corpus.max_result_field_count > corpus.max_argument_count) {
+        @compileError("result field ceiling exceeds the raw result word buffer");
+    }
+    if (vector_lane_count * corpus.max_result_field_count > corpus.max_argument_count) {
+        @compileError("vector lane count overflows the raw result word buffer");
+    }
+}
+
 pub const UnsupportedReason = enum {
     manifest_status,
     oracle_capability,
@@ -1393,6 +1406,308 @@ fn buildRuntimeTable() RuntimeTable {
 }
 
 const runtime_table = buildRuntimeTable();
+
+// ---------------------------------------------------------------------------
+// Vector replay lane
+// ---------------------------------------------------------------------------
+
+/// Fail-closed errors for a packed vector batch. `VectorLaneBufferOverflow` is
+/// distinct from the shape errors so a batch needing more result words than the
+/// eight-slot buffer holds is rejected instead of truncated.
+pub const VectorBatchError = error{
+    VectorLaneCountOutOfRange,
+    VectorResultFieldCountOverflow,
+    VectorLaneBufferOverflow,
+};
+
+/// One packed lane: the input field slots of a single record, in manifest
+/// argument order.
+pub const VectorLaneGroup = [max_oracle_fields]OracleInputField;
+
+/// Applies one `zmath.vector` entry point to four packed lanes. `groups` holds
+/// one lane per slot, and `out` receives the result words packed lane major:
+/// lane `i` owns `out[i * field_count ..][0..field_count]`.
+pub const VectorRuntimeInvoker = *const fn (
+    groups: *const [vector_lane_count]VectorLaneGroup,
+    out: *[corpus.max_argument_count]u64,
+) void;
+
+/// A vectorizable manifest shape: one elementwise float operation at one scalar
+/// format. The result is always a single float field, because a vector lane
+/// carries one result word per lane.
+pub const VectorRuntimeEntry = struct {
+    operation: []const u8,
+    vector_operation: []const u8,
+    format: corpus.Format,
+    input_count: usize,
+    result_descriptors: [max_oracle_fields]OracleFieldDescriptor,
+    result_count: usize,
+    result_layout: corpus.OracleResultLayout,
+    invoke: VectorRuntimeInvoker,
+};
+
+const VectorRuntimeTable = struct {
+    entries: [corpus.max_function_count]VectorRuntimeEntry,
+    count: usize,
+};
+
+pub const PreparedVectorRuntime = struct {
+    entry: *const VectorRuntimeEntry,
+};
+
+/// A packed batch of consecutive corpus records. `lane_count` is below
+/// `vector_lane_count` only for the final partial group. The invoker computes
+/// every lane, so the unused lanes must carry a defined input, never an
+/// undefined one.
+pub const VectorBatch = struct {
+    groups: [vector_lane_count]VectorLaneGroup,
+    lane_count: usize,
+    values: [corpus.max_argument_count]u64,
+};
+
+// The vector entry point of a root scalar operation, or null when `zmath.vector`
+// does not vectorize it. The name is the operation plus the `v` suffix that
+// every generic vector entry point carries.
+fn vectorEntryName(comptime operation: []const u8) ?[]const u8 {
+    const name = operation ++ "v";
+    return if (comptime @hasDecl(zmath.vector, name)) name else null;
+}
+
+// Every lane is one call of the identical accepted scalar kernel, so lane `i`
+// of the packed result is bit-for-bit the stored scalar result for record `i`.
+fn makeVectorUnaryInvoker(
+    comptime vector_operation: []const u8,
+    comptime format: corpus.Format,
+) VectorRuntimeInvoker {
+    const Float = floatType(format);
+    const Lanes = @Vector(vector_lane_count, Float);
+    const Adapter = struct {
+        fn invoke(
+            groups: *const [vector_lane_count]VectorLaneGroup,
+            out: *[corpus.max_argument_count]u64,
+        ) void {
+            var lanes: Lanes = undefined;
+            inline for (0..vector_lane_count) |lane| {
+                lanes[lane] = decodeFloat(format, groups[lane][0].value_bits);
+            }
+            const result: Lanes = @call(
+                .auto,
+                @field(zmath.vector, vector_operation),
+                .{ lanes },
+            );
+            // The entry has exactly one result field, so the packed word index
+            // of a lane is the lane index.
+            inline for (0..vector_lane_count) |lane| {
+                out[lane] = encodeFloat(format, result[lane]);
+            }
+        }
+    };
+    return &Adapter.invoke;
+}
+
+fn makeVectorBinaryInvoker(
+    comptime vector_operation: []const u8,
+    comptime format: corpus.Format,
+) VectorRuntimeInvoker {
+    const Float = floatType(format);
+    const Lanes = @Vector(vector_lane_count, Float);
+    const Adapter = struct {
+        fn invoke(
+            groups: *const [vector_lane_count]VectorLaneGroup,
+            out: *[corpus.max_argument_count]u64,
+        ) void {
+            var first: Lanes = undefined;
+            var second: Lanes = undefined;
+            inline for (0..vector_lane_count) |lane| {
+                first[lane] = decodeFloat(format, groups[lane][0].value_bits);
+                second[lane] = decodeFloat(format, groups[lane][1].value_bits);
+            }
+            const result: Lanes = @call(
+                .auto,
+                @field(zmath.vector, vector_operation),
+                .{ first, second },
+            );
+            inline for (0..vector_lane_count) |lane| {
+                out[lane] = encodeFloat(format, result[lane]);
+            }
+        }
+    };
+    return &Adapter.invoke;
+}
+
+fn makeVectorEntry(
+    comptime operation: []const u8,
+    comptime vector_operation: []const u8,
+    comptime format: corpus.Format,
+    comptime input_count: usize,
+    comptime result: corpus.ResultDescriptor,
+    comptime invoke: VectorRuntimeInvoker,
+) VectorRuntimeEntry {
+    if (result.oracleFieldCount() != 1) {
+        @compileError("vector entry points carry exactly one float result field");
+    }
+    var result_descriptors: [max_oracle_fields]OracleFieldDescriptor = undefined;
+    inline for (0..result.oracleFieldCount()) |index| {
+        result_descriptors[index] = result.oracleFieldDescriptor(index).?;
+    }
+    return .{
+        .operation = operation,
+        .vector_operation = vector_operation,
+        .format = format,
+        .input_count = input_count,
+        .result_descriptors = result_descriptors,
+        .result_count = result.oracleFieldCount(),
+        .result_layout = result.oracleLayout(),
+        .invoke = invoke,
+    };
+}
+
+fn appendVector(table: *VectorRuntimeTable, entry: VectorRuntimeEntry) void {
+    if (table.count == table.entries.len) @compileError("vector runtime table is full");
+    table.entries[table.count] = entry;
+    table.count += 1;
+}
+
+// The number of entries the builder must emit: one per vectorized operation
+// per scalar format. Computed from the same lists the builder walks, so a
+// dropped operation or format fails the count guard instead of shrinking the
+// table silently.
+const vector_runtime_table_expected_count: usize = blk: {
+    var operations: usize = 0;
+    for (root_unary_operations) |operation| {
+        if (vectorEntryName(operation) != null) operations += 1;
+    }
+    for (root_binary_operations) |operation| {
+        if (vectorEntryName(operation) != null) operations += 1;
+    }
+    break :blk operations * formats.len;
+};
+
+fn buildVectorRuntimeTable() VectorRuntimeTable {
+    @setEvalBranchQuota(2_000_000);
+
+    var table: VectorRuntimeTable = .{ .entries = undefined, .count = 0 };
+
+    inline for (root_unary_operations) |operation| {
+        const vector_operation = comptime vectorEntryName(operation) orelse continue;
+        inline for (formats) |format| {
+            appendVector(&table, makeVectorEntry(
+                operation,
+                vector_operation,
+                format,
+                1,
+                .{ .float = format },
+                makeVectorUnaryInvoker(vector_operation, format),
+            ));
+        }
+    }
+    inline for (root_binary_operations) |operation| {
+        const vector_operation = comptime vectorEntryName(operation) orelse continue;
+        inline for (formats) |format| {
+            appendVector(&table, makeVectorEntry(
+                operation,
+                vector_operation,
+                format,
+                2,
+                .{ .float = format },
+                makeVectorBinaryInvoker(vector_operation, format),
+            ));
+        }
+    }
+    if (table.count != vector_runtime_table_expected_count) {
+        @compileError("vector runtime table does not cover the vectorized descriptor corpus");
+    }
+    return table;
+}
+
+const vector_runtime_table = buildVectorRuntimeTable();
+
+pub fn runtimeVectorEntryForFunction(function: Function) ?*const VectorRuntimeEntry {
+    const arguments = function.arguments();
+    if (@as(usize, function.arity) != arguments.len) return null;
+    const result_format = function.result.floatFormat() orelse return null;
+    for (vector_runtime_table.entries[0..vector_runtime_table.count]) |*entry| {
+        if (!std.mem.eql(u8, function.op, entry.operation)) continue;
+        if (arguments.len != entry.input_count) continue;
+        if (entry.format != result_format) continue;
+        if (function.result.oracleFieldCount() != entry.result_count) continue;
+        if (function.result.oracleLayout() != entry.result_layout) continue;
+        var matches = true;
+        for (arguments) |argument| {
+            if (argument.floatFormat() != entry.format) {
+                matches = false;
+                break;
+            }
+        }
+        if (matches) return entry;
+    }
+    return null;
+}
+
+pub fn prepareVectorRuntime(function: Function) ?PreparedVectorRuntime {
+    const entry = runtimeVectorEntryForFunction(function) orelse return null;
+    return .{ .entry = entry };
+}
+
+pub fn invokeVectorBatch(
+    prepared: *const PreparedVectorRuntime,
+    batch: *VectorBatch,
+) VectorBatchError!void {
+    const field_count = prepared.entry.result_count;
+    if (batch.lane_count == 0 or batch.lane_count > vector_lane_count) {
+        return error.VectorLaneCountOutOfRange;
+    }
+    if (field_count == 0 or field_count > corpus.max_result_field_count) {
+        return error.VectorResultFieldCountOverflow;
+    }
+    if (field_count * vector_lane_count > batch.values.len) {
+        return error.VectorLaneBufferOverflow;
+    }
+    @memset(batch.values[0 .. field_count * vector_lane_count], 0);
+    prepared.entry.invoke(&batch.groups, &batch.values);
+}
+
+pub fn materializeRawVectorRuntimeFields(
+    function: Function,
+    prepared: *const PreparedVectorRuntime,
+    batch: *const VectorBatch,
+    target: *[vector_lane_count][corpus.max_result_field_count]corpus.CorpusField,
+) RunError!usize {
+    if (batch.lane_count == 0 or batch.lane_count > vector_lane_count) {
+        return error.RuntimeShapeMismatch;
+    }
+    const field_count = prepared.entry.result_count;
+    if (field_count == 0 or field_count > corpus.max_result_field_count) {
+        return error.RuntimeShapeMismatch;
+    }
+    var evidence: VerifiedEvidence = undefined;
+    evidence.runtime_status = .ok;
+    evidence.reference_status = .unsupported;
+    evidence.proof_status = .unsupported;
+    evidence.field_count = field_count;
+    for (0..batch.lane_count) |lane| {
+        for (0..field_count) |field| {
+            const descriptor = prepared.entry.result_descriptors[field];
+            const value_bits = batch.values[lane * field_count + field];
+            if (!valueBitsFitDescriptor(descriptor, value_bits)) {
+                return error.RuntimeShapeMismatch;
+            }
+            evidence.fields[field] = .{
+                .descriptor = descriptor,
+                .value_bits = value_bits,
+                .class_code = if (descriptor.kind == .float)
+                    classifyFloatBits(descriptor, value_bits)
+                else
+                    .none,
+                .reserved = 0,
+            };
+        }
+        if (try materializeResultFields(function, &evidence, target[lane][0..]) != field_count) {
+            return error.RuntimeShapeMismatch;
+        }
+    }
+    return batch.lane_count;
+}
 
 fn classifyFloatBits(descriptor: OracleFieldDescriptor, bits: u64) corpus.OracleClass {
     const format = descriptor.format;

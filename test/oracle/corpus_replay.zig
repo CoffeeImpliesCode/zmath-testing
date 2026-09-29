@@ -39,6 +39,14 @@ pub fn main(init: std.process.Init) !void {
         selected_count,
     );
 
+    // The vector lane reuses the published selection, the ZCDR records, and the
+    // per-entry digest and count guards. It is a mode of this executable, so
+    // the scalar path below is untouched.
+    if (parsed.vector) {
+        try runVectorReplay(init.io, directory, &manifest, &published);
+        return;
+    }
+
     var total_records: u64 = 0;
     for (published.entries[0..published.count]) |*entry| {
         const function = &manifest.function_values[entry.signature_index];
@@ -60,6 +68,7 @@ const FilterOptions = struct {
 const ParsedArguments = struct {
     output_root: []const u8,
     filters: FilterOptions,
+    vector: bool = false,
 };
 
 const EncodedInput = struct {
@@ -93,6 +102,9 @@ fn parseArguments(arguments: []const []const u8) !ParsedArguments {
             parsed.filters.format =
                 std.meta.stringToEnum(corpus.Format, format_name) orelse
                 return error.InvalidFormatFilter;
+        } else if (std.mem.eql(u8, argument, "--vector")) {
+            if (parsed.vector) return error.InvalidArguments;
+            parsed.vector = true;
         } else {
             return error.InvalidArguments;
         }
@@ -514,4 +526,245 @@ fn logInputField(field: corpus.CorpusField) void {
         },
         .rounding => |value| std.debug.print("rounding:{s}", .{@tagName(value)}),
     }
+}
+
+// ---------------------------------------------------------------------------
+// Vector replay lane
+// ---------------------------------------------------------------------------
+
+// The vector lane is a flag on this executable, so `zmath-corpus-replay
+// test/corpus --vector` already reaches it. A later build-graph step that wants
+// the lane on its own needs a second `b.addRunArtifact(corpus_replay)` carrying
+// the `test/corpus` positional and the `--vector` argument, plus a step that
+// depends on it. It must not add a module, a root source file, or a corpus codec
+// version: this lane reuses the existing ZCDR records, the existing
+// `corpus_runner` module, and the published set.
+const vector_lane_count: usize = runner.vector_lane_count;
+
+// One frame slot per packed lane plus one, so the record that the order guard
+// compares against stays valid while the next group is read.
+const vector_frame_slots: usize = vector_lane_count + 1;
+
+const PendingVectorRecord = struct {
+    record: corpus.CorpusRecord,
+    inputs: [max_arguments]corpus.OracleInputField,
+};
+
+fn runVectorReplay(
+    io: std.Io,
+    directory: std.Io.Dir,
+    manifest: *const corpus.Manifest,
+    published: *const corpus_set.Set,
+) !void {
+    var covered: u64 = 0;
+    var uncovered: u64 = 0;
+    var total_records: u64 = 0;
+    for (published.entries[0..published.count]) |*entry| {
+        const function = &manifest.function_values[entry.signature_index];
+        const prepared = runner.prepareVectorRuntime(function.*) orelse {
+            uncovered += 1;
+            continue;
+        };
+        const record_count = try replayVectorEntry(
+            io,
+            directory,
+            entry,
+            function,
+            &prepared,
+        );
+        total_records = std.math.add(u64, total_records, record_count) catch
+            return error.RecordCountOverflow;
+        covered += 1;
+    }
+    if (covered == 0) return error.EmptyVectorSelection;
+    if (uncovered != 0) {
+        std.debug.print(
+            "vector corpus replay has no vector entry point: descriptors={}\n",
+            .{uncovered},
+        );
+    }
+    std.debug.print(
+        "vector corpus replay verified: descriptors={} records={}\n",
+        .{ covered, total_records },
+    );
+}
+
+fn replayVectorEntry(
+    io: std.Io,
+    directory: std.Io.Dir,
+    entry: *const corpus_set.Entry,
+    function: *const corpus.Function,
+    prepared: *const runner.PreparedVectorRuntime,
+) !u64 {
+    var record_index: u64 = 0;
+    errdefer |replay_error| std.debug.print(
+        "vector corpus replay entry failed: signature={} operation={s} artifact={s} " ++
+            "record_index={} error={s}\n",
+        .{
+            entry.signature_index,
+            entry.operation,
+            entry.artifact,
+            record_index,
+            @errorName(replay_error),
+        },
+    );
+    if (entry.records == 0) return error.EmptyCorpus;
+
+    const file = try directory.openFile(io, entry.artifact, .{});
+    defer file.close(io);
+    var read_buffer: [file_reader_capacity]u8 = undefined;
+    var file_reader = file.reader(io, &read_buffer);
+    var frame_buffers: [vector_frame_slots][corpus_set.record_buffer_capacity]u8 = undefined;
+    var slot: usize = 0;
+    var pending: [vector_lane_count]PendingVectorRecord = undefined;
+    var pending_count: usize = 0;
+    var previous_record: ?corpus.CorpusRecord = null;
+    var hasher = std.crypto.hash.sha2.Sha256.init(.{});
+
+    while (try corpus.readEncodedRecord(
+        &file_reader.interface,
+        frame_buffers[slot][0..],
+    )) |encoded| {
+        hasher.update(encoded);
+        if (record_index >= entry.records) {
+            std.debug.print(
+                "vector corpus replay count mismatch: signature={} operation={s} " ++
+                    "expected_records={} extra_record_index={}\n",
+                .{
+                    entry.signature_index,
+                    entry.operation,
+                    entry.records,
+                    record_index,
+                },
+            );
+            return error.RecordCountMismatch;
+        }
+
+        const record = try corpus.decodeCorpusRecord(encoded);
+        try validateRecordSignature(function, &record);
+        if (previous_record) |*previous| {
+            try corpus.validateCorpusRecordOrder(previous, &record);
+        }
+        pending[pending_count] = .{ .record = record, .inputs = undefined };
+        try encodeInputs(function, &record, &pending[pending_count].inputs);
+        pending_count += 1;
+        previous_record = record;
+        record_index = std.math.add(u64, record_index, 1) catch
+            return error.RecordCountOverflow;
+        slot = (slot + 1) % vector_frame_slots;
+
+        if (pending_count == vector_lane_count) {
+            try replayVectorGroup(entry, function, prepared, &pending, pending_count);
+            pending_count = 0;
+        }
+    }
+
+    if (pending_count != 0) {
+        try replayVectorGroup(entry, function, prepared, &pending, pending_count);
+    }
+
+    if (record_index != entry.records) {
+        std.debug.print(
+            "vector corpus replay count mismatch: signature={} operation={s} " ++
+                "expected_records={} actual_records={}\n",
+            .{ entry.signature_index, entry.operation, entry.records, record_index },
+        );
+        return error.RecordCountMismatch;
+    }
+    var digest: corpus_set.Digest = undefined;
+    hasher.final(&digest);
+    if (!std.mem.eql(u8, &digest, &entry.digest)) {
+        const expected_hex = std.fmt.bytesToHex(entry.digest, .lower);
+        const actual_hex = std.fmt.bytesToHex(digest, .lower);
+        std.debug.print(
+            "vector corpus replay digest mismatch: signature={} operation={s} " ++
+                "expected_sha256={s} actual_sha256={s}\n",
+            .{
+                entry.signature_index,
+                entry.operation,
+                expected_hex[0..],
+                actual_hex[0..],
+            },
+        );
+        return error.CorpusDigestMismatch;
+    }
+
+    const digest_hex = std.fmt.bytesToHex(digest, .lower);
+    std.debug.print(
+        "vector corpus replay verified: signature={} operation={s} records={} sha256={s}\n",
+        .{ entry.signature_index, entry.operation, record_index, digest_hex[0..] },
+    );
+    return record_index;
+}
+
+// Invokes one packed group and asserts lane `i` against stored record `i`. The
+// streaming, count, and digest guards stay in `replayVectorEntry`, so this loop
+// duplicates the scalar body on purpose instead of refactoring the scalar lane.
+fn replayVectorGroup(
+    entry: *const corpus_set.Entry,
+    function: *const corpus.Function,
+    prepared: *const runner.PreparedVectorRuntime,
+    pending: *const [vector_lane_count]PendingVectorRecord,
+    lane_count: usize,
+) !void {
+    var batch: runner.VectorBatch = .{
+        .groups = undefined,
+        .lane_count = lane_count,
+        .values = [_]u64{0} ** corpus.max_argument_count,
+    };
+    for (0..lane_count) |lane| batch.groups[lane] = pending[lane].inputs;
+    // The tail lanes of a partial group carry the neutral positive zero bit
+    // pattern. The invoker computes every lane, but only the lanes that exist
+    // are asserted, so no record is invented for the tail.
+    for (batch.groups[lane_count..]) |*lane| {
+        lane.* = pending[0].inputs;
+        for (lane[0..]) |*field| field.value_bits = 0;
+    }
+
+    try runner.invokeVectorBatch(prepared, &batch);
+
+    var actual: [vector_lane_count][corpus.max_result_field_count]corpus.CorpusField = undefined;
+    const lanes = try runner.materializeRawVectorRuntimeFields(
+        function.*,
+        prepared,
+        &batch,
+        &actual,
+    );
+    if (lanes != lane_count) return error.RuntimeShapeMismatch;
+    for (0..lane_count) |lane| {
+        errdefer |lane_error| logVectorLaneFailure(
+            entry,
+            lane,
+            &pending[lane].record,
+            lane_error,
+        );
+        const stored = pending[lane].record.results.slice();
+        if (stored.len > corpus.max_result_field_count) return error.RuntimeShapeMismatch;
+        for (actual[lane][0..stored.len], stored) |actual_field, stored_field| {
+            if (!std.meta.eql(actual_field, stored_field)) return error.RuntimeMismatch;
+        }
+    }
+}
+
+fn logVectorLaneFailure(
+    entry: *const corpus_set.Entry,
+    lane: usize,
+    record: *const corpus.CorpusRecord,
+    lane_error: anyerror,
+) void {
+    std.debug.print(
+        "vector corpus replay lane failed: signature={} operation={s} lane={} " ++
+            "error={s} inputs=[",
+        .{
+            entry.signature_index,
+            record.operation,
+            lane,
+            @errorName(lane_error),
+        },
+    );
+    for (record.arguments.slice(), 0..) |field, index| {
+        if (index != 0) std.debug.print(", ", .{});
+        logInputField(field);
+    }
+    std.debug.print("]\n", .{});
 }
