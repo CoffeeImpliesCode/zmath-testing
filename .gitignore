@@ -7,4 +7,8 @@ test/corpus/generated/probes/
 test/corpus/generated/.incomplete
 test/corpus/generated/*.tmp
 bench/results/
-bench/__pycache__/
+.ruff_cache/
+__pycache__/
+.zig-global-cache/
+graphify-out/
+codedb.snapshot
