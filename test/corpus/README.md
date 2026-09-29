@@ -127,8 +127,10 @@ Status promotion does not change numerical descriptor identity or record hashes.
 The loader checks both historical snapshots and the current manifest.
 
 `generated/verification.json` records test, formatting, replay, benchmark,
-and lint outcomes. Numerical verification passed. The runtime house gate and
-harness style lint still report diagnostics; they are not recorded as passing.
+and lint outcomes. Numerical verification passed. Its counters are the
+2026-09-09 publication snapshot: the runtime unit-test count is now 565, and
+the runtime house gate now passes. The harness style lint still reports
+diagnostics; it is not recorded as passing.
 
 ## Deterministic replay and benchmark
 
