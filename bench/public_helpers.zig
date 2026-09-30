@@ -16,10 +16,9 @@ const Operation = enum {
     ulpDistanced,
     scaleBh,
     roundIntegralh,
-    add,
 };
 
-const Format = enum { h, f, d, i32 };
+const Format = enum { h, f, d };
 const Row = struct {
     operation: Operation,
     format: Format,
@@ -41,7 +40,6 @@ const rows = [_]Row{
     .{ .operation = .roundIntegralh, .format = .h, .mode = .toward_zero },
     .{ .operation = .roundIntegralh, .format = .h, .mode = .toward_positive },
     .{ .operation = .roundIntegralh, .format = .h, .mode = .toward_negative },
-    .{ .operation = .add, .format = .i32 },
 };
 
 // Matching positions exercise signed zeros, subnormals, normal boundaries,
@@ -96,7 +94,7 @@ const varied_exponents = [_]i32{
 };
 
 comptime {
-    if (rows.len != 15) @compileError("expected fifteen public helper timing rows");
+    if (rows.len != 14) @compileError("expected fourteen public helper timing rows");
     if (@typeInfo(zmath.ieee.RoundMode).@"enum".fields.len != 4) {
         @compileError("public helper benchmark must cover every RoundMode");
     }
@@ -115,8 +113,6 @@ const Sample = struct {
     peer_f: f32,
     peer_d: f64,
     exponent: i32,
-    add_a: i32,
-    add_b: i32,
 };
 
 const Measurement = struct {
@@ -247,19 +243,6 @@ fn prepareSamples(samples: *[sample_count]Sample) void {
             special_d[(index * 7 + 3) % special_d.len]
         else
             peerBits(u64, bits_d, random_peer, index);
-        const add_a: i32 = switch (index) {
-            0 => std.math.maxInt(i32),
-            1 => std.math.minInt(i32),
-            2 => std.math.maxInt(i32) - 1,
-            3 => std.math.minInt(i32) + 1,
-            else => @as(i32, @intCast(random_h % 2_000_000_000)) - 1_000_000_000,
-        };
-        const add_b: i32 = switch (index) {
-            0, 1 => 0,
-            2 => 1,
-            3 => -1,
-            else => @as(i32, @intCast(random_f % 2_000_000_000)) - 1_000_000_000,
-        };
         sample.* = .{
             .h = @bitCast(bits_h),
             .f = @bitCast(bits_f),
@@ -271,8 +254,6 @@ fn prepareSamples(samples: *[sample_count]Sample) void {
                 special_exponents[index]
             else
                 varied_exponents[index % varied_exponents.len],
-            .add_a = add_a,
-            .add_b = add_b,
         };
     }
 }
@@ -289,14 +270,12 @@ fn digestInputs(comptime row: Row, samples: *const [sample_count]Sample) u64 {
             .classifyh, .ulpDistanceh, .scaleBh, .roundIntegralh => @as(u16, @bitCast(sample.h)),
             .classifyf, .ulpDistancef => @as(u32, @bitCast(sample.f)),
             .classifyd, .ulpDistanced => @as(u64, @bitCast(sample.d)),
-            .add => @as(u32, @bitCast(sample.add_a)),
         });
         switch (row.operation) {
             .ulpDistanceh => digest = mix(digest, @as(u16, @bitCast(sample.peer_h))),
             .ulpDistancef => digest = mix(digest, @as(u32, @bitCast(sample.peer_f))),
             .ulpDistanced => digest = mix(digest, @as(u64, @bitCast(sample.peer_d))),
             .scaleBh => digest = mix(digest, @as(u32, @bitCast(sample.exponent))),
-            .add => digest = mix(digest, @as(u32, @bitCast(sample.add_b))),
             else => {},
         }
     }
@@ -313,7 +292,6 @@ fn evaluate(comptime row: Row, sample: *const Sample) u64 {
         .ulpDistanced => zmath.scalar.ulpDistanced(sample.d, sample.peer_d),
         .scaleBh => @as(u16, @bitCast(zmath.ieee.scaleBh(row.mode.?, sample.h, sample.exponent))),
         .roundIntegralh => @as(u16, @bitCast(zmath.ieee.roundIntegralh(row.mode.?, sample.h))),
-        .add => @as(u32, @bitCast(zmath.add(sample.add_a, sample.add_b))),
     };
 }
 

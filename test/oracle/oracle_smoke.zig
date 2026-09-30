@@ -5,7 +5,12 @@ extern fn zmath_testing_mpfr_smoke() c_int;
 extern fn zmath_testing_arb_smoke() c_int;
 
 test "zmath public-surface smoke check" {
-    try std.testing.expectEqual(@as(i32, 10), zmath.add(3, 7));
+    // The integer `add` this used to call was zig init template text that zmath
+    // no longer exports. Check the same property -- the public surface resolves
+    // and computes -- with an exactly representable IEEE operation.
+    // The literals are annotated because a bare `2.0` is a comptime_float, and
+    // zmath.fma accepts only f16, f32, and f64.
+    try std.testing.expectEqual(@as(f64, 10.0), zmath.fma(@as(f64, 2.0), @as(f64, 3.0), @as(f64, 4.0)));
 }
 
 test "MPFR environment smoke check" {
