@@ -33,7 +33,7 @@ typedef struct z_exact_build {
     uint32_t field_count;
 } z_exact_build;
 
-_Static_assert(ZMATH_TESTING_ORACLE_OPERATION_COUNT == 323,
+_Static_assert(ZMATH_TESTING_ORACLE_OPERATION_COUNT == 337,
                "oracle operation table count drift");
 
 static int z_exact_is_operation(const zmath_testing_oracle_operation_signature *signature,
@@ -1240,6 +1240,316 @@ static int z_exact_eval_round_integral_mode(const zmath_testing_oracle_request *
 }
 
 /*
+ * The non-scalar tranche is decided from the published algebra, not from an
+ * arbitrary-precision evaluation. A quaternion product is the Clifford rules
+ * i*j = k, j*k = i, k*i = j and i*i = j*j = k*k = -1 folded in the order the
+ * specification names, and an algebra involution is a sign flip and a mask
+ * permutation of the coefficients. Both are exact by construction on finite
+ * operands, so they are recomputed here with exact integers rather than with
+ * the host's floating point: z_exact_pack_exact rounds one exact dyadic
+ * magnitude once, and z_exact_multiply and z_exact_add_or_subtract feed it one
+ * IEEE operation at a time so every intermediate carries the rounding the
+ * runtime's own fold gives it.
+ */
+#define Z_EXACT_QUATERNION_COMPONENTS 4u
+#define Z_EXACT_ALGEBRA_COEFFICIENTS 8u
+/* A 128-bit magnitude less one 53-bit binary64 significand and one sticky
+   bit: the widest shift two aligned operands can absorb without loss. */
+#define Z_EXACT_ALIGN_LIMIT 74
+
+/* The manifest names the four components w, x, y, z; the runtime keeps them
+   in the array order x, y, z, w. Each slot therefore lands where the
+   published fold expects it, and the result travels back the same way. */
+static const uint32_t z_exact_quaternion_layout[Z_EXACT_QUATERNION_COMPONENTS] = { 3, 0, 1, 2 };
+
+static int z_exact_decompose_finite(const z_exact_format *format, uint64_t bits,
+                                    z_exact_u128 *magnitude, int *exponent, int *negative) {
+    z_exact_parts parts;
+    if (magnitude == NULL || exponent == NULL || negative == NULL) return 0;
+    *negative = (bits & format->sign_mask) != 0;
+    /* A zero carries no magnitude, so its exponent is arbitrary and the caller
+       fixes it against the other operand instead. */
+    if (z_exact_zero(format, bits)) { *magnitude = 0; *exponent = 0; return 1; }
+    if (!z_exact_parts_of(format, bits, &parts)) return 0;
+    *magnitude = parts.significand;
+    *exponent = parts.exponent;
+    *negative = parts.negative;
+    return 1;
+}
+
+/* This is not z_exact_add_sub: that one jams after three guard bits because
+   it decides a bounded difference, while the folds below must reproduce the
+   runtime's own rounding exactly, one operation at a time. */
+static int z_exact_add_or_subtract(const z_exact_format *format, uint64_t left_bits,
+                                   uint64_t right_bits, int subtract_right,
+                                   uint64_t *result_bits) {
+    z_exact_u128 left_magnitude;
+    z_exact_u128 right_magnitude;
+    int left_exponent;
+    int right_exponent;
+    int left_negative;
+    int right_negative;
+    int common;
+    if (result_bits == NULL) return 0;
+    if (!z_exact_decompose_finite(format, left_bits, &left_magnitude, &left_exponent, &left_negative) ||
+        !z_exact_decompose_finite(format, right_bits, &right_magnitude, &right_exponent, &right_negative)) return 0;
+    right_negative ^= subtract_right != 0;
+    if (left_magnitude == 0 && right_magnitude == 0) {
+        /* A zero against a zero is an exact cancellation, and the sign of an
+           exact zero is +0 unless BOTH operands are -0. That covers the
+           subtraction too, because `right_negative` already carries the
+           sign of -y: -0 - +0 is -0, and -0 - -0 is +0 because -y is +0. */
+        return z_exact_pack_exact(format, 0, 0,
+                                  left_negative != 0 && right_negative != 0,
+                                  result_bits);
+    }
+    /* A magnitude rides on its exponent as `magnitude * 2^exponent`, and the
+       significand is already normalised, so a LARGER exponent is a SMALLER
+       value. Aligning two magnitudes onto one exponent therefore scales the
+       larger exponent DOWN onto the smaller of the two, and never up. A
+       zero carries no magnitude and `z_exact_decompose_finite` reports the
+       arbitrary exponent 0 for it, so it must not decide the common
+       exponent; it takes the other operand's instead, which costs nothing
+       because its magnitude stays 0. */
+    if (left_magnitude == 0) {
+        left_exponent = right_exponent;
+    } else if (right_magnitude == 0) {
+        right_exponent = left_exponent;
+    }
+    common = left_exponent < right_exponent ? left_exponent : right_exponent;
+    if (left_exponent - common > Z_EXACT_ALIGN_LIMIT ||
+        right_exponent - common > Z_EXACT_ALIGN_LIMIT) return 0;
+    left_magnitude <<= (unsigned)(left_exponent - common);
+    right_magnitude <<= (unsigned)(right_exponent - common);
+    if (left_negative == right_negative) {
+        return z_exact_pack_exact(format, left_magnitude + right_magnitude, common,
+                                  left_negative, result_bits);
+    }
+    if (left_magnitude >= right_magnitude) {
+        return z_exact_pack_exact(format, left_magnitude - right_magnitude, common,
+                                  left_negative, result_bits);
+    }
+    return z_exact_pack_exact(format, right_magnitude - left_magnitude, common,
+                              right_negative, result_bits);
+}
+
+static int z_exact_multiply(const z_exact_format *format, uint64_t left_bits,
+                            uint64_t right_bits, uint64_t *result_bits) {
+    z_exact_u128 left_magnitude;
+    z_exact_u128 right_magnitude;
+    int left_exponent;
+    int right_exponent;
+    int left_negative;
+    int right_negative;
+    if (result_bits == NULL) return 0;
+    if (!z_exact_decompose_finite(format, left_bits, &left_magnitude, &left_exponent, &left_negative) ||
+        !z_exact_decompose_finite(format, right_bits, &right_magnitude, &right_exponent, &right_negative)) return 0;
+    return z_exact_pack_exact(format, left_magnitude * right_magnitude,
+                              left_exponent + right_exponent,
+                              left_negative != right_negative, result_bits);
+}
+
+static int z_exact_fold_step(const z_exact_format *format, uint64_t sum, uint64_t left,
+                             uint64_t right, int subtract_right, uint64_t *out) {
+    uint64_t product;
+    if (!z_exact_multiply(format, left, right, &product)) return 0;
+    return z_exact_add_or_subtract(format, sum, product, subtract_right, out);
+}
+
+static int z_exact_eval_quaternion_mul(const zmath_testing_oracle_request *request,
+                                       z_exact_build *build) {
+    z_exact_format format;
+    uint64_t left[Z_EXACT_QUATERNION_COMPONENTS];
+    uint64_t right[Z_EXACT_QUATERNION_COMPONENTS];
+    uint64_t product[Z_EXACT_QUATERNION_COMPONENTS];
+    unsigned slot;
+
+    if (!z_exact_result_format(request, 0, &format)) return 0;
+    for (slot = 0; slot < Z_EXACT_QUATERNION_COMPONENTS; ++slot) {
+        z_exact_format left_format;
+        z_exact_format right_format;
+        z_exact_format result_format;
+        const unsigned index = z_exact_quaternion_layout[slot];
+        if (!z_exact_float_input(request, slot, &left_format, &left[index]) ||
+            !z_exact_float_input(request, Z_EXACT_QUATERNION_COMPONENTS + slot,
+                                 &right_format, &right[index]) ||
+            !z_exact_result_format(request, slot, &result_format)) return 0;
+        if (left_format.width != format.width ||
+            right_format.width != format.width ||
+            result_format.width != format.width) return 0;
+    }
+
+    /* w = a.w*b.w - a.x*b.x - a.y*b.y - a.z*b.z */
+    if (!z_exact_multiply(&format, left[3], right[3], &product[3])) return 0;
+    if (!z_exact_fold_step(&format, product[3], left[0], right[0], 1, &product[3])) return 0;
+    if (!z_exact_fold_step(&format, product[3], left[1], right[1], 1, &product[3])) return 0;
+    if (!z_exact_fold_step(&format, product[3], left[2], right[2], 1, &product[3])) return 0;
+    /* x = a.w*b.x + a.x*b.w + a.y*b.z - a.z*b.y */
+    if (!z_exact_multiply(&format, left[3], right[0], &product[0])) return 0;
+    if (!z_exact_fold_step(&format, product[0], left[0], right[3], 0, &product[0])) return 0;
+    if (!z_exact_fold_step(&format, product[0], left[1], right[2], 0, &product[0])) return 0;
+    if (!z_exact_fold_step(&format, product[0], left[2], right[1], 1, &product[0])) return 0;
+    /* y = a.w*b.y - a.x*b.z + a.y*b.w + a.z*b.x */
+    if (!z_exact_multiply(&format, left[3], right[1], &product[1])) return 0;
+    if (!z_exact_fold_step(&format, product[1], left[0], right[2], 1, &product[1])) return 0;
+    if (!z_exact_fold_step(&format, product[1], left[1], right[3], 0, &product[1])) return 0;
+    if (!z_exact_fold_step(&format, product[1], left[2], right[0], 0, &product[1])) return 0;
+    /* z = a.w*b.z + a.x*b.y - a.y*b.x + a.z*b.w */
+    if (!z_exact_multiply(&format, left[3], right[2], &product[2])) return 0;
+    if (!z_exact_fold_step(&format, product[2], left[0], right[1], 0, &product[2])) return 0;
+    if (!z_exact_fold_step(&format, product[2], left[1], right[0], 1, &product[2])) return 0;
+    if (!z_exact_fold_step(&format, product[2], left[2], right[3], 0, &product[2])) return 0;
+
+    for (slot = 0; slot < Z_EXACT_QUATERNION_COMPONENTS; ++slot) {
+        z_exact_float_result(&build->fields[slot], &format,
+                             product[z_exact_quaternion_layout[slot]]);
+    }
+    return 1;
+}
+
+typedef enum z_exact_algebra_involution {
+    Z_EXACT_ALGEBRA_CONJUGATE,
+    Z_EXACT_ALGEBRA_DUAL,
+    Z_EXACT_ALGEBRA_DUAL_COMPLEMENT,
+    Z_EXACT_ALGEBRA_REVERSE,
+    Z_EXACT_ALGEBRA_INVALID,
+} z_exact_algebra_involution;
+
+static z_exact_algebra_involution z_exact_algebra_involution_of(
+    const zmath_testing_oracle_operation_signature *signature) {
+    if (z_exact_is_operation(signature, "algebraConjugate")) return Z_EXACT_ALGEBRA_CONJUGATE;
+    if (z_exact_is_operation(signature, "algebraDual")) return Z_EXACT_ALGEBRA_DUAL;
+    if (z_exact_is_operation(signature, "algebraDualComplement")) return Z_EXACT_ALGEBRA_DUAL_COMPLEMENT;
+    if (z_exact_is_operation(signature, "algebraReverse")) return Z_EXACT_ALGEBRA_REVERSE;
+    return Z_EXACT_ALGEBRA_INVALID;
+}
+
+static unsigned z_exact_grade_of(unsigned mask) {
+    unsigned grade = 0;
+    while (mask != 0) { grade += mask & 1u; mask >>= 1; }
+    return grade;
+}
+
+/* The grade sign (-1)^(k * (k + offset) / 2), decided on the integer exponent
+   so that no floating point takes part in choosing a sign. */
+static int z_exact_grade_sign(unsigned grade, int offset) {
+    int exponent = ((int)grade * ((int)grade + offset)) / 2;
+    return (exponent % 2) == 0 ? 1 : -1;
+}
+
+/* The right dual is A * inverse(I). Cl(3) has an all-positive metric, so
+   I = e0^e1^e2 squares to -1, hence inverse(I) = -I, and a coefficient moves
+   to the mask of its own blade times I with that product's sign negated.
+   The sign is a property of the BLADE, not of the grade: in Cl(3) e0 sends to
+   -e1^e2, e1 sends to +e0^e2 and e2 sends to -e0^e1, and all three are grade
+   1, so no grade sign can stand in for it. Folding the two blades together
+   from the rules is the point: a per-blade sign that disagreed with the
+   product table would send exactly the blades the grade sign gets wrong to the
+   wrong mask. */
+static unsigned z_exact_cl3_blade_times_pseudoscalar(unsigned mask, int *sign) {
+    unsigned accumulated = 0u;
+    int product_sign = 1;
+    unsigned pass;
+    for (pass = 0; pass < 2u; ++pass) {
+        /* Pass 0 folds the blade itself, pass 1 folds I. */
+        const unsigned source = (pass == 0u) ? mask : (Z_EXACT_ALGEBRA_COEFFICIENTS - 1u);
+        unsigned k;
+        for (k = 0; k < 3u; ++k) {
+            /* Every basis vector already present ABOVE k must be swapped past,
+               and each swap negates. That holds whether e_k then meets the
+               copy already there or joins the blade: the pair collapses to
+               the metric only AFTER those swaps, so the count belongs to both
+               paths and skipping it on the cancelling one loses a sign. */
+            unsigned above;
+            unsigned swaps = 0u;
+            if ((source & (1u << k)) == 0u) continue;
+            above = accumulated >> (k + 1u);
+            while (above != 0u) { swaps += above & 1u; above >>= 1; }
+            if ((swaps % 2u) != 0u) product_sign = -product_sign;
+            /* e_k squared is +1 in an all-positive metric, so a cancelling
+               pair drops out carrying no sign of its own. */
+            if (accumulated & (1u << k)) {
+                accumulated &= ~(1u << k);
+            } else {
+                accumulated |= (1u << k);
+            }
+        }
+    }
+    *sign = product_sign;
+    return accumulated;
+}
+
+static int z_exact_eval_algebra_involution(
+    const zmath_testing_oracle_operation_signature *signature,
+    const zmath_testing_oracle_request *request,
+    z_exact_build *build) {
+    const z_exact_algebra_involution involution = z_exact_algebra_involution_of(signature);
+    uint64_t coefficient[Z_EXACT_ALGEBRA_COEFFICIENTS];
+    z_exact_format format;
+    unsigned index;
+
+    if (involution == Z_EXACT_ALGEBRA_INVALID) return 0;
+    if (!z_exact_result_format(request, 0, &format)) return 0;
+    for (index = 0; index < Z_EXACT_ALGEBRA_COEFFICIENTS; ++index) {
+        z_exact_format field_format;
+        if (!z_exact_float_input(request, index, &field_format, &coefficient[index])) return 0;
+        if (field_format.width != format.width) return 0;
+        /* A NaN has no grade sign and an infinity would turn a sign flip into
+           an invalid product, so neither is answered here. Refusing is the
+           only honest answer for a value this row does not decide. */
+        if (z_exact_nan(&field_format, coefficient[index]) ||
+            z_exact_inf(&field_format, coefficient[index])) return 0;
+    }
+
+    for (index = 0; index < Z_EXACT_ALGEBRA_COEFFICIENTS; ++index) {
+        const unsigned grade = z_exact_grade_of(index);
+        const int reverse_sign = z_exact_grade_sign(grade, -1);
+        unsigned target = index;
+        int scale = 1;
+        uint64_t bits;
+        switch (involution) {
+            case Z_EXACT_ALGEBRA_REVERSE:
+                scale = reverse_sign;
+                break;
+            case Z_EXACT_ALGEBRA_CONJUGATE:
+                scale = z_exact_grade_sign(grade, 1);
+                break;
+            /* Cl(3) carries an all-positive metric, so its pseudoscalar
+               squares to -1 and the right dual is the blade times I with that
+               product's sign negated. The product is folded from the Clifford
+               rules, per blade, because the sign is not a grade sign. */
+            case Z_EXACT_ALGEBRA_DUAL: {
+                int product_sign;
+                const unsigned product =
+                    z_exact_cl3_blade_times_pseudoscalar(index, &product_sign);
+                target = product;
+                scale = -product_sign;
+                break;
+            }
+            case Z_EXACT_ALGEBRA_DUAL_COMPLEMENT:
+                target = (Z_EXACT_ALGEBRA_COEFFICIENTS - 1u) & ~index;
+                scale = 1;
+                break;
+            default:
+                return 0;
+        }
+        /* A product with +1 or -1 is exact on every finite value, so it is a
+           sign-bit flip rather than a floating point multiply. */
+        bits = scale > 0 ? coefficient[index] : coefficient[index] ^ format.sign_mask;
+        /* reverse and conjugate ASSIGN the scaled coefficient; dual and
+           dualComplement ACCUMULATE it into a zero-initialised array, and a
+           round-to-nearest addition of either zero into a positive zero gives
+           a positive zero. */
+        if (involution == Z_EXACT_ALGEBRA_DUAL ||
+            involution == Z_EXACT_ALGEBRA_DUAL_COMPLEMENT) {
+            if (z_exact_zero(&format, bits)) bits = 0;
+        }
+        z_exact_float_result(&build->fields[target], &format, bits);
+    }
+    return 1;
+}
+
+/*
  * The definitional operations are decided by the IEEE 754 definition itself.
  * They share this bit-level machinery with the exact-bits evaluator, but the
  * category is threaded through so an exact-bits row can never be answered by
@@ -1268,8 +1578,10 @@ static void z_exact_evaluate(const zmath_testing_oracle_operation_signature *sig
     else if (z_exact_is_operation(signature, "getPayload") || z_exact_is_operation(signature, "setPayload") || z_exact_is_operation(signature, "setPayloadSig") || z_exact_is_operation(signature, "totalOrder") || z_exact_is_operation(signature, "totalOrderMag")) ok = z_exact_eval_annex_f(signature, request, &build);
     else if (z_exact_is_operation(signature, "classify")) ok = z_exact_eval_classify(request, &build);
     else if (z_exact_is_operation(signature, "ulpDistance")) ok = z_exact_eval_ulp_distance(request, &build);
-    else if (z_exact_is_operation(signature, "scaleB")) ok = z_exact_eval_scale_b(request, &build);
-    else if (z_exact_is_operation(signature, "roundIntegral")) ok = z_exact_eval_round_integral_mode(request, &build);
+    else if (z_exact_is_operation(signature, "scaleB") || z_exact_is_operation(signature, "scaleBd") || z_exact_is_operation(signature, "scaleBf")) ok = z_exact_eval_scale_b(request, &build);
+    else if (z_exact_is_operation(signature, "roundIntegral") || z_exact_is_operation(signature, "roundIntegrald") || z_exact_is_operation(signature, "roundIntegralf")) ok = z_exact_eval_round_integral_mode(request, &build);
+    else if (z_exact_is_operation(signature, "quaternionMul")) ok = z_exact_eval_quaternion_mul(request, &build);
+    else if (z_exact_is_operation(signature, "algebraConjugate") || z_exact_is_operation(signature, "algebraDual") || z_exact_is_operation(signature, "algebraDualComplement") || z_exact_is_operation(signature, "algebraReverse")) ok = z_exact_eval_algebra_involution(signature, request, &build);
     else ok = 0;
     if (!ok) z_exact_fail(result, ZMATH_TESTING_ORACLE_ERROR); else z_exact_finish(result, &build);
 }

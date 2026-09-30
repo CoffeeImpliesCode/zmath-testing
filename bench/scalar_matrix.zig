@@ -326,7 +326,9 @@ fn storeSample(
         };
     }
     const raw = prepared.invoke(inputs);
-    var actual_fields: [2]corpus.CorpusField = undefined;
+    // Sized from the schema, never a literal: a `struct:algebra` result carries
+    // eight fields and a two-element buffer silently refuses every such row.
+    var actual_fields: [corpus.max_result_field_count]corpus.CorpusField = undefined;
     const count = try runner.materializeRawRuntimeFields(function, prepared, raw, &actual_fields);
     if (count != record.results.count) return error.RuntimeMismatch;
     for (actual_fields[0..count], record.results.slice()) |actual, expected| {
@@ -388,7 +390,10 @@ fn measure(
         for (samples.inputs[0..samples.count]) |*inputs| {
             std.mem.doNotOptimizeAway(inputs);
             const result = prepared.invoke(inputs);
-            std.debug.assert(result.field_count <= 2);
+            // The ceiling comes from the schema, not a literal: a
+            // `struct:algebra` result carries eight fields, and the loop below
+            // already iterates whatever the count is.
+            std.debug.assert(result.field_count <= corpus.max_result_field_count);
             for (result.values[0..result.field_count]) |bits| {
                 checksum = (checksum ^ bits) *% 0x100_0000_01b3;
             }

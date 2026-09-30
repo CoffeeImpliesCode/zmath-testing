@@ -15,8 +15,10 @@ const OracleResult = corpus.OracleResult;
 const OracleResultField = corpus.OracleResultField;
 const max_oracle_fields: usize = corpus.max_argument_count;
 
-// Four packed lanes times the two-field result ceiling fill the eight-slot raw
-// word buffer exactly, so a batch never truncates and never overwrites.
+// Four packed lanes times the eight-field result ceiling fill the thirty-two
+// slot raw word buffer exactly, so a batch never truncates and never
+// overwrites. Only the single-float entries reach this lane; the ceiling is
+// what keeps the worst case honest.
 pub const vector_lane_count: usize = 4;
 
 comptime {
@@ -1243,6 +1245,177 @@ fn makeRoundIntegralInvoker(
     return &Adapter.invoke;
 }
 
+// The quaternion operand is two four-component factors in one format, the
+// first factor then the second, each named w, x, y, z. The manifest row fixes
+// that layout, so the invoker reads the slots the row pins rather than
+// inferring one, and the result leaves in the same order.
+fn makeQuaternionMulInvoker(comptime format: corpus.Format) RuntimeInvoker {
+    const Quat = switch (format) {
+        .f => zmath.quaternion.Quatf,
+        .d => zmath.quaternion.Quatd,
+        // A quaternion has no binary16 instantiation; the descriptor builder
+        // publishes it at binary32 and binary64 only.
+        .h => unreachable,
+    };
+    const Adapter = struct {
+        fn invoke(inputs: *const [max_oracle_fields]OracleInputField) RawRuntimeResult {
+            const left = Quat.init(
+                decodeFloat(format, inputs[1].value_bits),
+                decodeFloat(format, inputs[2].value_bits),
+                decodeFloat(format, inputs[3].value_bits),
+                decodeFloat(format, inputs[0].value_bits),
+            );
+            const right = Quat.init(
+                decodeFloat(format, inputs[5].value_bits),
+                decodeFloat(format, inputs[6].value_bits),
+                decodeFloat(format, inputs[7].value_bits),
+                decodeFloat(format, inputs[4].value_bits),
+            );
+            const product = left.mul(right);
+            var result = emptyRawRuntimeResult();
+            result.values[0] = encodeFloat(format, product.w);
+            result.values[1] = encodeFloat(format, product.x);
+            result.values[2] = encodeFloat(format, product.y);
+            result.values[3] = encodeFloat(format, product.z);
+            result.field_count = 4;
+            return result;
+        }
+    };
+    return &Adapter.invoke;
+}
+
+// One Cl(3) multivector is eight coefficients in one format, in ascending
+// basis-blade mask order, which is the order the runtime stores them in and
+// the order the manifest lists them.
+//
+// The manifest spells each involution with an `algebra` prefix that the zmath
+// method does not carry, so there is one maker per involution and each names
+// its own method in its own body. A method that stops existing is then a
+// compile error at the line that calls it, rather than a lookup of a manifest
+// name against a member that never existed.
+fn algebraType(comptime format: corpus.Format) type {
+    return switch (format) {
+        .f => zmath.algebra.Cl3f,
+        .d => zmath.algebra.Cl3d,
+        // Cl3f and Cl3d are the two published Cl(3) instantiations, so the
+        // descriptor builder publishes a row at binary32 and binary64 only.
+        .h => unreachable,
+    };
+}
+
+fn decodeAlgebra(
+    comptime format: corpus.Format,
+    comptime Algebra: type,
+    inputs: *const [max_oracle_fields]OracleInputField,
+) Algebra {
+    var coefficients: [Algebra.coefficient_count]FloatType(format) = undefined;
+    for (&coefficients, 0..) |*coefficient, index| {
+        coefficient.* = decodeFloat(format, inputs[index].value_bits);
+    }
+    return Algebra.fromCoefficients(coefficients);
+}
+
+fn encodeAlgebra(
+    comptime format: corpus.Format,
+    comptime Algebra: type,
+    image: Algebra,
+) RawRuntimeResult {
+    var result = emptyRawRuntimeResult();
+    for (image.coefficients(), 0..) |coefficient, index| {
+        result.values[index] = encodeFloat(format, coefficient);
+    }
+    result.field_count = Algebra.coefficient_count;
+    return result;
+}
+
+/// The Clifford conjugate, the grade sign `(-1)^(k * (k + 1) / 2)`.
+fn makeAlgebraConjugateInvoker(comptime format: corpus.Format) RuntimeInvoker {
+    const Algebra = algebraType(format);
+    const Adapter = struct {
+        fn invoke(inputs: *const [max_oracle_fields]OracleInputField) RawRuntimeResult {
+            return encodeAlgebra(
+                format,
+                Algebra,
+                decodeAlgebra(format, Algebra, inputs).conjugate(),
+            );
+        }
+    };
+    return &Adapter.invoke;
+}
+
+/// The right dual `A * inverse(I)`: the complement blade carrying the sign the
+/// product table gives for that blade times `I`, divided by `I * I`. The sign
+/// therefore depends on the blade and not only on its grade.
+fn makeAlgebraDualInvoker(comptime format: corpus.Format) RuntimeInvoker {
+    const Algebra = algebraType(format);
+    const Adapter = struct {
+        fn invoke(inputs: *const [max_oracle_fields]OracleInputField) RawRuntimeResult {
+            return encodeAlgebra(
+                format,
+                Algebra,
+                decodeAlgebra(format, Algebra, inputs).dual(),
+            );
+        }
+    };
+    return &Adapter.invoke;
+}
+
+/// The complementary dual, which drops the dual sign and keeps the complement.
+fn makeAlgebraDualComplementInvoker(comptime format: corpus.Format) RuntimeInvoker {
+    const Algebra = algebraType(format);
+    const Adapter = struct {
+        fn invoke(inputs: *const [max_oracle_fields]OracleInputField) RawRuntimeResult {
+            return encodeAlgebra(
+                format,
+                Algebra,
+                decodeAlgebra(format, Algebra, inputs).dualComplement(),
+            );
+        }
+    };
+    return &Adapter.invoke;
+}
+
+/// The grade reversal, the grade sign `(-1)^(k * (k - 1) / 2)`.
+fn makeAlgebraReverseInvoker(comptime format: corpus.Format) RuntimeInvoker {
+    const Algebra = algebraType(format);
+    const Adapter = struct {
+        fn invoke(inputs: *const [max_oracle_fields]OracleInputField) RawRuntimeResult {
+            return encodeAlgebra(
+                format,
+                Algebra,
+                decodeAlgebra(format, Algebra, inputs).reverse(),
+            );
+        }
+    };
+    return &Adapter.invoke;
+}
+
+// The eight coefficients are the same list for every involution, so it is
+// written once here and each row in the runtime table names the operation and
+// the maker that calls the zmath method for it.
+fn appendAlgebraEntry(
+    table: *RuntimeTable,
+    comptime operation: []const u8,
+    comptime format: corpus.Format,
+    comptime invoker: RuntimeInvoker,
+) void {
+    append(table, makeEntry(
+        operation,
+        .{
+            floatArgument(format),
+            floatArgument(format),
+            floatArgument(format),
+            floatArgument(format),
+            floatArgument(format),
+            floatArgument(format),
+            floatArgument(format),
+            floatArgument(format),
+        },
+        structureResult(.algebra, format),
+        invoker,
+    ));
+}
+
 const NarrowSpec = struct {
     operation: []const u8,
     input_format: corpus.Format,
@@ -1609,6 +1782,93 @@ fn buildRuntimeTable() RuntimeTable {
         .{ .float = .h },
         makeRoundIntegralInvoker("roundIntegralh", .h),
     ));
+    // The format-suffixed forms of scaleB and roundIntegral follow the same
+    // shape as their binary16 siblings and reach the other three rounding
+    // directions through the same round_mode field, so one row each is the
+    // whole inventory rather than a format loop.
+    append(&table, makeEntry(
+        "scaleBf",
+        .{
+            @as(corpus.InputDescriptor, .round_mode),
+            floatArgument(.f),
+            integerArgument(.i32),
+        },
+        .{ .float = .f },
+        makeScaleBInvoker("scaleBf", .f, .i32),
+    ));
+    append(&table, makeEntry(
+        "scaleBd",
+        .{
+            @as(corpus.InputDescriptor, .round_mode),
+            floatArgument(.d),
+            integerArgument(.i32),
+        },
+        .{ .float = .d },
+        makeScaleBInvoker("scaleBd", .d, .i32),
+    ));
+    append(&table, makeEntry(
+        "roundIntegralf",
+        .{ @as(corpus.InputDescriptor, .round_mode), floatArgument(.f) },
+        .{ .float = .f },
+        makeRoundIntegralInvoker("roundIntegralf", .f),
+    ));
+    append(&table, makeEntry(
+        "roundIntegrald",
+        .{ @as(corpus.InputDescriptor, .round_mode), floatArgument(.d) },
+        .{ .float = .d },
+        makeRoundIntegralInvoker("roundIntegrald", .d),
+    ));
+
+    // Two four-component factors and four components back. The eight
+    // arguments are the first factor then the second, each w, x, y, z.
+    inline for ([_]corpus.Format{ .f, .d }) |format| {
+        append(&table, makeEntry(
+            "quaternionMul",
+            .{
+                floatArgument(format),
+                floatArgument(format),
+                floatArgument(format),
+                floatArgument(format),
+                floatArgument(format),
+                floatArgument(format),
+                floatArgument(format),
+                floatArgument(format),
+            },
+            structureResult(.quaternion, format),
+            makeQuaternionMulInvoker(format),
+        ));
+    }
+
+    // One Cl(3) multivector in, the same eight coefficients out. The manifest
+    // operation and the zmath method it calls are written against each other
+    // here, one row each, so the pairing is read off the table rather than
+    // inferred from a name.
+    inline for ([_]corpus.Format{ .f, .d }) |format| {
+        appendAlgebraEntry(
+            &table,
+            "algebraConjugate",
+            format,
+            makeAlgebraConjugateInvoker(format),
+        );
+        appendAlgebraEntry(
+            &table,
+            "algebraDual",
+            format,
+            makeAlgebraDualInvoker(format),
+        );
+        appendAlgebraEntry(
+            &table,
+            "algebraDualComplement",
+            format,
+            makeAlgebraDualComplementInvoker(format),
+        );
+        appendAlgebraEntry(
+            &table,
+            "algebraReverse",
+            format,
+            makeAlgebraReverseInvoker(format),
+        );
+    }
 
     inline for (narrow_unary_operations) |spec| {
         append(&table, makeEntry(
@@ -1660,7 +1920,7 @@ fn buildRuntimeTable() RuntimeTable {
             ),
         ));
     }
-    if (table.count != 323) @compileError("runtime table does not cover the 323-row descriptor corpus");
+    if (table.count != 337) @compileError("runtime table does not cover the 337-row descriptor corpus");
     return table;
 }
 
@@ -2253,7 +2513,7 @@ fn runExpDirect(format: corpus.Format, input_bits: u64) RunError!void {
     if (proof.field_count != 1 or proof.fields[0].class_code != candidate_class) return error.ProofShapeMismatch;
 }
 
-// This path is intentionally Exp-only. It avoids the full 323-entry dispatch table.
+// This path is intentionally Exp-only. It avoids the full 337-entry dispatch table.
 pub fn runExp(format: corpus.Format, input_bits: u64) RunError!void {
     return runExpDirect(format, input_bits);
 }

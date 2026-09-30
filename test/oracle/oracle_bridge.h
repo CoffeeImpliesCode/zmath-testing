@@ -64,6 +64,15 @@ enum zmath_testing_oracle_structure_kind {
     ZMATH_TESTING_ORACLE_STRUCTURE_ATAN2 = 7,
     ZMATH_TESTING_ORACLE_STRUCTURE_POWER = 8,
     ZMATH_TESTING_ORACLE_STRUCTURE_INTEGER = 9,
+    /*
+     * Two non-scalar results extend the value space of this enumeration; they
+     * do not move any existing enumerator and no struct layout changes, so the
+     * ABI version stays at 2. A reader that predates them meets 10 or 11 in
+     * zmath_testing_structure_field_count, whose default arm refuses, so the
+     * extension fails closed instead of being reinterpreted.
+     */
+    ZMATH_TESTING_ORACLE_STRUCTURE_QUATERNION = 10,
+    ZMATH_TESTING_ORACLE_STRUCTURE_ALGEBRA = 11,
 };
 
 enum zmath_testing_oracle_class {

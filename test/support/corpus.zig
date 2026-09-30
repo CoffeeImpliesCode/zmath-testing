@@ -2,16 +2,25 @@ const std = @import("std");
 
 pub const manifest_text = @embedFile("corpus/manifest.toml");
 
-pub const canonical_function_count: usize = 323;
+pub const canonical_function_count: usize = 337;
 pub const function_count_max: usize = canonical_function_count;
 pub const max_function_count: usize = function_count_max;
 const function_key_count: usize = 9;
-const input_count_max: usize = 3;
+// The widest input list in the vocabulary is eight coefficients, the whole of
+// one quaternion or one Cl(3) multivector. Every narrower operation leaves the
+// tail at its declared default.
+const input_count_max: usize = 8;
 const manifest_bytes_max: usize = 256 * 1024;
 const manifest_line_bytes_max: usize = 512;
 
-pub const max_argument_count: usize = 8;
-pub const max_result_field_count: usize = 2;
+// The raw result word buffer and the descriptor list share this ceiling, and
+// the vector lane guard in corpus_runner pins it to at least four packed lanes
+// of the widest result. An eight-coefficient algebra result therefore forces
+// thirty-two, and every array sized by it follows.
+pub const max_argument_count: usize = 32;
+// Two fields covered every structure until the non-scalar tranche added a
+// four-component quaternion and an eight-coefficient multivector.
+pub const max_result_field_count: usize = 8;
 pub const max_provenance_count: usize = 2;
 pub const oracle_abi_version: u32 = 2;
 
@@ -60,6 +69,8 @@ pub const OracleStructureKind = enum(c_uint) {
     atan2 = 7,
     power = 8,
     integer = 9,
+    quaternion = 10,
+    algebra = 11,
     _,
 };
 
@@ -277,6 +288,10 @@ pub const ManifestOperation = enum(u8) {
     acos,
     acosh,
     acospi,
+    algebraConjugate,
+    algebraDual,
+    algebraDualComplement,
+    algebraReverse,
     asin,
     asinh,
     asinpi,
@@ -371,17 +386,22 @@ pub const ManifestOperation = enum(u8) {
     pow,
     pown,
     powr,
+    quaternionMul,
     remainder,
     remquo,
     rint,
     rootn,
     round,
     roundIntegral,
+    roundIntegrald,
+    roundIntegralf,
     roundeven,
     rsqrt,
     scalbln,
     scalbn,
     scaleB,
+    scaleBd,
+    scaleBf,
     setPayload,
     setPayloadSig,
     sin,
@@ -531,6 +551,7 @@ pub const IntegerType = enum(u8) {
 };
 
 pub const StructureKind = enum(u8) {
+    algebra,
     atan2,
     canonicalize,
     frexp,
@@ -539,6 +560,7 @@ pub const StructureKind = enum(u8) {
     modf,
     payload,
     power,
+    quaternion,
     remquo,
 
     pub fn oracleCode(kind: StructureKind) u8 {
@@ -552,6 +574,8 @@ pub const StructureKind = enum(u8) {
             .atan2 => 7,
             .power => 8,
             .integer => 9,
+            .quaternion => 10,
+            .algebra => 11,
         };
     }
 };
@@ -620,7 +644,9 @@ pub const InputDescriptor = union(enum) {
 };
 
 pub const InputList = struct {
-    descriptors: [input_count_max]InputDescriptor = .{ .tag, .tag, .tag },
+    descriptors: [input_count_max]InputDescriptor = .{
+        .tag, .tag, .tag, .tag, .tag, .tag, .tag, .tag,
+    },
     count: u8 = 0,
 };
 
@@ -691,7 +717,15 @@ pub const ResultDescriptor = union(enum) {
     pub fn oracleFieldCount(descriptor: ResultDescriptor) usize {
         return switch (descriptor) {
             .float, .integer, .boolean, .classification => 1,
-            .structure => 2,
+            // Every published structure but the two non-scalar ones carries a
+            // value and an auxiliary integer or boolean. A quaternion is four
+            // components and a Cl(3) multivector is eight coefficients, both in
+            // one format, so the count follows the kind rather than a constant.
+            .structure => |structure| switch (structure.kind) {
+                .quaternion => 4,
+                .algebra => 8,
+                else => 2,
+            },
         };
     }
 
@@ -713,6 +747,13 @@ pub const ResultDescriptor = union(enum) {
                         if (index == 1) return IntegerType.i32.oracleDescriptor();
                     },
                     .modf => if (index == 0 or index == 1) return float_descriptor,
+                    // The component order is w, x, y, z in the Hamilton product
+                    // the runtime evaluates; the operand order is the same
+                    // layout twice over, first factor then second factor.
+                    .quaternion => if (index < 4) return float_descriptor,
+                    // One coefficient per basis blade of Cl(3), in ascending
+                    // mask order, which is the order the runtime stores.
+                    .algebra => if (index < 8) return float_descriptor,
                     .lgamma => {
                         if (index == 0) return float_descriptor;
                         if (index == 1) return IntegerType.i2.oracleDescriptor();
@@ -745,7 +786,13 @@ pub const ProvenanceList = struct {
 };
 
 pub const ArgumentList = struct {
+    // The whole of the widest signature, one eight-coefficient multivector or
+    // two four-component factors. Every narrower operation leaves the tail at
+    // its declared default.
     descriptors: [max_argument_count]InputDescriptor = .{
+        .tag, .tag, .tag, .tag, .tag, .tag, .tag, .tag,
+        .tag, .tag, .tag, .tag, .tag, .tag, .tag, .tag,
+        .tag, .tag, .tag, .tag, .tag, .tag, .tag, .tag,
         .tag, .tag, .tag, .tag, .tag, .tag, .tag, .tag,
     },
     count: u8 = 0,
@@ -1074,7 +1121,7 @@ pub const CorpusRecord = struct {
     provenance: ProvenanceList,
     arguments: DescriptorList(CorpusField, max_argument_count),
     result_descriptor: ResultDescriptor,
-    results: DescriptorList(CorpusField, 2),
+    results: DescriptorList(CorpusField, max_result_field_count),
     max_ulp: u64,
 
     pub const InitOptions = struct {
@@ -1361,6 +1408,8 @@ fn corpusStructureCode(kind: StructureKind) u8 {
         .atan2 => 6,
         .power => 7,
         .integer => 8,
+        .quaternion => 9,
+        .algebra => 10,
     };
 }
 fn parseCorpusStructure(code: u8) CorpusRecordError!StructureKind {
@@ -1374,6 +1423,8 @@ fn parseCorpusStructure(code: u8) CorpusRecordError!StructureKind {
         6 => .atan2,
         7 => .power,
         8 => .integer,
+        9 => .quaternion,
+        10 => .algebra,
         else => error.UnknownStructureKind,
     };
 }
@@ -1941,30 +1992,60 @@ fn compareProvenance(previous: ProvenanceList, current: ProvenanceList) std.math
     return std.math.order(previous.count, current.count);
 }
 
-pub fn validateCorpusRecordOrder(
+// The canonical order of the records in one artifact, and the single order
+// every producer and every consumer of a record file agrees on.
+//
+// A manifest row order is the provenance array, then the case-sensitive
+// operation spelling, then the typed format in `h`, `f`, `d` order, and the
+// generator writes one descriptor's records in that manifest order. Provenance
+// therefore leads here too. Ordering operation bytes first was only ever
+// indistinguishable from this: with one provenance the two keys agree, so none
+// of the 301 `["zmath"]` rows noticed. With two provenances they do not. The
+// 337-row manifest closes its `["zmath"]` block at `ulpDistance` and opens its
+// `["zmath", "core_math"]` block at `acospi`, and `ulpDistance` sorts after
+// `acospi`, so an operation-major key rejected the provenance boundary of
+// every publication it was asked to read.
+//
+// The five operations whose result descriptor carries no format (`classify`,
+// `ilogb`, `llogb`, `totalOrder`, `totalOrderMag`) tie all three keys across
+// their `h`, `f`, and `d` rows. The argument keys below separate them, because
+// a float field's format code is the same `h`, `f`, `d` order the manifest
+// uses.
+pub fn compareCorpusRecords(
     previous: *const CorpusRecord,
     current: *const CorpusRecord,
-) CorpusRecordError!void {
-    const operation_order = std.mem.order(u8, previous.operation, current.operation);
-    if (operation_order == .gt) return error.UnsortedCorpusRecord;
-    if (operation_order == .lt) return;
+) std.math.Order {
     const provenance_order = compareProvenance(previous.provenance, current.provenance);
-    if (provenance_order == .gt) return error.UnsortedCorpusRecord;
-    if (provenance_order == .lt) return;
+    if (provenance_order != .eq) return provenance_order;
+    const operation_order = std.mem.order(u8, previous.operation, current.operation);
+    if (operation_order != .eq) return operation_order;
     const descriptor_order = compareCorpusResultDescriptor(
         previous.result_descriptor,
         current.result_descriptor,
     );
-    if (descriptor_order == .gt) return error.UnsortedCorpusRecord;
-    if (descriptor_order == .lt) return;
-    if (previous.arguments.count < current.arguments.count) return;
-    if (previous.arguments.count > current.arguments.count) return error.UnsortedCorpusRecord;
+    if (descriptor_order != .eq) return descriptor_order;
+    if (previous.arguments.count != current.arguments.count) {
+        return std.math.order(previous.arguments.count, current.arguments.count);
+    }
     for (previous.arguments.slice(), current.arguments.slice()) |previous_field, current_field| {
         const field_order = compareCorpusField(previous_field, current_field);
-        if (field_order == .gt) return error.UnsortedCorpusRecord;
-        if (field_order == .lt) return;
+        if (field_order != .eq) return field_order;
     }
-    return error.DuplicateCorpusRecord;
+    return .eq;
+}
+
+// The gate form of `compareCorpusRecords`. `.eq` is a record the artifact
+// already holds, which is a different fault from a record stored out of order,
+// so the two stay separate errors and neither is folded into the other.
+pub fn validateCorpusRecordOrder(
+    previous: *const CorpusRecord,
+    current: *const CorpusRecord,
+) CorpusRecordError!void {
+    return switch (compareCorpusRecords(previous, current)) {
+        .lt => {},
+        .gt => error.UnsortedCorpusRecord,
+        .eq => error.DuplicateCorpusRecord,
+    };
 }
 
 pub const CorpusRecordIterator = struct {
@@ -2127,14 +2208,33 @@ fn narrowingSignature(operation: ManifestOperation) ?NarrowingSignature {
     };
 }
 
-// zmath.ieee exposes scaleB and roundIntegral for binary16 only. The format is
-// part of the manifest key, so one row per operation is the whole inventory.
-// The rounding direction is an input value, never a descriptor, so it cannot
+// zmath.ieee spells one operation name per format for scaleB and roundIntegral,
+// so the format is pinned by the name rather than chosen by the loop. The
+// rounding direction is an input value, never a descriptor, so it cannot
 // multiply the row count.
-fn binary16OnlyOperation(operation: ManifestOperation) bool {
+fn pinnedFormatOperation(operation: ManifestOperation) ?Format {
     return switch (operation) {
-        .roundIntegral, .scaleB => true,
-        else => false,
+        .roundIntegral, .scaleB => .h,
+        .roundIntegralf, .scaleBf => .f,
+        .roundIntegrald, .scaleBd => .d,
+        else => null,
+    };
+}
+
+const binary32_and_64 = [_]Format{ .f, .d };
+
+// The non-scalar tranche has no binary16 instantiation: a quaternion and a
+// Cl(3) multivector are published at binary32 and binary64 only. An absent
+// instantiation is a missing row, not a three-format loop.
+fn nonScalarFormats(operation: ManifestOperation) ?[]const Format {
+    return switch (operation) {
+        .algebraConjugate,
+        .algebraDual,
+        .algebraDualComplement,
+        .algebraReverse,
+        .quaternionMul,
+        => binary32_and_64[0..],
+        else => null,
     };
 }
 
@@ -2163,13 +2263,17 @@ const SignatureShape = enum {
     binary_ulp_distance,
     scale_b,
     round_integral,
+    quaternion_mul,
+    algebra_involution,
 };
 
 const canonical_function_descriptors: [canonical_function_count]FunctionDescriptor =
-    buildCanonicalFunctionDescriptors();
+    buildCanonicalFunctionDescriptors() catch @compileError(
+        "the canonical descriptor inventory does not build",
+    );
 
-fn buildCanonicalFunctionDescriptors() [canonical_function_count]FunctionDescriptor {
-    // Bound: 16 backward branches for each of the 323 canonical rows.
+fn buildCanonicalFunctionDescriptors() ValidationError![canonical_function_count]FunctionDescriptor {
+    // Bound: 16 backward branches for each of the canonical rows.
     @setEvalBranchQuota(@intCast(canonical_function_count * 16));
     var descriptors: [canonical_function_count]FunctionDescriptor = undefined;
     var count: usize = 0;
@@ -2177,9 +2281,14 @@ fn buildCanonicalFunctionDescriptors() [canonical_function_count]FunctionDescrip
         const core_math = provenance == .zmath_core_math;
         inline for (std.meta.tags(ManifestOperation)) |operation| {
             if (isCoreMathOperation(operation) != core_math) continue;
-            if (binary16OnlyOperation(operation)) {
-                descriptors[count] = standardDescriptor(operation, provenance, .h);
+            if (pinnedFormatOperation(operation)) |only| {
+                descriptors[count] = try standardDescriptor(operation, provenance, only);
                 count += 1;
+            } else if (nonScalarFormats(operation)) |formats| {
+                inline for (formats) |format| {
+                    descriptors[count] = try standardDescriptor(operation, provenance, format);
+                    count += 1;
+                }
             } else if (narrowingSignature(operation)) |signature| {
                 descriptors[count] = .{
                     .operation = operation,
@@ -2192,7 +2301,7 @@ fn buildCanonicalFunctionDescriptors() [canonical_function_count]FunctionDescrip
                 count += 1;
             } else {
                 inline for (.{ Format.h, Format.f, Format.d }) |format| {
-                    descriptors[count] = standardDescriptor(operation, provenance, format);
+                    descriptors[count] = try standardDescriptor(operation, provenance, format);
                     count += 1;
                 }
             }
@@ -2200,7 +2309,7 @@ fn buildCanonicalFunctionDescriptors() [canonical_function_count]FunctionDescrip
     }
     comptime {
         if (count != canonical_function_count) {
-            @compileError("canonical descriptor inventory is not 323 rows");
+            @compileError("canonical descriptor inventory does not match the published row count");
         }
     }
     return descriptors;
@@ -2210,7 +2319,7 @@ fn standardDescriptor(
     operation: ManifestOperation,
     provenance: Provenance,
     format: Format,
-) FunctionDescriptor {
+) ValidationError!FunctionDescriptor {
     const shape = signatureShape(operation) orelse
         @compileError("ordinary operation has no exact signature");
     return switch (shape) {
@@ -2235,10 +2344,7 @@ fn standardDescriptor(
             .provenance = provenance,
             .format = format,
             .arity = 2,
-            .inputs = .{
-                .descriptors = .{ .{ .float = format }, .{ .integer = .i64 }, .tag },
-                .count = 2,
-            },
+            .inputs = try taggedInputs(&.{ .{ .float = format }, .{ .integer = .i64 } }),
             .result = .{ .structure = .{ .kind = .power, .format = format } },
         },
         .binary_float => .{
@@ -2246,10 +2352,7 @@ fn standardDescriptor(
             .provenance = provenance,
             .format = format,
             .arity = 2,
-            .inputs = .{
-                .descriptors = .{ .{ .float = format }, .{ .float = format }, .tag },
-                .count = 2,
-            },
+            .inputs = try taggedInputs(&.{ .{ .float = format }, .{ .float = format } }),
             .result = .{ .float = format },
         },
         .ternary_float => .{
@@ -2257,14 +2360,11 @@ fn standardDescriptor(
             .provenance = provenance,
             .format = format,
             .arity = 3,
-            .inputs = .{
-                .descriptors = .{
-                    .{ .float = format },
-                    .{ .float = format },
-                    .{ .float = format },
-                },
-                .count = 3,
-            },
+            .inputs = try taggedInputs(&.{
+                .{ .float = format },
+                .{ .float = format },
+                .{ .float = format },
+            }),
             .result = .{ .float = format },
         },
         .fromfp => .{
@@ -2272,14 +2372,11 @@ fn standardDescriptor(
             .provenance = provenance,
             .format = format,
             .arity = 3,
-            .inputs = .{
-                .descriptors = .{
-                    .{ .float = format },
-                    .fromfp_round,
-                    .{ .integer = .u32 },
-                },
-                .count = 3,
-            },
+            .inputs = try taggedInputs(&.{
+                .{ .float = format },
+                .fromfp_round,
+                .{ .integer = .u32 },
+            }),
             .result = .{ .float = format },
         },
         .unary_frexp => .{
@@ -2311,10 +2408,7 @@ fn standardDescriptor(
             .provenance = provenance,
             .format = format,
             .arity = 2,
-            .inputs = .{
-                .descriptors = .{ .{ .float = format }, .{ .integer = .i32 }, .tag },
-                .count = 2,
-            },
+            .inputs = try taggedInputs(&.{ .{ .float = format }, .{ .integer = .i32 } }),
             .result = .{ .float = format },
         },
         .binary_integer_i64 => .{
@@ -2322,10 +2416,7 @@ fn standardDescriptor(
             .provenance = provenance,
             .format = format,
             .arity = 2,
-            .inputs = .{
-                .descriptors = .{ .{ .float = format }, .{ .integer = .i64 }, .tag },
-                .count = 2,
-            },
+            .inputs = try taggedInputs(&.{ .{ .float = format }, .{ .integer = .i64 } }),
             .result = .{ .float = format },
         },
         .unary_integer_result => .{
@@ -2357,10 +2448,7 @@ fn standardDescriptor(
             .provenance = provenance,
             .format = format,
             .arity = 2,
-            .inputs = .{
-                .descriptors = .{ .{ .float = format }, .{ .float = format }, .tag },
-                .count = 2,
-            },
+            .inputs = try taggedInputs(&.{ .{ .float = format }, .{ .float = format } }),
             .result = .{ .structure = .{ .kind = .remquo, .format = format } },
         },
         .unary_tag => .{
@@ -2368,7 +2456,7 @@ fn standardDescriptor(
             .provenance = provenance,
             .format = format,
             .arity = 1,
-            .inputs = .{ .descriptors = .{ .tag, .tag, .tag }, .count = 1 },
+            .inputs = try taggedInputs(&.{.tag}),
             .result = .{ .float = format },
         },
         .binary_next_toward => .{
@@ -2376,10 +2464,7 @@ fn standardDescriptor(
             .provenance = provenance,
             .format = format,
             .arity = 2,
-            .inputs = .{
-                .descriptors = .{ .{ .float = format }, .{ .float = .d }, .tag },
-                .count = 2,
-            },
+            .inputs = try taggedInputs(&.{ .{ .float = format }, .{ .float = .d } }),
             .result = .{ .float = format },
         },
         .binary_boolean => .{
@@ -2387,10 +2472,7 @@ fn standardDescriptor(
             .provenance = provenance,
             .format = format,
             .arity = 2,
-            .inputs = .{
-                .descriptors = .{ .{ .float = format }, .{ .float = format }, .tag },
-                .count = 2,
-            },
+            .inputs = try taggedInputs(&.{ .{ .float = format }, .{ .float = format } }),
             .result = .boolean,
         },
         .binary_atan2 => .{
@@ -2398,10 +2480,7 @@ fn standardDescriptor(
             .provenance = provenance,
             .format = format,
             .arity = 2,
-            .inputs = .{
-                .descriptors = .{ .{ .float = format }, .{ .float = format }, .tag },
-                .count = 2,
-            },
+            .inputs = try taggedInputs(&.{ .{ .float = format }, .{ .float = format } }),
             .result = .{ .structure = .{ .kind = .atan2, .format = format } },
         },
         .unary_lgamma => .{
@@ -2425,10 +2504,7 @@ fn standardDescriptor(
             .provenance = provenance,
             .format = format,
             .arity = 2,
-            .inputs = .{
-                .descriptors = .{ .{ .float = format }, .{ .float = format }, .tag },
-                .count = 2,
-            },
+            .inputs = try taggedInputs(&.{ .{ .float = format }, .{ .float = format } }),
             // The distance is reported in an unsigned integer as wide as the
             // format, so a binary16 result never truncates a binary64 span.
             .result = .{ .integer = switch (format) {
@@ -2442,10 +2518,7 @@ fn standardDescriptor(
             .provenance = provenance,
             .format = format,
             .arity = 3,
-            .inputs = .{
-                .descriptors = .{ .round_mode, .{ .float = format }, .{ .integer = .i32 } },
-                .count = 3,
-            },
+            .inputs = try taggedInputs(&.{ .round_mode, .{ .float = format }, .{ .integer = .i32 } }),
             .result = .{ .float = format },
         },
         .round_integral => .{
@@ -2453,11 +2526,30 @@ fn standardDescriptor(
             .provenance = provenance,
             .format = format,
             .arity = 2,
-            .inputs = .{
-                .descriptors = .{ .round_mode, .{ .float = format }, .tag },
-                .count = 2,
-            },
+            .inputs = try taggedInputs(&.{ .round_mode, .{ .float = format } }),
             .result = .{ .float = format },
+        },
+        // Both non-scalar shapes take their whole operand flat, one scalar per
+        // component, because the manifest input vocabulary has no aggregate
+        // kind. The layout is fixed by the operation, so it is named here and
+        // not left to the runtime to infer.
+        .quaternion_mul => .{
+            .operation = operation,
+            .provenance = provenance,
+            .format = format,
+            // Two four-component factors, the first then the second.
+            .arity = 8,
+            .inputs = floatInputs(format, 8),
+            .result = .{ .structure = .{ .kind = .quaternion, .format = format } },
+        },
+        .algebra_involution => .{
+            .operation = operation,
+            .provenance = provenance,
+            .format = format,
+            // One multivector, one coefficient per basis blade in mask order.
+            .arity = 8,
+            .inputs = floatInputs(format, 8),
+            .result = .{ .structure = .{ .kind = .algebra, .format = format } },
         },
     };
 }
@@ -2469,6 +2561,29 @@ fn floatInputs(format: Format, arity: u8) InputList {
         inputs.descriptors[index] = .{ .float = format };
     }
     inputs.count = arity;
+    return inputs;
+}
+
+// A shape names the arguments it actually takes, and the rest of the
+// fixed-width array keeps its declared `.tag` default. Building the list here
+// instead of padding each literal by hand means a widened `input_count_max`
+// cannot silently reshape a signature. A list that outgrows the ceiling is
+// refused rather than truncated: a build error when the call site names its
+// arguments literally, `error.InvalidArity` when the list arrives at run time.
+fn taggedInputs(descriptors: []const InputDescriptor) ValidationError!InputList {
+    comptime {
+        if (descriptors.len > input_count_max) {
+            @compileError("an argument list is wider than the input ceiling");
+        }
+    }
+    // The comptime block can only judge a literal, so a runtime slice needs the
+    // same ceiling. The array holds `input_count_max` slots, so a longer list
+    // writes past it in the loop below and leaves the count cast with a value
+    // it cannot hold.
+    if (descriptors.len > input_count_max) return error.InvalidArity;
+    var inputs: InputList = .{};
+    for (descriptors, 0..) |descriptor, index| inputs.descriptors[index] = descriptor;
+    inputs.count = @intCast(descriptors.len);
     return inputs;
 }
 
@@ -2505,8 +2620,10 @@ fn signatureShape(operation: ManifestOperation) ?SignatureShape {
         .lgamma => .unary_lgamma,
         .classify => .unary_classification,
         .ulpDistance => .binary_ulp_distance,
-        .scaleB => .scale_b,
-        .roundIntegral => .round_integral,
+        .scaleB, .scaleBd, .scaleBf => .scale_b,
+        .roundIntegral, .roundIntegrald, .roundIntegralf => .round_integral,
+        .quaternionMul => .quaternion_mul,
+        .algebraConjugate, .algebraDual, .algebraDualComplement, .algebraReverse => .algebra_involution,
         // ziglint-ignore: Z024
         .fadd, .fdiv, .ffma, .fmul, .fsqrt, .fsub, .f16addf32, .f16addf64, .f16divf32, .f16divf64, .f16fmaf32, .f16fmaf64, .f16mulf32, .f16mulf64, .f16sqrtf32, .f16sqrtf64, .f16subf32, .f16subf64, .f32addf64, .f32divf64, .f32fmaf64, .f32mulf64, .f32sqrtf64, .f32subf64 => null,
     };
@@ -2830,7 +2947,10 @@ fn validateRootField(
     root_seen[key_index] = true;
 
     switch (key) {
-        .schema_version => try expectUnsigned(value, 4),
+        // Schema 5 widened the arity ceiling to eight, added the quaternion and
+        // algebra result structures, and added the operation names that reach
+        // them. A schema 4 manifest is refused rather than reinterpreted.
+        .schema_version => try expectUnsigned(value, 5),
         .core_math_repository => try expectString(
             value,
             "https://gitlab.inria.fr/core-math/core-math.git",

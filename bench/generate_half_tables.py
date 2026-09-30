@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-import json
 import struct
 from pathlib import Path
 
@@ -56,11 +55,6 @@ def half_class(bits: int) -> int:
 
 
 def validate_metadata() -> None:
-    verification = json.loads((CORPUS_ROOT / "verification.json").read_text())
-    require(
-        verification.get("metadata_sha256") == METADATA_SHA256,
-        "unexpected metadata SHA-256 pin",
-    )
     metadata = (CORPUS_ROOT / "metadata.txt").read_bytes()
     require(
         hashlib.sha256(metadata).hexdigest() == METADATA_SHA256,

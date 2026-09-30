@@ -282,6 +282,12 @@ static unsigned zmath_testing_structure_field_count(unsigned structure_kind) {
         case ZMATH_TESTING_ORACLE_STRUCTURE_POWER:
         case ZMATH_TESTING_ORACLE_STRUCTURE_INTEGER:
             return 2;
+        /* Four components: the Hamilton product's w, x, y, z. */
+        case ZMATH_TESTING_ORACLE_STRUCTURE_QUATERNION:
+            return 4;
+        /* Eight coefficients: one per basis blade of Cl(3), in mask order. */
+        case ZMATH_TESTING_ORACLE_STRUCTURE_ALGEBRA:
+            return 8;
         default:
             return 0;
     }
@@ -297,6 +303,48 @@ static int zmath_testing_validate_structure_fields(
     zmath_testing_target_format ignored;
     int status;
 
+    /*
+     * A quaternion and a multivector are N components of ONE format, so the
+     * second field is a float like the first and the count is fixed by the
+     * kind rather than by the first two fields alone. The check runs over the
+     * whole declared width and only for the two kinds that name it; anything
+     * else still reaches the switch below, whose default arm refuses.
+     */
+    if (request->structure_kind == ZMATH_TESTING_ORACLE_STRUCTURE_QUATERNION ||
+        request->structure_kind == ZMATH_TESTING_ORACLE_STRUCTURE_ALGEBRA) {
+        const uint32_t field_count =
+            request->structure_kind == ZMATH_TESTING_ORACLE_STRUCTURE_QUATERNION
+                ? 4u
+                : 8u;
+        uint32_t index;
+
+        if (request->result_field_count != field_count ||
+            first->kind != ZMATH_TESTING_ORACLE_FIELD_FLOAT) {
+            return ZMATH_TESTING_ORACLE_ERROR;
+        }
+        status = zmath_testing_validate_field_descriptor(first, &ignored);
+        if (status != ZMATH_TESTING_ORACLE_OK) {
+            return status;
+        }
+        for (index = 1; index < field_count; ++index) {
+            const zmath_testing_oracle_field_descriptor *field =
+                &request->result_fields[index];
+            if (field->kind != ZMATH_TESTING_ORACLE_FIELD_FLOAT ||
+                field->value_bits != first->value_bits ||
+                field->format.code != first->format.code ||
+                field->format.storage_bits != first->format.storage_bits ||
+                field->format.exponent_bits != first->format.exponent_bits ||
+                field->format.fraction_bits != first->format.fraction_bits ||
+                field->format.reserved != first->format.reserved) {
+                return ZMATH_TESTING_ORACLE_ERROR;
+            }
+            status = zmath_testing_validate_field_descriptor(field, &ignored);
+            if (status != ZMATH_TESTING_ORACLE_OK) {
+                return status;
+            }
+        }
+        return ZMATH_TESTING_ORACLE_OK;
+    }
     if (request->structure_kind == ZMATH_TESTING_ORACLE_STRUCTURE_INTEGER) {
         if (first->kind != ZMATH_TESTING_ORACLE_FIELD_SIGNED_INTEGER ||
             first->value_bits != 64) {

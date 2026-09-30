@@ -387,6 +387,10 @@ pub const CampaignRule = struct {
     integer_index: ?u8,
     integer_type: ?corpus.IntegerType,
     bounds: ?IntegerBounds,
+    // A rule that names its own tuples fixes the campaign to them, which is how
+    // a shape with eight operands gets a bounded, chosen corpus instead of a
+    // Cartesian product that could never be run.
+    tuples: []const HardTuple,
     special_axis_count: u8,
     source_metadata_available: bool,
     evidence: EvidenceAvailability,
@@ -408,6 +412,7 @@ const CampaignRuleInput = struct {
     integer_index: ?u8 = null,
     integer_type: ?corpus.IntegerType = null,
     bounds: ?IntegerBounds = null,
+    tuples: []const HardTuple = &.{},
     special_axis_count: u8 = 0,
 };
 fn tuplePolicyFor(campaign_class: CampaignClass) TuplePolicy {
@@ -444,11 +449,140 @@ fn makeCampaignRule(input: CampaignRuleInput) CampaignRule {
         .integer_index = input.integer_index,
         .integer_type = input.integer_type,
         .bounds = input.bounds,
+        .tuples = input.tuples,
         .special_axis_count = input.special_axis_count,
         .source_metadata_available = input.enabled,
         .evidence = if (input.enabled) .generation_ready else .source_metadata_unavailable,
     };
 }
+
+// A hard tuple names its operand bits, so a campaign over eight scalars stays
+// a chosen corpus. The binary32 and binary64 bodies differ only in the
+// rounding of the literal, so both are built from the same tables.
+fn hardFloatField(comptime format: corpus.Format, value: f64) corpus.CorpusField {
+    const bits: u64 = switch (format) {
+        .f => @as(u64, @as(u32, @bitCast(@as(f32, @floatCast(value))))),
+        .d => @as(u64, @bitCast(value)),
+        .h => unreachable,
+    };
+    return .{ .float = .{ .format = format, .bits = bits, .class = .none } };
+}
+
+// The fields past `count` are a layout constant, not campaign data: every
+// hard tuple in the corpus carries the same blank tail. `InputTuple.init`
+// blanks all `max_arity` of them on every call, so a builder that called it
+// once per tuple spent tuple_count * max_arity comptime branches on a value
+// that never varies, and widening `max_argument_count` from 8 to 32
+// quadrupled that bill. One blanked template, copied per tuple, produces the
+// same bytes and leaves the builder's cost flat in the ceiling.
+fn blankTuple() InputTuple {
+    return .{ .fields = blankFields(), .count = 0 };
+}
+
+fn hardTuple(
+    comptime template: InputTuple,
+    comptime fields: []const corpus.CorpusField,
+) InputTuple {
+    if (fields.len == 0 or fields.len > max_arity) {
+        @compileError("hard tuple arity is outside the corpus input width");
+    }
+    var tuple = template;
+    // The arity is checked against `max_arity` above, so the narrowing to the
+    // u8 count cannot fail. The checked cast keeps that total by itself.
+    tuple.count = std.math.cast(u8, fields.len) orelse unreachable;
+    @memcpy(tuple.fields[0..fields.len], fields);
+    return tuple;
+}
+
+// The four quaternion units in the manifest's w, x, y, z order.
+const quaternion_units = [_][4]f64{
+    .{ 1, 0, 0, 0 },
+    .{ 0, 1, 0, 0 },
+    .{ 0, 0, 1, 0 },
+    .{ 0, 0, 0, 1 },
+};
+
+fn quaternionFields(
+    comptime format: corpus.Format,
+    comptime left: usize,
+    comptime right: usize,
+) [8]corpus.CorpusField {
+    var fields: [8]corpus.CorpusField = undefined;
+    for (0..4) |component| {
+        fields[component] = hardFloatField(format, quaternion_units[left][component]);
+        fields[4 + component] = hardFloatField(format, quaternion_units[right][component]);
+    }
+    return fields;
+}
+
+fn buildQuaternionTuples(comptime format: corpus.Format) [16]HardTuple {
+    const template = blankTuple();
+    var tuples: [16]HardTuple = undefined;
+    // Every product of two units is one of the six Clifford rules the runtime
+    // has to get right, and the sixteen pairs reach all of them including the
+    // three squares that must come out at minus one.
+    for (0..4) |left| {
+        for (0..4) |right| {
+            const fields = quaternionFields(format, left, right);
+            tuples[left * 4 + right] = .{ .arguments = hardTuple(template, &fields) };
+        }
+    }
+    return tuples;
+}
+
+const quaternion_tuples_f: [16]HardTuple = buildQuaternionTuples(.f);
+const quaternion_tuples_d: [16]HardTuple = buildQuaternionTuples(.d);
+
+// One coefficient per basis blade of Cl(3), positive and negative, so every
+// grade sign and every mask permutation is decided at least twice.
+const algebra_cases = [_]struct { mask: usize, value: f64 }{
+    .{ .mask = 0, .value = 1 },
+    .{ .mask = 1, .value = 1 },
+    .{ .mask = 2, .value = 1 },
+    .{ .mask = 3, .value = 1 },
+    .{ .mask = 4, .value = 1 },
+    .{ .mask = 5, .value = 1 },
+    .{ .mask = 6, .value = 1 },
+    .{ .mask = 7, .value = 1 },
+    .{ .mask = 0, .value = -1 },
+    .{ .mask = 1, .value = -1 },
+    .{ .mask = 2, .value = -1 },
+    .{ .mask = 3, .value = -1 },
+    .{ .mask = 4, .value = -1 },
+    .{ .mask = 5, .value = -1 },
+    .{ .mask = 6, .value = -1 },
+    .{ .mask = 7, .value = -1 },
+    // The all-zero multivector, and one negative zero. The zero separates the
+    // two involutions that ASSIGN a coefficient from the two that ACCUMULATE
+    // one, which round a negative zero into a positive zero.
+    .{ .mask = 8, .value = 0 },
+    .{ .mask = 5, .value = -0.0 },
+};
+
+fn buildAlgebraTuples(comptime format: corpus.Format) [algebra_cases.len]HardTuple {
+    const template = blankTuple();
+    var tuples: [algebra_cases.len]HardTuple = undefined;
+    for (algebra_cases, 0..) |case, index| {
+        var fields: [8]corpus.CorpusField = undefined;
+        for (0..8) |coefficient| {
+            fields[coefficient] = hardFloatField(
+                format,
+                if (case.mask == 8)
+                    0
+                else if (coefficient == case.mask)
+                    case.value
+                else
+                    0,
+            );
+        }
+        tuples[index] = .{ .arguments = hardTuple(template, &fields) };
+    }
+    return tuples;
+}
+
+const algebra_tuples_f: [algebra_cases.len]HardTuple = buildAlgebraTuples(.f);
+const algebra_tuples_d: [algebra_cases.len]HardTuple = buildAlgebraTuples(.d);
+
 pub const campaign_table = [_]CampaignRule{
     makeCampaignRule(.{
         .operation = "abs",
@@ -581,6 +715,107 @@ pub const campaign_table = [_]CampaignRule{
         .artifact = "test/corpus/campaigns/011-acospi-d-hard_corpus_d.zcdr",
         .deterministic_seed = 0x5c4500ef22e3ab2e,
         .tuple_count = 256,
+    }),
+    // An involution has eight coefficients in and eight out, so the campaign
+    // names them: one basis blade per coefficient, positive and negative, the
+    // zero multivector, and one negative zero. That decides every grade sign
+    // and every mask permutation, and the zero separates the two involutions
+    // that assign a coefficient from the two that accumulate one.
+    makeCampaignRule(.{
+        .operation = "algebraConjugate",
+        .provenance = .zmath,
+        .shape_code = 0x8222222223a,
+        .format = .f,
+        .campaign_class = .selected_cartesian,
+        .source_path = "src/algebra.zig",
+        .artifact = "test/corpus/campaigns/000-algebraConjugate-f-named_hard_tuple_corpus.zcdr",
+        .deterministic_seed = 0x6d29f40b8c15e7a3,
+        .tuple_count = 18,
+        .tuples = &algebra_tuples_f,
+    }),
+    makeCampaignRule(.{
+        .operation = "algebraConjugate",
+        .provenance = .zmath,
+        .shape_code = 0x8333333333b,
+        .format = .d,
+        .campaign_class = .selected_cartesian,
+        .source_path = "src/algebra.zig",
+        .artifact = "test/corpus/campaigns/000-algebraConjugate-d-named_hard_tuple_corpus.zcdr",
+        .deterministic_seed = 0x1a7e5d20b93cf846,
+        .tuple_count = 18,
+        .tuples = &algebra_tuples_d,
+    }),
+    makeCampaignRule(.{
+        .operation = "algebraDual",
+        .provenance = .zmath,
+        .shape_code = 0x8222222223a,
+        .format = .f,
+        .campaign_class = .selected_cartesian,
+        .source_path = "src/algebra.zig",
+        .artifact = "test/corpus/campaigns/000-algebraDual-f-named_hard_tuple_corpus.zcdr",
+        .deterministic_seed = 0xb3480e7f25ca91d6,
+        .tuple_count = 18,
+        .tuples = &algebra_tuples_f,
+    }),
+    makeCampaignRule(.{
+        .operation = "algebraDual",
+        .provenance = .zmath,
+        .shape_code = 0x8333333333b,
+        .format = .d,
+        .campaign_class = .selected_cartesian,
+        .source_path = "src/algebra.zig",
+        .artifact = "test/corpus/campaigns/000-algebraDual-d-named_hard_tuple_corpus.zcdr",
+        .deterministic_seed = 0x04f76c3b8e1a529d,
+        .tuple_count = 18,
+        .tuples = &algebra_tuples_d,
+    }),
+    makeCampaignRule(.{
+        .operation = "algebraDualComplement",
+        .provenance = .zmath,
+        .shape_code = 0x8222222223a,
+        .format = .f,
+        .campaign_class = .selected_cartesian,
+        .source_path = "src/algebra.zig",
+        .artifact = "test/corpus/campaigns/000-algebraDualComplement-f-named_hard_tuple_corpus.zcdr",
+        .deterministic_seed = 0x8e2b06f41c5d97a3,
+        .tuple_count = 18,
+        .tuples = &algebra_tuples_f,
+    }),
+    makeCampaignRule(.{
+        .operation = "algebraDualComplement",
+        .provenance = .zmath,
+        .shape_code = 0x8333333333b,
+        .format = .d,
+        .campaign_class = .selected_cartesian,
+        .source_path = "src/algebra.zig",
+        .artifact = "test/corpus/campaigns/000-algebraDualComplement-d-named_hard_tuple_corpus.zcdr",
+        .deterministic_seed = 0x35c9d81f0a47e62b,
+        .tuple_count = 18,
+        .tuples = &algebra_tuples_d,
+    }),
+    makeCampaignRule(.{
+        .operation = "algebraReverse",
+        .provenance = .zmath,
+        .shape_code = 0x8222222223a,
+        .format = .f,
+        .campaign_class = .selected_cartesian,
+        .source_path = "src/algebra.zig",
+        .artifact = "test/corpus/campaigns/000-algebraReverse-f-named_hard_tuple_corpus.zcdr",
+        .deterministic_seed = 0x71d40ba6f5047279,
+        .tuple_count = 18,
+        .tuples = &algebra_tuples_f,
+    }),
+    makeCampaignRule(.{
+        .operation = "algebraReverse",
+        .provenance = .zmath,
+        .shape_code = 0x8333333333b,
+        .format = .d,
+        .campaign_class = .selected_cartesian,
+        .source_path = "src/algebra.zig",
+        .artifact = "test/corpus/campaigns/000-algebraReverse-d-named_hard_tuple_corpus.zcdr",
+        .deterministic_seed = 0xc60f3a2e95b817d4,
+        .tuple_count = 18,
+        .tuples = &algebra_tuples_d,
     }),
     makeCampaignRule(.{
         .operation = "asin",
@@ -2682,6 +2917,36 @@ pub const campaign_table = [_]CampaignRule{
         .deterministic_seed = 0x1856685eff4bf1c4,
         .tuple_count = 32,
     }),
+    // The Hamilton product has eight operands, so its generator pool product
+    // is astronomically large and can never be enumerated. The campaign is
+    // instead the sixteen products of the four quaternion units, which is the
+    // Clifford table itself: every rule i*j = k and every square at minus one
+    // is in there, and a reordering bug breaks one of them. The claim is
+    // selected_cartesian over named tuples, never exhaustive.
+    makeCampaignRule(.{
+        .operation = "quaternionMul",
+        .provenance = .zmath,
+        .shape_code = 0x82222222236,
+        .format = .f,
+        .campaign_class = .selected_cartesian,
+        .source_path = "src/quaternion.zig",
+        .artifact = "test/corpus/campaigns/000-quaternionMul-f-named_hard_tuple_corpus.zcdr",
+        .deterministic_seed = 0x9f3a71c05e2b8d46,
+        .tuple_count = 16,
+        .tuples = &quaternion_tuples_f,
+    }),
+    makeCampaignRule(.{
+        .operation = "quaternionMul",
+        .provenance = .zmath,
+        .shape_code = 0x83333333337,
+        .format = .d,
+        .campaign_class = .selected_cartesian,
+        .source_path = "src/quaternion.zig",
+        .artifact = "test/corpus/campaigns/000-quaternionMul-d-named_hard_tuple_corpus.zcdr",
+        .deterministic_seed = 0x40c8b719e6a35d2f,
+        .tuple_count = 16,
+        .tuples = &quaternion_tuples_d,
+    }),
     makeCampaignRule(.{
         .operation = "remainder",
         .provenance = .zmath,
@@ -2849,6 +3114,32 @@ pub const campaign_table = [_]CampaignRule{
         .artifact = "test/corpus/campaigns/215-round-d-hard_corpus_d.zcdr",
         .deterministic_seed = 0x602ef9120a66a5d0,
         .tuple_count = 256,
+    }),
+    // roundIntegralf and roundIntegrald reach the four directions through the
+    // same round_mode field the binary16 row already uses, for the same reason:
+    // the direction is an input value, never a descriptor, so it multiplies the
+    // tuple count without multiplying the descriptor count.
+    makeCampaignRule(.{
+        .operation = "roundIntegrald",
+        .provenance = .zmath,
+        .shape_code = 0x2f303,
+        .format = .d,
+        .campaign_class = .selected_cartesian,
+        .source_path = "src/ieee.zig",
+        .artifact = "test/corpus/campaigns/000-roundIntegrald-d-source_pinned_binary_ternary_hard_tuples.zcdr",
+        .deterministic_seed = 0x5e08c37a1b9d4f62,
+        .tuple_count = 424,
+    }),
+    makeCampaignRule(.{
+        .operation = "roundIntegralf",
+        .provenance = .zmath,
+        .shape_code = 0x2f202,
+        .format = .f,
+        .campaign_class = .selected_cartesian,
+        .source_path = "src/ieee.zig",
+        .artifact = "test/corpus/campaigns/000-roundIntegralf-f-source_pinned_binary_ternary_hard_tuples.zcdr",
+        .deterministic_seed = 0x13ad6f2094cbe751,
+        .tuple_count = 304,
     }),
     makeCampaignRule(.{
         .operation = "roundeven",
@@ -3743,6 +4034,34 @@ pub const campaign_table = [_]CampaignRule{
         .deterministic_seed = 0xc2a22a8fa5047279,
         .tuple_count = 256,
     }),
+    // scaleBf and scaleBd are scaleB at binary32 and binary64. Neither has a
+    // binary16 operand, so the bounded binary16 integer domain that carries
+    // scaleB cannot describe them; the selected Cartesian product is the real
+    // fit, and its generator pool for a round_mode argument holds all four
+    // directions, so every direction is exercised against every selected
+    // operand and exponent. The claim is selected_cartesian, never exhaustive.
+    makeCampaignRule(.{
+        .operation = "scaleBd",
+        .provenance = .zmath,
+        .shape_code = 0x3f3703,
+        .format = .d,
+        .campaign_class = .selected_cartesian,
+        .source_path = "src/ieee.zig",
+        .artifact = "test/corpus/campaigns/000-scaleBd-d-source_pinned_binary_ternary_hard_tuples.zcdr",
+        .deterministic_seed = 0x2b91f4c05d7a3e68,
+        .tuple_count = 117872,
+    }),
+    makeCampaignRule(.{
+        .operation = "scaleBf",
+        .provenance = .zmath,
+        .shape_code = 0x3f2702,
+        .format = .f,
+        .campaign_class = .selected_cartesian,
+        .source_path = "src/ieee.zig",
+        .artifact = "test/corpus/campaigns/000-scaleBf-f-source_pinned_binary_ternary_hard_tuples.zcdr",
+        .deterministic_seed = 0x7c40d1a93e6b52bf,
+        .tuple_count = 84512,
+    }),
     makeCampaignRule(.{
         .operation = "setPayload",
         .provenance = .zmath,
@@ -4074,7 +4393,7 @@ pub const campaign_table = [_]CampaignRule{
         .tuple_count = 32,
     }),
 };
-pub const manifest_campaign_count: usize = 323;
+pub const manifest_campaign_count: usize = 337;
 pub const unavailable_artifact = "test/corpus/unavailable/source-metadata-unavailable.zcdr";
 
 pub const CampaignMatrixError = error{
@@ -4520,6 +4839,8 @@ fn structureShapeCode(kind: corpus.StructureKind) u64 {
         .atan2 => 6,
         .power => 7,
         .integer => 8,
+        .quaternion => 9,
+        .algebra => 10,
     };
 }
 
@@ -4578,14 +4899,21 @@ fn definitionFromRule(rule: CampaignRule, function: corpus.Function) CampaignDef
         },
         .selected_cartesian => .{
             .function = function,
-            .data = .{ .selected_cartesian = .{
-                .source = null,
-                .artifact = "sorted_edge_cartesian_v1",
-                .deterministic_seed = 0,
-                .tuples = &.{},
-                .generated_tuple_count = 0,
-                .evidence = .generation_ready,
-            } },
+            .data = .{
+                .selected_cartesian = .{
+                    .source = null,
+                    // A rule that names its tuples is not a generated Cartesian
+                    // product, and the published selection rule says so.
+                    .artifact = if (rule.tuples.len == 0)
+                        "sorted_edge_cartesian_v1"
+                    else
+                        "named_hard_tuple_corpus_v1",
+                    .deterministic_seed = 0,
+                    .tuples = rule.tuples,
+                    .generated_tuple_count = 0,
+                    .evidence = .generation_ready,
+                },
+            },
         },
         .selected_unary_f => .{
             .function = function,

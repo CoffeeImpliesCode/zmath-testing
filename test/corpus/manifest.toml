@@ -1,4 +1,4 @@
-schema_version = 4
+schema_version = 5
 core_math_repository = "https://gitlab.inria.fr/core-math/core-math.git"
 core_math_revision = "3bafed75e3c22399531857d63a3fa0e24bfb42fa"
 mpfr_precision_bits = 512
@@ -109,6 +109,94 @@ arity = 1
 inputs = ["float:d"]
 result = "float:d"
 oracle = "mpfr_arb"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "algebraConjugate"
+provenance = ["zmath"]
+status = "correct"
+arity = 8
+inputs = ["float:f", "float:f", "float:f", "float:f", "float:f", "float:f", "float:f", "float:f"]
+result = "struct:algebra:f"
+oracle = "definitional"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "algebraConjugate"
+provenance = ["zmath"]
+status = "correct"
+arity = 8
+inputs = ["float:d", "float:d", "float:d", "float:d", "float:d", "float:d", "float:d", "float:d"]
+result = "struct:algebra:d"
+oracle = "definitional"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "algebraDual"
+provenance = ["zmath"]
+status = "correct"
+arity = 8
+inputs = ["float:f", "float:f", "float:f", "float:f", "float:f", "float:f", "float:f", "float:f"]
+result = "struct:algebra:f"
+oracle = "definitional"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "algebraDual"
+provenance = ["zmath"]
+status = "correct"
+arity = 8
+inputs = ["float:d", "float:d", "float:d", "float:d", "float:d", "float:d", "float:d", "float:d"]
+result = "struct:algebra:d"
+oracle = "definitional"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "algebraDualComplement"
+provenance = ["zmath"]
+status = "correct"
+arity = 8
+inputs = ["float:f", "float:f", "float:f", "float:f", "float:f", "float:f", "float:f", "float:f"]
+result = "struct:algebra:f"
+oracle = "definitional"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "algebraDualComplement"
+provenance = ["zmath"]
+status = "correct"
+arity = 8
+inputs = ["float:d", "float:d", "float:d", "float:d", "float:d", "float:d", "float:d", "float:d"]
+result = "struct:algebra:d"
+oracle = "definitional"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "algebraReverse"
+provenance = ["zmath"]
+status = "correct"
+arity = 8
+inputs = ["float:f", "float:f", "float:f", "float:f", "float:f", "float:f", "float:f", "float:f"]
+result = "struct:algebra:f"
+oracle = "definitional"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "algebraReverse"
+provenance = ["zmath"]
+status = "correct"
+arity = 8
+inputs = ["float:d", "float:d", "float:d", "float:d", "float:d", "float:d", "float:d", "float:d"]
+result = "struct:algebra:d"
+oracle = "definitional"
 special_policy = "zmath_c23_v1"
 max_ulp = 0
 
@@ -2357,6 +2445,28 @@ special_policy = "zmath_c23_v1"
 max_ulp = 0
 
 [[function]]
+op = "quaternionMul"
+provenance = ["zmath"]
+status = "correct"
+arity = 8
+inputs = ["float:f", "float:f", "float:f", "float:f", "float:f", "float:f", "float:f", "float:f"]
+result = "struct:quaternion:f"
+oracle = "definitional"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "quaternionMul"
+provenance = ["zmath"]
+status = "correct"
+arity = 8
+inputs = ["float:d", "float:d", "float:d", "float:d", "float:d", "float:d", "float:d", "float:d"]
+result = "struct:quaternion:d"
+oracle = "definitional"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
 op = "remainder"
 provenance = ["zmath"]
 status = "correct"
@@ -2533,6 +2643,28 @@ special_policy = "zmath_c23_v1"
 max_ulp = 0
 
 [[function]]
+op = "roundIntegrald"
+provenance = ["zmath"]
+status = "correct"
+arity = 2
+inputs = ["round_mode", "float:d"]
+result = "float:d"
+oracle = "definitional"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "roundIntegralf"
+provenance = ["zmath"]
+status = "correct"
+arity = 2
+inputs = ["round_mode", "float:f"]
+result = "float:f"
+oracle = "definitional"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
 op = "roundeven"
 provenance = ["zmath"]
 status = "correct"
@@ -2671,6 +2803,28 @@ status = "correct"
 arity = 3
 inputs = ["round_mode", "float:h", "integer:i32"]
 result = "float:h"
+oracle = "definitional"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "scaleBd"
+provenance = ["zmath"]
+status = "correct"
+arity = 3
+inputs = ["round_mode", "float:d", "integer:i32"]
+result = "float:d"
+oracle = "definitional"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "scaleBf"
+provenance = ["zmath"]
+status = "correct"
+arity = 3
+inputs = ["round_mode", "float:f", "integer:i32"]
+result = "float:f"
 oracle = "definitional"
 special_policy = "zmath_c23_v1"
 max_ulp = 0
