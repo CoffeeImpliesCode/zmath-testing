@@ -9,6 +9,11 @@ test/corpus/generated/records/
 test/corpus/generated/probes/
 test/corpus/generated/.incomplete
 test/corpus/generated/*.tmp
+
+# A `--shard` run leaves one record tree per shard under the output root. They
+# are working state for a merge, not publication, and a campaign produces
+# gigabytes of them.
+test/corpus/shards/
 bench/results/
 .ruff_cache/
 __pycache__/

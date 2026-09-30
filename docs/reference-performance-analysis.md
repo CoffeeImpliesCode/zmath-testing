@@ -247,6 +247,14 @@ check. Extract each archive once into a new `nix-store` directory. The
 server-side copy is under
 `~/zmath-bench-20260927-f16only/compare/`.
 
+That directory is **required provenance, not leftover scratch, and must not be deleted.**
+It is the only copy: this repository has no `bench/results/` of its own, so the two archives
+cited above, the unpacked `nix-store`, and the run outputs behind the matrix in this document exist
+nowhere else. The working command further down binds `$bundle/nix-store`, `$bundle/bin` and
+`bundle/results` directly, so the analysis cannot be reproduced without it. It occupies about
+887 MB, of which roughly 871 MB is the unpacked `nix-store`; that is the price of being able to
+re-run the comparison rather than only read about it.
+
 The working smoke command below uses the unpacked remote directory. Replace
 `/binaries/retained` with `/binaries/baseline` for the frozen run. The full
 matrix omits the filter and list flag, and supplies `--accuracy_out`,

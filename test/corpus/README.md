@@ -6,7 +6,7 @@ The normative contract is in `../../../zmath/spec/core-math-2026-08-22.md`.
 
 ## Manifest
 
-`manifest.toml` uses schema version 4.
+`manifest.toml` uses schema version 5.
 It pins CORE-MATH revision
 `3bafed75e3c22399531857d63a3fa0e24bfb42fa`, MPFR precision at 512 bits, and
 Arb precision at 512 bits. Numerical evaluation does not adapt beyond those
@@ -41,7 +41,7 @@ as an input and `classification` only as a result.
 
 ## Ownership and provenance
 
-The manifest has 323 sorted typed rows. Provenance records ownership, not
+The manifest has 337 sorted typed rows. Provenance records ownership, not
 acceptance. Use only these ordered arrays:
 
 - `["zmath"]` for zmath-owned operations.
@@ -55,15 +55,18 @@ order. The operation spelling declaration is exactly
 
 The authoritative C operation table maps every manifest operation-format key
 exactly once. It assigns 150 descriptors to `exact_bits`, 126 to `mpfr_arb`,
-39 to `algebraic`, and 8 to `definitional`.
+39 to `algebraic`, and 22 to `definitional`.
 
 `definitional` is a fourth evaluator category, not a near-miss oracle. It
-names the eight descriptors whose correct result is fixed by the IEEE 754
-definition rather than computed by MPFR or Arb: `classify` in H, F, and D,
-`ulpDistance` in H, F, and D, `scaleB` in H, and `roundIntegral` in H. Their
-stored values are compared against the definition, so `definitional` is never
+names the 22 descriptors whose correct result is fixed by the IEEE 754
+definition rather than computed by MPFR or Arb. They fall into five groups:
+the three `classify` rows, the three `ulpDistance` rows, the three `scaleB`
+rows, the three `roundIntegral` rows, and the ten eight-operand struct
+operations `algebraConjugate`, `algebraDual`, `algebraDualComplement`,
+`algebraReverse`, and `quaternionMul` in binary32 and binary64. Their stored
+values are compared against the definition, so `definitional` is never
 reported as numerical oracle evidence. No descriptor is assigned to two
-categories, and the four counts sum to the 323 manifest rows.
+categories, and the four counts sum to the 337 manifest rows.
 
 ## Status and evidence
 
@@ -80,14 +83,23 @@ or `bounded` row establishes manifest acceptance only. Corpus evidence covers
 stored tuples. Whole-domain proof requires exhaustive inputs or a separate
 proof for the complete operation-format domain.
 
-The checked-in manifest accepts all 323 descriptors as `correct` with
-`max_ulp = 0`. The checked-in publication is the 2026-09-09 full run: it
-covers 315 of those descriptors, and full publication and replay verified
-63,160,084 records over them. The benchmark exercised those same 315. The
-eight `definitional` descriptors have no published records yet; they need a
-regeneration run before any record count, replay total, or benchmark row is
-claimed for them. A descriptor without a published record has manifest
-acceptance only, never corpus evidence.
+The checked-in manifest accepts all 337 descriptors as `correct` with
+`max_ulp = 0`. That is manifest acceptance, and it is all the checked-in tree
+holds today: no descriptor currently has published records behind it, so no
+record count, replay total, or benchmark row is claimed for any of them. A
+descriptor without a published record has manifest acceptance only, never
+corpus evidence.
+
+**Pending regeneration.** The committed `metadata.txt` is a pre-promotion
+snapshot. It carries 315 descriptor rows against a 337-descriptor manifest, so
+the two row counts disagree and the checked-in publication cannot be loaded
+against the current manifest: `corpus_set.load` takes its expected row count
+from the manifest and fails with `error.IncompleteSelection` when the metadata
+does not supply it. Nothing derived from that snapshot is current — not its
+accepted descriptor count, its record total, its record bytes, nor its
+benchmark row count — and none of those figures is claimed anywhere in this
+document. A regeneration and republication is in progress, and its numbers
+replace this passage when it lands, not the other way round.
 
 ## Typed publication
 
@@ -144,10 +156,14 @@ Campaign classes are explicit:
 
 Only `exhaustive_h_unary` claims exhaustive coverage of its one-argument
 binary16 domain. Every other campaign claims only its declared tuples.
-The campaign table defines 62 exhaustive binary16 unary campaigns.
-The remaining campaigns do not prove whole IEEE operation-format domains.
+The campaign table defines 62 exhaustive binary16 unary campaigns. The
+campaign table is the authority for that number, not the committed
+publication: the 2026-09-09 snapshot predates it and covers 61 of them, the
+difference being the binary16 `classify` campaign added with the
+`definitional` class. The remaining campaigns do not prove whole IEEE
+operation-format domains.
 
-Of the eight `definitional` descriptors, exactly one carries an exhaustive
+Of the 22 `definitional` descriptors, exactly one carries an exhaustive
 claim. `classify` in binary16 is `exhaustive_h_unary`: the class of a value is
 a function of its encoding alone, and the campaign enumerates all 65,536
 binary16 encodings, so the claim is exhaustive over its single operand.
@@ -161,10 +177,15 @@ binary16 is `bounded_h_integer_domain`, because the i32 exponent is the axis
 that has to be walked: the campaign spans a declared inclusive integer domain
 against an exhaustively enumerated binary16 value, with the round mode held
 at its base value. Its claim is bounded, not exhaustive, because the round
-mode axis is not covered. `roundIntegral` in binary16 is `selected_cartesian`:
-it is neither unary nor integer-parameterised, and the round-mode pool holds
-all four directions, so every IEEE 754 rounding direction is exercised against
-the selected binary16 edges.
+mode axis is not covered. `scaleBf` and `scaleBd` declare the same i32
+exponent but claim `selected_cartesian`, because only the binary16 row gets
+the walked integer domain. `roundIntegral` in H, F, and D takes a round mode
+beside its float, so it is neither unary nor integer-parameterised and claims
+`selected_cartesian`; the round-mode pool holds all four directions, so every
+IEEE 754 rounding direction is exercised against the selected edges. The ten
+struct operations take eight floating operands each and claim
+`selected_cartesian`: an algebra or quaternion component is a function of a
+fixed, small input set, so there is no single-encoding axis to enumerate.
 
 Generated raw records are multi-gigabyte artifacts.
 Keep `generated/records/` and `generated/probes/` local and ignored.
@@ -178,31 +199,19 @@ Its status-oracle snapshots record the candidate state before acceptance.
 Status promotion does not change numerical descriptor identity or record hashes.
 The loader checks both historical snapshots and the current manifest.
 
-`generated/verification.json` records test, formatting, replay, benchmark,
-and lint outcomes from the 2026-09-09 publication run. Its counters are that
-dated snapshot and are NOT current: it records 525 runtime unit tests and a
-failing runtime house gate with 1582 ziglint issues, whereas the tree now
-passes 596 runtime unit tests and the house gate passes cleanly. Treat the
-file as a historical publication record. It has no checked-in producer, so it
-is deliberately left byte-identical rather than hand-edited; regenerate it only
-with the external publication tool. The harness style lint still reports
-diagnostics and is not recorded as passing.
-
-The schema-4 change makes more of it stale, and none of it is repaired by
-hand. `accepted_descriptors` still says 315 against a 323-row manifest.
-`evaluator_descriptors` has no `definitional` key at all, so the file does not
-account for all 323 rows. `exhaustive_binary16_unary_campaigns` and the
-`coverage_limit` sentence both name the 315-row campaign count.
-`records` and `record_bytes` measure the 315-descriptor publication, which
-contains none of the eight `definitional` descriptors. `harness_tests`
-predates the schema-4 harness changes and says nothing about them until a
-rerun. Only `metadata_sha256` is still correct: the checked-in `metadata.txt`
-is byte-identical to the one that run produced, so its digest still matches.
-A regenerated file replaces all of it at once.
+The committed publication is exactly four files: `metadata.txt`, `COMPLETE`,
+`replay.txt`, and `benchmark.txt`. `COMPLETE` is the digest authority: it
+records the `metadata_sha256`, and `corpus_set.load` recomputes the SHA-256 of
+`metadata.txt` and refuses the publication when the two disagree. There is
+deliberately no hand-maintained JSON of run counters beside them. A counter
+with no producer is a number nobody can reproduce, and a hand-kept snapshot of
+one only ever goes stale. If machine-readable counters are wanted later, the
+producer belongs in `test/oracle/corpus_generate.zig`, beside the code that
+already writes `metadata.txt` and `COMPLETE`, not in an external tool.
 
 The `replay-vector` and `run-bench-vector` lanes are additional evidence
-recorded by their own build steps, not by that file. They are not counters in
-the 2026-09-09 snapshot and change nothing it records.
+recorded by their own build steps. They publish their own result lines and are
+not part of the corpus producer's counters.
 
 ## Deterministic replay and benchmark
 
@@ -310,7 +319,7 @@ measures it exactly as it exists.
 ## Historical TSV fixtures
 
 Six historical TSV fixtures remain tracked for compatibility and regression
-context. They are not the schema-4 typed publication format and do not claim
+context. They are not the schema-5 typed publication format and do not claim
 full coverage:
 
 - `exp_h.tsv`: 65,536 data rows covering every unsigned binary16 encoding in
@@ -343,7 +352,7 @@ manifest status/evaluator relation.
 
 The following table records the old six-target native runs. It is historical
 benchmark evidence for the TSV fixtures, not a performance bound or a
-schema-4 full-publication result:
+schema-5 full-publication result:
 
 | Target | Corpus rows | Timed operations | Observed elapsed ns | Result checksum |
 | --- | ---: | ---: | ---: | ---: |
@@ -375,6 +384,200 @@ The producer does not increase precision silently or emit a best-effort record.
 Replay rejects metadata, profile, descriptor, scope, record-order, count, or
 artifact-digest mismatches. It does not skip a bad row, substitute a host
 result, invoke an external oracle, or accept a nearby value.
+
+These rules are the same ones a sharded campaign runs under: a shard completes
+with `SHARD` rather than `COMPLETE`, and every shard and merge refusal in
+"Sharded publication" fails closed with its own error before the destination is
+touched.
+
+## Sharded publication
+
+The producer is one process that evaluates one descriptor at a time, so a full
+publication costs one core multiplied by the whole corpus. `--shard` and
+`--assemble` exist to make a large publication reachable on a cluster. They
+change nothing else: not the `ZCDR` record format, not the codec version, not a
+schema form, not what a record is, not a metadata field. No throughput figure
+and no performance bound is claimed for them here.
+
+The interface is:
+
+```text
+zmath-testing-corpus-producer <out_root> [--operation=OP] [--format=FMT]
+zmath-testing-corpus-producer <out_root> [--operation=OP] [--format=FMT] --shard=<i>/<n>
+zmath-testing-corpus-producer <out_root> [--operation=OP] [--format=FMT] --assemble=<n>
+```
+
+`--shard` takes a zero-based index and a shard count, `--assemble` takes the
+count alone, and passing both is rejected. The filters behave exactly as they
+do in an unfiltered run and select the one selection that every mode cuts from.
+
+### Shard layout and marker discipline
+
+Shard `i` of `n` writes to `<out_root>/shards/<op>-<fmt>/<i>-of-<n>/`, which
+holds `records/`, `metadata.rows`, a `SHARD` marker, and `.incomplete` for as
+long as the shard runs. `<op>-<fmt>` is `all-all` when no filter is given, so a
+shard path and a probe path name the same selection the same way.
+
+Shards live OUTSIDE the publication root, which is `<out_root>/generated` or
+`<out_root>/generated/probes/<op>-<fmt>` when filtered. A finished publication
+therefore carries no shard tree with it, and a merge can never find a shard
+directory inside the destination it is building.
+
+A campaign leaves one record tree per shard under that directory, and the
+checkout ignores `test/corpus/shards/`: those trees are merge working state,
+not publication. The `generate-corpus` wrapper always roots the producer at
+`test/corpus`, so run a campaign from the installed binary with an explicit
+output root rather than through the wrapper.
+
+A shard completes with `SHARD` and never with `COMPLETE`, so no shard
+directory can be mistaken for a publication and no partial merge can be
+mistaken for one either. A shard owns its directory: it deletes its own `SHARD`
+and row file before writing and leaves `.incomplete` behind if it dies, so
+re-running the same command is always safe. A finished shard is checkable
+without this tool — its directory holds `SHARD` and no `.incomplete`.
+
+### The partition
+
+The split is longest-processing-time first over published record counts, with
+ties broken by ascending selection slot. It is not a load estimate. It is a
+pure function of the manifest, so a worker and the assembler compute the same
+partition without exchanging anything. Measured on this host, an equal-count
+block partition was about 4x worse at a shard count of 8 and was rejected.
+
+### The staleness guard
+
+Each shard records a `shard_plan_sha256` over the profile, the filters, the
+shard index and count, the whole selection's descriptor digest, and the exact
+descriptor entry hashes that shard claims; the descriptor count is inside that
+digest. The assembler recomputes it from the manifest it holds in hand, so a
+manifest that grew, a profile that changed, a different filter, a different
+shard count, and a different partition each change that digest. A stale shard
+set is detected, not merged.
+
+Every refusal below fails closed with its own error. The shard-level refusals
+are detected before the destination is touched, so a refusal costs no
+publication:
+
+| condition | error |
+| --- | --- |
+| a shard is missing | `MissingShard` |
+| a shard was interrupted, `.incomplete` present | `ShardIncomplete` |
+| the shard count does not match the directory name | `ShardCountMismatch` |
+| a stale shard set from a different selection or manifest | `ShardSelectionMismatch` |
+| the destination already holds a completed publication | `DestinationAlreadyPublished` |
+| a record does not match the digest in its own metadata row | `ArtifactDigestMismatch` |
+
+A merge copies every record file and re-hashes it while copying, so a file that
+arrived short, or as the wrong bytes, cannot publish. The copy is deliberate
+rather than a hard link: the assembled publication is independent of the shard
+tree, so the shards can be deleted as soon as the merge succeeds.
+
+### Operator procedure
+
+1. Build the qualified producer ONCE and keep that binary for the whole
+   campaign. The manifest is compiled into it, so a worker built from a
+   different manifest is a different producer, and the assembler rejects such a
+   shard set instead of merging it. Give every worker that same binary.
+
+   ```text
+   zig build oracle-generator -Dtarget=x86_64-linux-gnu.2.38 -Dcpu=haswell -Doptimize=ReleaseSafe
+   ```
+
+2. Count the descriptors the selection will contain and choose `N`. `N` must
+   not exceed that count, because an empty shard is refused rather than
+   published as a hole:
+
+   ```text
+   N=$(grep -c '^\[\[function\]\]' test/corpus/manifest.toml)
+   ```
+
+   The checked-in manifest has 337 rows. That command counts the UNFILTERED
+   selection; a campaign that passes `--operation` or `--format` selects fewer
+   descriptors, and `N` is compared against that smaller selection.
+
+3. Launch one job per shard, each on its own machine, all writing under the
+   same output root and with the same filters:
+
+   ```text
+   zmath-testing-corpus-producer "$SCRATCH" --shard="$i/$N"
+   ```
+
+   Append the same `--operation=` and `--format=` filters the campaign is
+   filtered by, if any.
+
+4. Detect a failed shard: a job is good when its directory holds `SHARD` and no
+   `.incomplete`. Relaunch a job that exits non-zero or that leaves
+   `.incomplete`, by re-running the same command. Never assemble around one.
+
+5. Assemble on one machine that can see every shard directory, into a
+   destination that holds no publication yet:
+
+   ```text
+   zmath-testing-corpus-producer "$SCRATCH" --assemble="$N"
+   ```
+
+   The machine needs every `<out_root>/shards/<op>-<fmt>/<i>-of-<n>` directory
+   visible under the same output root the shards were written to.
+
+6. Verify the assembled publication against an unmerged reference.
+
+   **You cannot compare `metadata.txt` across two different output roots.**
+   Every row names its own records directory in `artifact=`, so two runs into
+   two roots differ in every row, and both results are valid publications. Both
+   sides of a determinism comparison must use the SAME output root, or the
+   comparison must normalise that one field and nothing else.
+
+   Run the unmerged reference in the SAME output root the merge will write
+   into, and copy its metadata and marker aside first:
+
+   ```text
+   zmath-testing-corpus-producer "$SCRATCH"
+   cp "$SCRATCH/generated/metadata.txt" "$REF/metadata.txt"
+   cp "$SCRATCH/generated/COMPLETE" "$REF/COMPLETE"
+   cp -r "$SCRATCH/generated/records" "$REF/records"
+   rm -rf "$SCRATCH/generated"
+
+   for i in $(seq 0 $((N-1))); do
+       zmath-testing-corpus-producer "$SCRATCH" --shard="$i/$N"
+   done
+   zmath-testing-corpus-producer "$SCRATCH" --assemble="$N"
+
+   cmp "$REF/metadata.txt" "$SCRATCH/generated/metadata.txt"
+   cmp "$REF/COMPLETE" "$SCRATCH/generated/COMPLETE"
+   diff -r "$REF/records" "$SCRATCH/generated/records"
+   zig-out/bin/zmath-corpus-replay "$SCRATCH"
+   ```
+
+   A filtered campaign writes under `generated/probes/<op>-<fmt>/` rather than
+   `generated/`, so the three `generated/...` paths above name that directory
+   instead. Pass the replay the same filter arguments the producer used.
+
+   The replay is the semantic gate: it re-derives the descriptor digest and
+   re-checks every row and every record against the manifest. The merge only
+   proves the bytes were carried intact.
+
+### What was measured
+
+Measured on this host at a filtered selection of 118 of 337 descriptors under
+`--format=f`: 3,560,836 records in 270 MB. The unmerged run took 42.0 s. The
+same selection as three shards took 15.5 s, 14.8 s, and 13.5 s, and
+`--assemble=3` took 1.5 s. The assembled `metadata.txt` (89,166 bytes) and
+`COMPLETE` were byte-identical to the unmerged run's, and replay on the
+assembled tree reported `descriptors=118 records=3560836` with exit status 0.
+These are observations at that selection and that shard count, not a bound.
+
+### What is not proven
+
+- The determinism demonstration is at a filtered selection of 118 descriptors
+  and `n=3`. Nothing here shows that an assembled publication is byte-identical
+  to an unmerged one at full 337-descriptor scale, or at a larger shard count.
+- The LPT balance is not shown at a shard count where shards are small relative
+  to the manifest. Three shards on one selection is one observation, not a
+  balance guarantee.
+- The merge COPIES record files rather than hard-linking them. At full scale
+  that is a full copy plus a full SHA-256 pass, and that cost has not been
+  measured at scale. The copy is deliberate — it is what makes the assembled
+  publication independent of the shard tree — not a deferred optimisation.
 
 ## Exploratory fuzzing
 
