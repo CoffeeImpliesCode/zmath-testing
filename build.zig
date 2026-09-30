@@ -277,6 +277,31 @@ fn addOracleSources(b: *std.Build, module: *std.Build.Module) void {
     module.addIncludePath(b.path("test/oracle"));
 }
 
+/// `linkSystemLibrary` searches only the target's default system library
+/// directories, and a Nix devshell's library directories are not among them,
+/// so linking the oracle failed with "searched paths: none". LIBRARY_PATH is
+/// where devenv publishes those directories, so feed every entry in as an
+/// explicit `-L`. mpfr, gmp, and flint all arrive this way.
+fn addOracleLibraryPaths(b: *std.Build, module: *std.Build.Module) void {
+    const library_path = b.graph.environ_map.get("LIBRARY_PATH") orelse return;
+    var dirs = std.mem.splitScalar(u8, library_path, std.fs.path.delimiter);
+    while (dirs.next()) |dir| {
+        // `cwd_relative` is the LazyPath tag documented for an absolute host
+        // path such as a system environment path, which is what LIBRARY_PATH
+        // holds.
+        if (dir.len != 0) module.addLibraryPath(.{ .cwd_relative = dir });
+    }
+    // The store's libflint cannot be loaded by a host binary at all, so flint
+    // is linked from a prefix built for this host and named by
+    // ZMATH_ORACLE_HOST_PREFIX. Record it as an rpath so the produced binary
+    // finds it at run time. An rpath rather than LD_LIBRARY_PATH, because
+    // putting these directories on the ambient library path also changes what
+    // unrelated tools in the shell load.
+    if (b.graph.environ_map.get("ZMATH_ORACLE_HOST_PREFIX")) |prefix| {
+        module.addRPath(.{ .cwd_relative = b.fmt("{s}/lib64", .{prefix}) });
+    }
+}
+
 fn requiredBuildEnv(b: *std.Build, name: []const u8) []const u8 {
     return b.graph.environ_map.get(name) orelse
         @panic(b.fmt(
@@ -500,6 +525,7 @@ pub fn build(b: *std.Build) void {
         .flags = &.{"-std=c11"},
     });
     addOracleSources(b, oracle_module);
+    addOracleLibraryPaths(b, oracle_module);
     oracle_module.linkSystemLibrary("mpfr", .{});
     oracle_module.linkSystemLibrary("gmp", .{});
     oracle_module.linkSystemLibrary("flint", .{});
@@ -518,6 +544,7 @@ pub fn build(b: *std.Build) void {
         .file = b.path("test/oracle/oracle_transcendental_regression.c"),
         .flags = &.{"-std=c11"},
     });
+    addOracleLibraryPaths(b, transcendental_regression_module);
     transcendental_regression_module.linkSystemLibrary("mpfr", .{});
     transcendental_regression_module.linkSystemLibrary("gmp", .{});
     transcendental_regression_module.linkSystemLibrary("flint", .{});
@@ -581,6 +608,7 @@ pub fn build(b: *std.Build) void {
     corpus_producer_module.addOptions("active_target_mode", active_options);
 
     addOracleSources(b, corpus_producer_module);
+    addOracleLibraryPaths(b, corpus_producer_module);
     corpus_producer_module.linkSystemLibrary("mpfr", .{});
     corpus_producer_module.linkSystemLibrary("gmp", .{});
     corpus_producer_module.linkSystemLibrary("flint", .{});
@@ -700,6 +728,7 @@ pub fn build(b: *std.Build) void {
         .link_libc = true,
     });
     oracle_fuzz_module.linkLibrary(oracle_fuzz_bridge);
+    addOracleLibraryPaths(b, oracle_fuzz_module);
     oracle_fuzz_module.linkSystemLibrary("mpfr", .{});
     oracle_fuzz_module.linkSystemLibrary("gmp", .{});
     oracle_fuzz_module.linkSystemLibrary("flint", .{});

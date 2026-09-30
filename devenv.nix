@@ -215,19 +215,13 @@ let
     };
   };
 
-  coverageZig = pkgs.stdenvNoCC.mkDerivation {
-    pname = "zig-coverage";
-    version = "0.17.0-dev.1824+7988f7952";
-    src = pkgs.fetchurl {
-      url = "https://ziglang.org/builds/zig-x86_64-linux-0.17.0-dev.1824+7988f7952.tar.xz";
-      hash = "sha256-ssIo3qIezE0LVveGhbfylv0JXla2MN7DlgpHbAUStjE=";
-    };
-    dontUnpack = true;
-    installPhase = ''
-      mkdir -p "$out"
-      tar -xJf "$src" --strip-components=1 -C "$out"
-    '';
-  };
+  # This used to fetch a 0.17.0-dev tarball from ziglang.org, which upstream has
+  # since removed; the 404 made the whole devshell unbuildable, so nothing in
+  # this repository could run. Only scripts.coverage consumes this, and only as a
+  # PATH prefix, so resolving it from the locked nixpkgs makes the devshell
+  # buildable without touching the main toolchain. The project toolchain stays
+  # the 0.16.0 that build.zig.zon asks for as .minimum_zig_version.
+  coverageZig = pkgs.zig;
 in
 rec {
   packages = with pkgs; [

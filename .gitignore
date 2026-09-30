@@ -1,5 +1,8 @@
-.zig-cache/
-zig-out/
+# No trailing slash: on a host whose global zig cache is on local disk, both of
+# these are symlinks into a local directory rather than real directories, and a
+# trailing slash would not match a symlink.
+.zig-cache
+zig-out
 .devenv/
 .direnv/
 test/corpus/generated/records/
