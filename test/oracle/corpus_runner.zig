@@ -660,38 +660,37 @@ pub fn prepareRuntime(function: Function) RunError!PreparedRuntime {
 }
 
 fn runtimeEntryForFunction(function: Function) ?*const RuntimeEntry {
-    const arguments = function.arguments();
-    const result_count = function.result.oracleFieldCount();
+    if (@as(usize, function.arity) != function.arguments().len) return null;
     for (runtime_table.entries[0..runtime_table.count]) |*entry| {
         if (!std.mem.eql(u8, function.op, entry.operation)) continue;
-        if (arguments.len != entry.input_count) continue;
-        if (result_count != entry.result_count) continue;
-        if (function.result.oracleLayout() != entry.result_layout) continue;
-        if (function.result.oracleStructureKind() != entry.structure_kind) continue;
-        var matches = true;
-        for (arguments, 0..) |argument, index| {
-            if (!fieldDescriptorEqual(
-                argument.oracleDescriptor(),
-                entry.input_descriptors[index],
-            )) {
-                matches = false;
-                break;
-            }
-        }
-        if (!matches) continue;
-        for (0..result_count) |index| {
-            const descriptor = function.result.oracleFieldDescriptor(index) orelse {
-                matches = false;
-                break;
-            };
-            if (!fieldDescriptorEqual(descriptor, entry.result_descriptors[index])) {
-                matches = false;
-                break;
-            }
-        }
-        if (matches) return entry;
+        if (entryMatchesFunction(entry.*, function)) return entry;
     }
     return null;
+}
+
+// Whether a row's descriptors are the ones an entry declares. The scalar
+// lookup, the packed lane lookup and the build-time lane binding all compare
+// the same way, so a lane row and the scalar row it serves can never describe
+// different records.
+fn entryMatchesFunction(entry: RuntimeEntry, function: Function) bool {
+    const arguments = function.arguments();
+    if (arguments.len != entry.input_count) return false;
+    if (function.result.oracleFieldCount() != entry.result_count) return false;
+    if (function.result.oracleLayout() != entry.result_layout) return false;
+    if (function.result.oracleStructureKind() != entry.structure_kind) return false;
+    for (arguments, 0..) |argument, index| {
+        if (!fieldDescriptorEqual(
+            argument.oracleDescriptor(),
+            entry.input_descriptors[index],
+        )) {
+            return false;
+        }
+    }
+    for (0..entry.result_count) |index| {
+        const descriptor = function.result.oracleFieldDescriptor(index) orelse return false;
+        if (!fieldDescriptorEqual(descriptor, entry.result_descriptors[index])) return false;
+    }
+    return true;
 }
 
 fn emptyRawRuntimeResult() RawRuntimeResult {
@@ -1416,6 +1415,229 @@ fn appendAlgebraEntry(
     ));
 }
 
+// ---------------------------------------------------------------------------
+// Non-elementwise descriptor forms
+//
+// A row below carries a struct, a matrix, or a policy tag rather than a list of
+// same-format floats. Each invoker names the public type it builds and the slot
+// every component is read from, so a manifest edit that moved a component is a
+// visible mismatch in the entry's own descriptors rather than a silently
+// transposed result.
+// ---------------------------------------------------------------------------
+
+// A complex factor is a real and an imaginary part in one format. The manifest
+// lists the first factor's re then im, then the second factor's re then im, and
+// the result leaves in the same order.
+fn complexType(comptime format: corpus.Format) type {
+    return switch (format) {
+        .f => zmath.complex.Complexf,
+        .d => zmath.complex.Complexd,
+        // A complex number has no binary16 instantiation, so the descriptor
+        // builder publishes the row at binary32 and binary64 only.
+        .h => unreachable,
+    };
+}
+
+fn makeComplexBinaryInvoker(
+    comptime operation: []const u8,
+    comptime format: corpus.Format,
+) RuntimeInvoker {
+    const Complex = complexType(format);
+    const Adapter = struct {
+        fn invoke(inputs: *const [max_oracle_fields]OracleInputField) RawRuntimeResult {
+            const left = Complex{
+                .re = decodeFloat(format, inputs[0].value_bits),
+                .im = decodeFloat(format, inputs[1].value_bits),
+            };
+            const right = Complex{
+                .re = decodeFloat(format, inputs[2].value_bits),
+                .im = decodeFloat(format, inputs[3].value_bits),
+            };
+            const computed: Complex = @call(
+                .auto,
+                @field(zmath.complex, operation),
+                .{ left, right },
+            );
+            var result = emptyRawRuntimeResult();
+            result.values[0] = encodeFloat(format, computed.re);
+            result.values[1] = encodeFloat(format, computed.im);
+            result.field_count = 2;
+            return result;
+        }
+    };
+    return &Adapter.invoke;
+}
+
+fn mat2Type(comptime format: corpus.Format) type {
+    return switch (format) {
+        .f => zmath.matrix.Mat2f,
+        .d => zmath.matrix.Mat2d,
+        .h => unreachable,
+    };
+}
+
+// A 2 by 2 matrix is a ROW-MAJOR literal: the first argument row is
+// `a00, a01` and the second is `a10, a11`, which is both the order the
+// manifest lists and the order the public constructor reads.
+fn decodeMat2(
+    comptime format: corpus.Format,
+    inputs: *const [max_oracle_fields]OracleInputField,
+) mat2Type(format) {
+    const Mat2 = mat2Type(format);
+    return Mat2.init(.{
+        .{
+            decodeFloat(format, inputs[0].value_bits),
+            decodeFloat(format, inputs[1].value_bits),
+        },
+        .{
+            decodeFloat(format, inputs[2].value_bits),
+            decodeFloat(format, inputs[3].value_bits),
+        },
+    });
+}
+
+// The size-paired siblings are named per format rather than assembled from a
+// suffix, so a rename of one of them is a compile error at the call below and
+// not a lookup of an assembled name that never existed.
+fn determinantMat2Name(comptime format: corpus.Format) []const u8 {
+    return switch (format) {
+        .f => "determinantMat2f",
+        .d => "determinantMat2d",
+        .h => unreachable,
+    };
+}
+
+fn makeMat2DeterminantInvoker(comptime format: corpus.Format) RuntimeInvoker {
+    const Adapter = struct {
+        fn invoke(inputs: *const [max_oracle_fields]OracleInputField) RawRuntimeResult {
+            const determinant: FloatType(format) = @call(
+                .auto,
+                @field(zmath.matrix, determinantMat2Name(format)),
+                .{decodeMat2(format, inputs)},
+            );
+            return makeFloatResult(format, determinant);
+        }
+    };
+    return &Adapter.invoke;
+}
+
+// A refused solve carries the canonical positive zero in both solution fields
+// and false in the flag. The two fields are INACTIVE rather than approximate:
+// a factorization that refused, or a stored pivot that was zero or not finite,
+// has no solution to report, and a number written there would be one the
+// runtime never derived.
+fn refusedLuSolve(comptime format: corpus.Format) RawRuntimeResult {
+    var result = emptyRawRuntimeResult();
+    result.values[0] = encodeFloat(format, 0.0);
+    result.values[1] = encodeFloat(format, 0.0);
+    result.values[2] = 0;
+    result.field_count = 3;
+    return result;
+}
+
+fn makeLuSolveInvoker(comptime format: corpus.Format) RuntimeInvoker {
+    const Mat2 = mat2Type(format);
+    // The right-hand side is the vector type the matrix itself names, so the
+    // public solve accepts it and the caller never restates the pairing the
+    // compile-time check inside the solve enforces.
+    const Vector2 = Mat2.vector_type;
+    const Adapter = struct {
+        fn invoke(inputs: *const [max_oracle_fields]OracleInputField) RawRuntimeResult {
+            const factorization = zmath.linalg.lu(decodeMat2(format, inputs)) orelse
+                return refusedLuSolve(format);
+            const right_hand_side = Vector2.init(
+                decodeFloat(format, inputs[4].value_bits),
+                decodeFloat(format, inputs[5].value_bits),
+            );
+            const solution = zmath.linalg.solveLu(factorization, right_hand_side) orelse
+                return refusedLuSolve(format);
+            var result = emptyRawRuntimeResult();
+            result.values[0] = encodeFloat(format, solution.x);
+            result.values[1] = encodeFloat(format, solution.y);
+            result.values[2] = 1;
+            result.field_count = 3;
+            return result;
+        }
+    };
+    return &Adapter.invoke;
+}
+
+fn point2Type(comptime format: corpus.Format) type {
+    return switch (format) {
+        .f => zmath.geometry.Point2f,
+        .d => zmath.geometry.Point2d,
+        .h => unreachable,
+    };
+}
+
+// The two policy names are the whole accepted tag vocabulary. The tag is an
+// input value rather than a descriptor, so the descriptor proves nothing about
+// the payload and an unrecognised name is refused here instead of being handed
+// to @enumFromInt, which is undefined behaviour in a fast build.
+fn decodeOrientationPolicy(
+    tag_bytes: ?[*c]const u8,
+    tag_length: u32,
+) ?zmath.geometry.PredicatePolicy {
+    const bytes = tag_bytes orelse return null;
+    if (bytes == null) return null;
+    const tag: []const u8 = bytes[0..@intCast(tag_length)];
+    if (std.mem.eql(u8, tag, "adaptive_exact")) return .adaptive_exact;
+    if (std.mem.eql(u8, tag, "fast")) return .fast;
+    return null;
+}
+
+// zmath.geometry.Sign and the signed i32 result field are declared in two
+// different modules and nothing in the type system ties their members together.
+// A positional @intFromEnum would keep compiling after either enum was
+// reordered and would then report a different sign for the same orientation,
+// so every pair is named here. Neither switch carries an `else`: a new member
+// on either side is a compile error rather than a silently accepted sign.
+fn orientationSignValue(sign: zmath.geometry.Sign) i32 {
+    return switch (sign) {
+        .negative => -1,
+        .zero => 0,
+        .positive => 1,
+    };
+}
+
+// The seventh argument is the policy tag, and the result is the signed sign
+// rather than the enum, so the two conventions meet exactly here.
+//
+// An unknown policy and a non-finite coordinate both yield a zero-field result.
+// Both callers, dispatchRuntime and materializeRawRuntimeFields, reject a field
+// count that disagrees with the entry's own result count, so the refusal is an
+// error that fails closed rather than a sign the runtime never computed.
+fn makeOrientationInvoker(comptime format: corpus.Format) RuntimeInvoker {
+    const Point = point2Type(format);
+    const Adapter = struct {
+        fn invoke(inputs: *const [max_oracle_fields]OracleInputField) RawRuntimeResult {
+            const policy = decodeOrientationPolicy(
+                inputs[6].tag_bytes,
+                inputs[6].tag_length,
+            ) orelse return emptyRawRuntimeResult();
+            const first = Point.init(
+                decodeFloat(format, inputs[0].value_bits),
+                decodeFloat(format, inputs[1].value_bits),
+            ) catch return emptyRawRuntimeResult();
+            const second = Point.init(
+                decodeFloat(format, inputs[2].value_bits),
+                decodeFloat(format, inputs[3].value_bits),
+            ) catch return emptyRawRuntimeResult();
+            const third = Point.init(
+                decodeFloat(format, inputs[4].value_bits),
+                decodeFloat(format, inputs[5].value_bits),
+            ) catch return emptyRawRuntimeResult();
+            const sign = Point.orientation(first, second, third, policy) catch
+                return emptyRawRuntimeResult();
+            var result = emptyRawRuntimeResult();
+            result.values[0] = encodeInteger(.i32, orientationSignValue(sign));
+            result.field_count = 1;
+            return result;
+        }
+    };
+    return &Adapter.invoke;
+}
+
 const NarrowSpec = struct {
     operation: []const u8,
     input_format: corpus.Format,
@@ -1870,6 +2092,76 @@ fn buildRuntimeTable() RuntimeTable {
         );
     }
 
+    // Two complex factors, a 2 by 2 matrix, a matrix with a right-hand side,
+    // and three points under a policy tag. Each is published at binary32 and
+    // binary64 only, so the loop names those two formats rather than walking
+    // the three-format list: an absent instantiation is a missing row, not a
+    // format the row exists in.
+    inline for ([_]corpus.Format{ .f, .d }) |format| {
+        append(&table, makeEntry(
+            "complexAdd",
+            .{
+                floatArgument(format),
+                floatArgument(format),
+                floatArgument(format),
+                floatArgument(format),
+            },
+            structureResult(.complex, format),
+            makeComplexBinaryInvoker(suffixedOperation("add", format), format),
+        ));
+        append(&table, makeEntry(
+            "complexMul",
+            .{
+                floatArgument(format),
+                floatArgument(format),
+                floatArgument(format),
+                floatArgument(format),
+            },
+            structureResult(.complex, format),
+            makeComplexBinaryInvoker(suffixedOperation("mul", format), format),
+        ));
+        append(&table, makeEntry(
+            "matrixDet2",
+            .{
+                floatArgument(format),
+                floatArgument(format),
+                floatArgument(format),
+                floatArgument(format),
+            },
+            .{ .float = format },
+            makeMat2DeterminantInvoker(format),
+        ));
+        append(&table, makeEntry(
+            "luSolve2",
+            .{
+                floatArgument(format),
+                floatArgument(format),
+                floatArgument(format),
+                floatArgument(format),
+                floatArgument(format),
+                floatArgument(format),
+            },
+            structureResult(.luSolve, format),
+            makeLuSolveInvoker(format),
+        ));
+        // The policy tag is the last argument, after the six coordinates, and
+        // the result is a signed i32 rather than an enum ordinal.
+        append(&table, makeEntry(
+            "geometryOrient2",
+            .{
+                floatArgument(format),
+                floatArgument(format),
+                floatArgument(format),
+                floatArgument(format),
+                floatArgument(format),
+                floatArgument(format),
+                @as(corpus.InputDescriptor, .tag),
+            },
+            .{ .integer = .i32 },
+            makeOrientationInvoker(format),
+        ));
+    }
+
     inline for (narrow_unary_operations) |spec| {
         append(&table, makeEntry(
             spec.operation,
@@ -1920,8 +2212,40 @@ fn buildRuntimeTable() RuntimeTable {
             ),
         ));
     }
-    if (table.count != 337) @compileError("runtime table does not cover the 337-row descriptor corpus");
+    validateRuntimeTable(&table);
     return table;
+}
+
+// The runtime table is the runtime's own view of the descriptor corpus, so the
+// build checks the shape of every row it emits. A pinned row count would only
+// move the failure from this file to the next manifest edit.
+//
+//  - Every entry names an operation the manifest can express, so no entry
+//    exists for a shape no row reaches.
+//  - Every argument is a shape a stored record can hold. A classification is a
+//    result-only field, so an entry naming one as an operand is a shape nothing
+//    can ever call.
+//  - Every entry stays inside the ABI ceilings, so a row can never ask the
+//    oracle bridge for more fields than the result buffer holds.
+fn validateRuntimeTable(table: *const RuntimeTable) void {
+    for (table.entries[0..table.count]) |*entry| {
+        comptime {
+            if (std.meta.stringToEnum(corpus.ManifestOperation, entry.operation) == null) {
+                @compileError("runtime table names an operation the manifest vocabulary does not declare");
+            }
+            if (entry.input_count == 0 or entry.input_count > corpus.max_argument_count) {
+                @compileError("runtime table entry has an argument count outside the ABI ceiling");
+            }
+            if (entry.result_count == 0 or entry.result_count > corpus.max_result_field_count) {
+                @compileError("runtime table entry has a result field count outside the ABI ceiling");
+            }
+            for (entry.input_descriptors[0..entry.input_count]) |descriptor| {
+                if (!bitsFitDescriptor(descriptor, 0)) {
+                    @compileError("runtime table entry names an argument no stored record can hold");
+                }
+            }
+        }
+    }
 }
 
 const runtime_table = buildRuntimeTable();
@@ -1933,35 +2257,39 @@ const runtime_table = buildRuntimeTable();
 /// Fail-closed errors for a packed vector batch. `VectorLaneBufferOverflow` is
 /// distinct from the shape errors so a batch needing more result words than the
 /// eight-slot buffer holds is rejected instead of truncated.
+/// `VectorLaneRefused` is the lane-level refusal: the invoker behind a lane
+/// declined that record, and a declined record has no stored answer for the
+/// replay to agree with, so the batch fails rather than publishing a value the
+/// runtime never derived.
 pub const VectorBatchError = error{
     VectorLaneCountOutOfRange,
     VectorResultFieldCountOverflow,
     VectorLaneBufferOverflow,
+    VectorLaneRefused,
 };
 
 /// One packed lane: the input field slots of a single record, in manifest
 /// argument order.
 pub const VectorLaneGroup = [max_oracle_fields]OracleInputField;
 
-/// Applies one `zmath.vector` entry point to four packed lanes. `groups` holds
-/// one lane per slot, and `out` receives the result words packed lane major:
-/// lane `i` owns `out[i * field_count ..][0..field_count]`.
+/// Applies one lane kernel to four packed lanes. `groups` holds one lane per
+/// slot, and `out` receives the result words packed lane major: lane `i` owns
+/// `out[i * field_count ..][0..field_count]`.
 pub const VectorRuntimeInvoker = *const fn (
     groups: *const [vector_lane_count]VectorLaneGroup,
     out: *[corpus.max_argument_count]u64,
-) void;
+) VectorBatchError!void;
 
-/// A vectorizable manifest shape: one elementwise float operation at one scalar
-/// format. The result is always a single float field, because a vector lane
-/// carries one result word per lane.
+/// One packed lane row. `scalar` is the runtime row the lane serves, and every
+/// descriptor is read from it rather than copied: a lane and its scalar row
+/// describe one manifest row, and there is one description of a record here.
+/// `vector_operation` names the `zmath.vector` entry point when the lane is a
+/// real vector kernel, and is null when the lane is scalar-backed: the group is
+/// replayed by the accepted scalar invoker once per lane, which is a
+/// correctness lane and never a throughput claim.
 pub const VectorRuntimeEntry = struct {
-    operation: []const u8,
-    vector_operation: []const u8,
-    format: corpus.Format,
-    input_count: usize,
-    result_descriptors: [max_oracle_fields]OracleFieldDescriptor,
-    result_count: usize,
-    result_layout: corpus.OracleResultLayout,
+    scalar: *const RuntimeEntry,
+    vector_operation: ?[]const u8,
     invoke: VectorRuntimeInvoker,
 };
 
@@ -1992,8 +2320,9 @@ fn vectorEntryName(comptime operation: []const u8) ?[]const u8 {
     return if (comptime @hasDecl(zmath.vector, name)) name else null;
 }
 
-// Every lane is one call of the identical accepted scalar kernel, so lane `i`
-// of the packed result is bit-for-bit the stored scalar result for record `i`.
+// One packed call of the real `zmath.vector` kernel. The published corpus
+// stores the scalar result of every record, and a lane kernel is only in this
+// table because it reproduces that result lane for lane.
 fn makeVectorUnaryInvoker(
     comptime vector_operation: []const u8,
     comptime format: corpus.Format,
@@ -2004,7 +2333,7 @@ fn makeVectorUnaryInvoker(
         fn invoke(
             groups: *const [vector_lane_count]VectorLaneGroup,
             out: *[corpus.max_argument_count]u64,
-        ) void {
+        ) VectorBatchError!void {
             var lanes: Lanes = undefined;
             inline for (0..vector_lane_count) |lane| {
                 lanes[lane] = decodeFloat(format, groups[lane][0].value_bits);
@@ -2034,7 +2363,7 @@ fn makeVectorBinaryInvoker(
         fn invoke(
             groups: *const [vector_lane_count]VectorLaneGroup,
             out: *[corpus.max_argument_count]u64,
-        ) void {
+        ) VectorBatchError!void {
             var first: Lanes = undefined;
             var second: Lanes = undefined;
             inline for (0..vector_lane_count) |lane| {
@@ -2054,30 +2383,121 @@ fn makeVectorBinaryInvoker(
     return &Adapter.invoke;
 }
 
+// A lane row names the scalar row it serves, and the arguments it declares here
+// are what that row is looked up by. Declaring them in the same comptime
+// `anytype` tuple the scalar builder takes is what makes the two descriptions
+// of a row impossible to write differently.
 fn makeVectorEntry(
     comptime operation: []const u8,
-    comptime vector_operation: []const u8,
-    comptime format: corpus.Format,
-    comptime input_count: usize,
+    comptime arguments: anytype,
     comptime result: corpus.ResultDescriptor,
+    comptime vector_operation: ?[]const u8,
     comptime invoke: VectorRuntimeInvoker,
 ) VectorRuntimeEntry {
-    if (result.oracleFieldCount() != 1) {
-        @compileError("vector entry points carry exactly one float result field");
-    }
-    var result_descriptors: [max_oracle_fields]OracleFieldDescriptor = undefined;
-    inline for (0..result.oracleFieldCount()) |index| {
-        result_descriptors[index] = result.oracleFieldDescriptor(index).?;
+    const field_count = result.oracleFieldCount();
+    comptime {
+        if (field_count == 0 or field_count > corpus.max_result_field_count) {
+            @compileError("a packed lane carries between one and the result field ceiling");
+        }
+        // Four packed lanes of the widest result must still fit the raw word
+        // buffer, or a batch would overwrite a neighbouring lane.
+        if (field_count * vector_lane_count > corpus.max_argument_count) {
+            @compileError("packed lane results overflow the raw result word buffer");
+        }
     }
     return .{
-        .operation = operation,
+        .scalar = scalarEntryFor(operation, arguments, result),
         .vector_operation = vector_operation,
-        .format = format,
-        .input_count = input_count,
-        .result_descriptors = result_descriptors,
-        .result_count = result.oracleFieldCount(),
-        .result_layout = result.oracleLayout(),
         .invoke = invoke,
+    };
+}
+
+// The scalar row that serves the named arguments and result, found by the same
+// descriptor comparison the runtime lookup performs. A lane that names a row the
+// scalar table does not serve is a build error, not a lane that measures
+// nothing.
+fn scalarEntryFor(
+    comptime operation: []const u8,
+    comptime arguments: anytype,
+    comptime result: corpus.ResultDescriptor,
+) *const RuntimeEntry {
+    const row = laneFunction(operation, arguments, result);
+    for (runtime_table.entries[0..runtime_table.count]) |*entry| {
+        if (!std.mem.eql(u8, entry.operation, operation)) continue;
+        if (entryMatchesFunction(entry.*, row)) return entry;
+    }
+    // Reached only when the lane names a row the scalar table does not serve,
+    // which at comptime is the compile error the comment above describes.
+    unreachable;
+}
+
+// The row a lane declares. Only the fields a descriptor comparison reads carry
+// meaning, so the provenance, status and oracle a manifest row also carries are
+// left at their neutral values here rather than restated.
+fn laneFunction(
+    comptime operation: []const u8,
+    comptime arguments: anytype,
+    comptime result: corpus.ResultDescriptor,
+) Function {
+    var inputs: corpus.ArgumentList = .{};
+    inputs.count = @typeInfo(@TypeOf(arguments)).@"struct".fields.len;
+    inline for (arguments, 0..) |argument, index| {
+        inputs.descriptors[index] = argument;
+    }
+    return .{
+        .op = operation,
+        .provenance = .empty,
+        .status = .correct,
+        .arity = inputs.count,
+        .inputs = inputs,
+        .result = result,
+        .oracle = .none,
+        .special_policy = "",
+        .max_ulp = 0,
+    };
+}
+
+// A scalar-backed lane group: lane `i` is one call of the accepted scalar
+// invoker with that lane's own record, so the packed word lane `i` owns is
+// bit-for-bit the stored scalar result for record `i`.
+//
+// This lane is a REPLAY path, not a vector kernel. It exists so a descriptor
+// with no `zmath.vector` entry point is still covered by the packed replay, and
+// it makes no throughput claim: a caller that wants SIMD timing measures the
+// registered `zmath.vector` targets instead.
+fn makeScalarBackedVectorInvoker(
+    comptime scalar: RuntimeInvoker,
+    comptime field_count: usize,
+) VectorRuntimeInvoker {
+    const Adapter = struct {
+        fn invoke(
+            groups: *const [vector_lane_count]VectorLaneGroup,
+            out: *[corpus.max_argument_count]u64,
+        ) VectorBatchError!void {
+            inline for (0..vector_lane_count) |lane| {
+                const raw = scalar(&groups[lane]);
+                // A scalar invoker refuses a record by returning fewer fields
+                // than its entry declares, so the width is also the refusal
+                // check: a lane that answered a different shape has no stored
+                // answer to agree with.
+                if (raw.field_count != field_count) return error.VectorLaneRefused;
+                @memcpy(
+                    out[lane * field_count ..][0..field_count],
+                    raw.values[0..field_count],
+                );
+            }
+        }
+    };
+    return &Adapter.invoke;
+}
+
+// The lane row for a scalar row with no vector kernel. It carries the scalar
+// row itself, so the lane and the scalar row cannot describe different records.
+fn makeScalarBackedVectorEntry(entry: *const RuntimeEntry) VectorRuntimeEntry {
+    return .{
+        .scalar = entry,
+        .vector_operation = null,
+        .invoke = makeScalarBackedVectorInvoker(entry.invoke, entry.result_count),
     };
 }
 
@@ -2087,20 +2507,27 @@ fn appendVector(table: *VectorRuntimeTable, entry: VectorRuntimeEntry) void {
     table.count += 1;
 }
 
-// The number of entries the builder must emit: one per vectorized operation
-// per scalar format. Computed from the same lists the builder walks, so a
-// dropped operation or format fails the count guard instead of shrinking the
-// table silently.
-const vector_runtime_table_expected_count: usize = blk: {
-    var operations: usize = 0;
-    for (root_unary_operations) |operation| {
-        if (vectorEntryName(operation) != null) operations += 1;
+// True when `zmath.vector` publishes a real kernel for the elementwise
+// operation named. The decision comes from the same declaration lookup the
+// kernel loop uses, so a kernel that appears or disappears moves this answer
+// with it, and no row is ever left without a packed lane.
+//
+// Every other descriptor the scalar table serves is scalar-backed, so the
+// packed lane covers the whole corpus by construction: a new row reaches it the
+// moment it has a scalar invoker, and the two tables cannot drift apart.
+fn hasVectorKernel(operation: []const u8) bool {
+    inline for (root_unary_operations) |candidate| {
+        if (std.mem.eql(u8, candidate, operation)) {
+            return comptime vectorEntryName(candidate) != null;
+        }
     }
-    for (root_binary_operations) |operation| {
-        if (vectorEntryName(operation) != null) operations += 1;
+    inline for (root_binary_operations) |candidate| {
+        if (std.mem.eql(u8, candidate, operation)) {
+            return comptime vectorEntryName(candidate) != null;
+        }
     }
-    break :blk operations * formats.len;
-};
+    return false;
+}
 
 fn buildVectorRuntimeTable() VectorRuntimeTable {
     @setEvalBranchQuota(2_000_000);
@@ -2112,10 +2539,9 @@ fn buildVectorRuntimeTable() VectorRuntimeTable {
         inline for (formats) |format| {
             appendVector(&table, makeVectorEntry(
                 operation,
-                vector_operation,
-                format,
-                1,
+                .{floatArgument(format)},
                 .{ .float = format },
+                vector_operation,
                 makeVectorUnaryInvoker(vector_operation, format),
             ));
         }
@@ -2125,40 +2551,43 @@ fn buildVectorRuntimeTable() VectorRuntimeTable {
         inline for (formats) |format| {
             appendVector(&table, makeVectorEntry(
                 operation,
-                vector_operation,
-                format,
-                2,
+                .{ floatArgument(format), floatArgument(format) },
                 .{ .float = format },
+                vector_operation,
                 makeVectorBinaryInvoker(vector_operation, format),
             ));
         }
     }
-    if (table.count != vector_runtime_table_expected_count) {
-        @compileError("vector runtime table does not cover the vectorized descriptor corpus");
+    // Everything the scalar table serves beyond those kernels: the structured
+    // results, the integer results, the tag-carrying rows, and every binary16
+    // and narrowing shape `zmath.vector` does not publish a kernel for.
+    inline for (runtime_table.entries[0..runtime_table.count]) |*entry| {
+        if (hasVectorKernel(entry.operation)) continue;
+        appendVector(&table, makeScalarBackedVectorEntry(entry));
+    }
+    // The count is the scalar table's, read rather than pinned: a pinned number
+    // would only have to be moved again, while this fails the build the moment
+    // a row reaches the scalar replay and misses the packed one.
+    comptime {
+        if (table.count != runtime_table.count) {
+            @compileError("vector runtime table does not cover the scalar descriptor corpus");
+        }
     }
     return table;
 }
 
 const vector_runtime_table = buildVectorRuntimeTable();
 
+// A lane row is found the way a scalar row is: by comparing the descriptors
+// the manifest publishes against the ones the row declares. The scalar lookup
+// already accepts an integer or a tag argument, and a structure result, so
+// reusing that rule here is what lets one packed lane serve every corpus row
+// rather than only the elementwise float ones.
 pub fn runtimeVectorEntryForFunction(function: Function) ?*const VectorRuntimeEntry {
-    const arguments = function.arguments();
-    if (@as(usize, function.arity) != arguments.len) return null;
-    const result_format = function.result.floatFormat() orelse return null;
+    if (@as(usize, function.arity) != function.arguments().len) return null;
     for (vector_runtime_table.entries[0..vector_runtime_table.count]) |*entry| {
-        if (!std.mem.eql(u8, function.op, entry.operation)) continue;
-        if (arguments.len != entry.input_count) continue;
-        if (entry.format != result_format) continue;
-        if (function.result.oracleFieldCount() != entry.result_count) continue;
-        if (function.result.oracleLayout() != entry.result_layout) continue;
-        var matches = true;
-        for (arguments) |argument| {
-            if (argument.floatFormat() != entry.format) {
-                matches = false;
-                break;
-            }
-        }
-        if (matches) return entry;
+        if (!std.mem.eql(u8, function.op, entry.scalar.operation)) continue;
+        if (entryMatchesFunction(entry.scalar.*, function)) return entry;
     }
     return null;
 }
@@ -2172,7 +2601,7 @@ pub fn invokeVectorBatch(
     prepared: *const PreparedVectorRuntime,
     batch: *VectorBatch,
 ) VectorBatchError!void {
-    const field_count = prepared.entry.result_count;
+    const field_count = prepared.entry.scalar.result_count;
     if (batch.lane_count == 0 or batch.lane_count > vector_lane_count) {
         return error.VectorLaneCountOutOfRange;
     }
@@ -2183,7 +2612,10 @@ pub fn invokeVectorBatch(
         return error.VectorLaneBufferOverflow;
     }
     @memset(batch.values[0 .. field_count * vector_lane_count], 0);
-    prepared.entry.invoke(&batch.groups, &batch.values);
+    // The zero fill above is a defined starting point for the lanes an invoker
+    // leaves untouched, not a value: a lane that refuses fails the batch rather
+    // than reporting the zero back as if the runtime had produced it.
+    try prepared.entry.invoke(&batch.groups, &batch.values);
 }
 
 pub fn materializeRawVectorRuntimeFields(
@@ -2195,7 +2627,7 @@ pub fn materializeRawVectorRuntimeFields(
     if (batch.lane_count == 0 or batch.lane_count > vector_lane_count) {
         return error.RuntimeShapeMismatch;
     }
-    const field_count = prepared.entry.result_count;
+    const field_count = prepared.entry.scalar.result_count;
     if (field_count == 0 or field_count > corpus.max_result_field_count) {
         return error.RuntimeShapeMismatch;
     }
@@ -2206,7 +2638,7 @@ pub fn materializeRawVectorRuntimeFields(
     evidence.field_count = field_count;
     for (0..batch.lane_count) |lane| {
         for (0..field_count) |field| {
-            const descriptor = prepared.entry.result_descriptors[field];
+            const descriptor = prepared.entry.scalar.result_descriptors[field];
             const value_bits = batch.values[lane * field_count + field];
             if (!valueBitsFitDescriptor(descriptor, value_bits)) {
                 return error.RuntimeShapeMismatch;
@@ -2513,7 +2945,7 @@ fn runExpDirect(format: corpus.Format, input_bits: u64) RunError!void {
     if (proof.field_count != 1 or proof.fields[0].class_code != candidate_class) return error.ProofShapeMismatch;
 }
 
-// This path is intentionally Exp-only. It avoids the full 337-entry dispatch table.
+// This path is intentionally Exp-only. It avoids the full dispatch table.
 pub fn runExp(format: corpus.Format, input_bits: u64) RunError!void {
     return runExpDirect(format, input_bits);
 }
@@ -2565,4 +2997,132 @@ test "candidate evidence does not grant accepted execution" {
         .verified => return error.UnacceptedExecution,
     };
     try std.testing.expectEqual(UnsupportedReason.manifest_status, reason);
+}
+
+// The manifest row for an operation at one format. The format is read from the
+// first argument rather than from the result, so a row whose result carries no
+// float format is found by the same rule as one that does.
+fn manifestRowFor(operation: []const u8, format: corpus.Format) !Function {
+    const manifest = try corpus.parseEmbeddedManifest();
+    var functions = manifest.functions();
+    while (try functions.next()) |function| {
+        if (!std.mem.eql(u8, function.op, operation)) continue;
+        const row_format = function.arguments()[0].floatFormat() orelse continue;
+        if (row_format != format) continue;
+        return function;
+    }
+    return error.MissingFunctionRow;
+}
+
+// One record's input fields. A tag field points into this value, so a caller
+// holds it alive for the whole invocation instead of letting the bytes outlive
+// the call. The payload is the text a tag-carrying row names; a row that carries
+// no tag passes null and leaves the field unset.
+const RuntimeRecord = struct {
+    fields: [corpus.max_argument_count]corpus.OracleInputField = undefined,
+    payload: [32]u8 = undefined,
+
+    fn encode(
+        record: *@This(),
+        format: corpus.Format,
+        values: []const u64,
+        tag: ?[]const u8,
+    ) corpus.OracleEncodingError!void {
+        const descriptor: corpus.InputDescriptor = .{ .float = format };
+        for (values, 0..) |bits, index| {
+            record.fields[index] = try corpus.oracleLiteralInput(descriptor, bits);
+        }
+        const payload = tag orelse return;
+        @memcpy(record.payload[0..payload.len], payload);
+        record.fields[values.len] = try corpus.oracleTagInput(record.payload[0..payload.len]);
+    }
+};
+
+// An orientation sign is defined only on a finite coordinate domain under a
+// policy the runtime names. Outside that the invoker must decline the record
+// rather than answer, because the consumer sees nothing but the fields: a
+// fabricated sign would sit in the stored corpus looking exactly like a
+// computed one. The decline carries no field at all, so both callers reject it
+// on the count and the replay raises RuntimeShapeMismatch.
+test "an unnamed geometry policy declines the record instead of answering" {
+    const function = try manifestRowFor("geometryOrient2", .d);
+    const prepared = try prepareRuntime(function);
+    const finite = [_]u64{ 1, 0, 1, 2, 0, 1 };
+    var actual: [corpus.max_result_field_count]corpus.CorpusField = undefined;
+    for ([_][]const u8{ "", " ", "exact", "adaptive", "Fast", "adaptive_exact " }) |policy| {
+        var record: RuntimeRecord = .{};
+        try record.encode(.d, &finite, policy);
+        const raw = prepared.invoke(&record.fields);
+        try std.testing.expectEqual(@as(usize, 0), raw.field_count);
+        try std.testing.expectError(
+            error.RuntimeShapeMismatch,
+            materializeRawRuntimeFields(function, &prepared, raw, &actual),
+        );
+    }
+}
+
+// The other half of the domain: a coordinate the public point constructor
+// refuses is not a coordinate the predicate may classify, under either policy.
+test "a non-finite geometry coordinate declines the record instead of answering" {
+    const function = try manifestRowFor("geometryOrient2", .f);
+    const prepared = try prepareRuntime(function);
+    var actual: [corpus.max_result_field_count]corpus.CorpusField = undefined;
+    const not_finite = [_]u64{
+        0x7fc0_0000, // quiet NaN
+        0x7f80_0000, // positive infinity
+        0xff80_0000, // negative infinity
+        0x7f80_0001, // signalling NaN
+    };
+    for ([_][]const u8{ "adaptive_exact", "fast" }) |policy| {
+        for (not_finite) |bits| {
+            for (0..6) |slot| {
+                var coordinates = [_]u64{ 1, 0, 1, 2, 0, 1 };
+                coordinates[slot] = bits;
+                var record: RuntimeRecord = .{};
+                try record.encode(.f, &coordinates, policy);
+                const raw = prepared.invoke(&record.fields);
+                try std.testing.expectEqual(@as(usize, 0), raw.field_count);
+                try std.testing.expectError(
+                    error.RuntimeShapeMismatch,
+                    materializeRawRuntimeFields(function, &prepared, raw, &actual),
+                );
+            }
+        }
+    }
+}
+
+// A refused solve is a different contract from a declined orientation: the
+// refusal IS a published answer. The two solution fields carry the canonical
+// positive zero rather than a number the factorization never produced, and the
+// flag is false, so a replay comparing decoded fields sees the refusal on every
+// refused record and nothing else.
+test "a refused solve publishes canonical zero solutions and a false flag" {
+    const function = try manifestRowFor("luSolve2", .d);
+    const prepared = try prepareRuntime(function);
+    // The four matrix entries are zero, so the largest entry magnitude is zero
+    // and no pivot clears the threshold times it: the factorization refuses
+    // before a solution exists. The right-hand side is 1 and 2, so the refusal
+    // is the matrix and not a later solve step.
+    const coordinates = [_]u64{
+        0,
+        0,
+        0,
+        0,
+        0x3ff0_0000_0000_0000,
+        0x4000_0000_0000_0000,
+    };
+    var record: RuntimeRecord = .{};
+    try record.encode(.d, &coordinates, null);
+    const raw = prepared.invoke(&record.fields);
+    var actual: [corpus.max_result_field_count]corpus.CorpusField = undefined;
+    const count = try materializeRawRuntimeFields(function, &prepared, raw, &actual);
+    try std.testing.expectEqual(@as(usize, 3), count);
+    const canonical_zero = corpus.CorpusField{ .float = .{
+        .format = .d,
+        .bits = 0,
+        .class = .zero,
+    } };
+    try std.testing.expectEqual(canonical_zero, actual[0]);
+    try std.testing.expectEqual(canonical_zero, actual[1]);
+    try std.testing.expectEqual(corpus.CorpusField{ .boolean = false }, actual[2]);
 }

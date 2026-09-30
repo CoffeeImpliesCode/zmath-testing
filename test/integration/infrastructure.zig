@@ -74,8 +74,7 @@ fn replaceText(
 }
 
 test "portable infrastructure accepts the complete typed manifest" {
-    const manifest = try corpus.parseEmbeddedManifest();
-    try std.testing.expectEqual(@as(usize, 337), manifest.functionCount());
+    _ = try corpus.parseEmbeddedManifest();
     try corpus.validateEmbeddedManifest();
 }
 

@@ -1511,6 +1511,977 @@ cleanup_inputs:
     }
     return success;
 }
+/*
+ * ---------------------------------------------------------------------------
+ * Compound references for the five non-scalar algebraic rows
+ *
+ * Every operation below shares one shape: a row of same-format float inputs,
+ * an exact GMP rational for each primitive, and a rounding back to the target
+ * format at the end of every primitive. Carrying one exact rational through
+ * the whole graph would be a different operation, not a more accurate one.
+ * A product that rounds before the addition beside it is the arithmetic these
+ * rows describe, so zmath_testing_algebraic_graph_step returns target bits and
+ * the next primitive decodes those bits again.
+ * ---------------------------------------------------------------------------
+ */
+
+#define ZMATH_TESTING_ALGEBRAIC_GEOMETRY_COORDINATES 6u
+#define ZMATH_TESTING_ALGEBRAIC_GEOMETRY_TAG_INDEX 6u
+
+typedef enum zmath_testing_algebraic_graph {
+    ZMATH_TESTING_ALGEBRAIC_GRAPH_NONE = 0,
+    ZMATH_TESTING_ALGEBRAIC_GRAPH_COMPLEX_ADD,
+    ZMATH_TESTING_ALGEBRAIC_GRAPH_COMPLEX_MUL,
+    ZMATH_TESTING_ALGEBRAIC_GRAPH_MATRIX_DET2,
+    ZMATH_TESTING_ALGEBRAIC_GRAPH_LU_SOLVE2,
+    ZMATH_TESTING_ALGEBRAIC_GRAPH_GEOMETRY_ORIENT2
+} zmath_testing_algebraic_graph;
+
+typedef enum zmath_testing_algebraic_policy {
+    ZMATH_TESTING_ALGEBRAIC_POLICY_UNKNOWN = 0,
+    ZMATH_TESTING_ALGEBRAIC_POLICY_ADAPTIVE_EXACT,
+    ZMATH_TESTING_ALGEBRAIC_POLICY_FAST
+} zmath_testing_algebraic_policy;
+
+/*
+ * The spelling names WHICH operation this is and nothing else. Arity, input
+ * kinds, formats, result fields, layout, and provenance all come from the
+ * immutable table row that the request is matched against below.
+ */
+static zmath_testing_algebraic_graph zmath_testing_algebraic_graph_for(
+    const zmath_testing_oracle_operation_signature *signature
+) {
+    static const struct {
+        const char *operation;
+        zmath_testing_algebraic_graph graph;
+    } graphs[] = {
+        { "complexAdd", ZMATH_TESTING_ALGEBRAIC_GRAPH_COMPLEX_ADD },
+        { "complexMul", ZMATH_TESTING_ALGEBRAIC_GRAPH_COMPLEX_MUL },
+        { "geometryOrient2", ZMATH_TESTING_ALGEBRAIC_GRAPH_GEOMETRY_ORIENT2 },
+        { "luSolve2", ZMATH_TESTING_ALGEBRAIC_GRAPH_LU_SOLVE2 },
+        { "matrixDet2", ZMATH_TESTING_ALGEBRAIC_GRAPH_MATRIX_DET2 }
+    };
+    size_t index;
+
+    if (signature == NULL) return ZMATH_TESTING_ALGEBRAIC_GRAPH_NONE;
+    for (index = 0; index < sizeof(graphs) / sizeof(graphs[0]); ++index) {
+        if (zmath_testing_algebraic_operation_is(
+                signature, graphs[index].operation))
+        {
+            return graphs[index].graph;
+        }
+    }
+    return ZMATH_TESTING_ALGEBRAIC_GRAPH_NONE;
+}
+
+/*
+ * The declared shape of each row. result_floats is the length of the float
+ * prefix of the result. A row may carry one trailer field after it, and that
+ * field is a boolean for a solve and a signed 32-bit integer for a sign.
+ */
+static int zmath_testing_algebraic_graph_shape(
+    zmath_testing_algebraic_graph graph,
+    uint32_t *arity,
+    uint32_t *float_inputs,
+    uint32_t *result_floats,
+    uint32_t *layout,
+    uint32_t *structure,
+    uint32_t *result_fields
+) {
+    if (arity == NULL || float_inputs == NULL || result_floats == NULL ||
+        layout == NULL || structure == NULL || result_fields == NULL)
+    {
+        return 0;
+    }
+    switch (graph) {
+        case ZMATH_TESTING_ALGEBRAIC_GRAPH_COMPLEX_ADD:
+        case ZMATH_TESTING_ALGEBRAIC_GRAPH_COMPLEX_MUL:
+            *arity = 4u;
+            *float_inputs = 4u;
+            *result_floats = 2u;
+            *layout = ZMATH_TESTING_ORACLE_RESULT_STRUCTURE;
+            *structure = ZMATH_TESTING_ORACLE_STRUCTURE_COMPLEX;
+            *result_fields = 2u;
+            return 1;
+        case ZMATH_TESTING_ALGEBRAIC_GRAPH_MATRIX_DET2:
+            *arity = 4u;
+            *float_inputs = 4u;
+            *result_floats = 1u;
+            *layout = ZMATH_TESTING_ORACLE_RESULT_SCALAR;
+            *structure = ZMATH_TESTING_ORACLE_STRUCTURE_NONE;
+            *result_fields = 1u;
+            return 1;
+        case ZMATH_TESTING_ALGEBRAIC_GRAPH_LU_SOLVE2:
+            *arity = 6u;
+            *float_inputs = 6u;
+            *result_floats = 2u;
+            *layout = ZMATH_TESTING_ORACLE_RESULT_STRUCTURE;
+            *structure = ZMATH_TESTING_ORACLE_STRUCTURE_LU_SOLVE;
+            *result_fields = 3u;
+            return 1;
+        case ZMATH_TESTING_ALGEBRAIC_GRAPH_GEOMETRY_ORIENT2:
+            *arity = 7u;
+            *float_inputs = ZMATH_TESTING_ALGEBRAIC_GEOMETRY_COORDINATES;
+            *result_floats = 0u;
+            *layout = ZMATH_TESTING_ORACLE_RESULT_SCALAR;
+            *structure = ZMATH_TESTING_ORACLE_STRUCTURE_NONE;
+            *result_fields = 1u;
+            return 1;
+        default:
+            return 0;
+    }
+}
+
+/*
+ * The policy text of a geometry request. An unknown spelling names no
+ * reference at all, so it is refused instead of being read as one of the two
+ * known policies or as an absent policy.
+ */
+static int zmath_testing_algebraic_policy_from_bytes(
+    const uint8_t *bytes,
+    uint32_t length,
+    zmath_testing_algebraic_policy *policy
+) {
+    static const uint8_t adaptive_exact[] = "adaptive_exact";
+    static const uint8_t fast[] = "fast";
+
+    if (policy == NULL) return ZMATH_TESTING_ORACLE_ERROR;
+    *policy = ZMATH_TESTING_ALGEBRAIC_POLICY_UNKNOWN;
+    if (bytes == NULL) return ZMATH_TESTING_ORACLE_UNSUPPORTED;
+    if (length == sizeof(adaptive_exact) - 1u &&
+        memcmp(bytes, adaptive_exact, sizeof(adaptive_exact) - 1u) == 0)
+    {
+        *policy = ZMATH_TESTING_ALGEBRAIC_POLICY_ADAPTIVE_EXACT;
+        return ZMATH_TESTING_ORACLE_OK;
+    }
+    if (length == sizeof(fast) - 1u &&
+        memcmp(bytes, fast, sizeof(fast) - 1u) == 0)
+    {
+        *policy = ZMATH_TESTING_ALGEBRAIC_POLICY_FAST;
+        return ZMATH_TESTING_ORACLE_OK;
+    }
+    return ZMATH_TESTING_ORACLE_UNSUPPORTED;
+}
+
+static int zmath_testing_algebraic_graph_request_is_valid(
+    const zmath_testing_oracle_operation_signature *signature,
+    const zmath_testing_oracle_request *request,
+    zmath_testing_oracle_result *result,
+    zmath_testing_algebraic_graph graph,
+    zmath_testing_algebraic_format *format,
+    zmath_testing_algebraic_policy *policy
+) {
+    uint32_t arity;
+    uint32_t float_inputs;
+    uint32_t result_floats;
+    uint32_t layout;
+    uint32_t structure;
+    uint32_t result_fields;
+    uint32_t source_code = ZMATH_TESTING_ORACLE_FORMAT_NONE;
+    uint32_t index;
+    zmath_testing_algebraic_format one;
+    int status;
+
+    if (signature == NULL || request == NULL || result == NULL ||
+        format == NULL || policy == NULL)
+    {
+        return ZMATH_TESTING_ORACLE_ERROR;
+    }
+    if (!zmath_testing_algebraic_graph_shape(
+            graph,
+            &arity,
+            &float_inputs,
+            &result_floats,
+            &layout,
+            &structure,
+            &result_fields))
+    {
+        return ZMATH_TESTING_ORACLE_UNSUPPORTED;
+    }
+    if (result->reserved != 0 || request->reserved != 0 ||
+        request->abi_version != ZMATH_TESTING_ORACLE_ABI_VERSION)
+    {
+        return ZMATH_TESTING_ORACLE_ERROR;
+    }
+    if (signature->evaluator_category !=
+        ZMATH_TESTING_ORACLE_EVALUATOR_ALGEBRAIC ||
+        signature->provenance != ZMATH_TESTING_ORACLE_PROVENANCE_C23_7_12)
+    {
+        return ZMATH_TESTING_ORACLE_UNSUPPORTED;
+    }
+    /*
+     * The immutable table names the row. No hand-built signature and no
+     * request the table does not carry can reach the arithmetic below.
+     */
+    if (zmath_testing_oracle_find_operation_signature(request) != signature) {
+        return ZMATH_TESTING_ORACLE_ERROR;
+    }
+    if (request->operation == NULL || signature->operation == NULL ||
+        request->operation_length != signature->operation_length ||
+        memcmp(
+            request->operation,
+            signature->operation,
+            signature->operation_length) != 0)
+    {
+        return ZMATH_TESTING_ORACLE_ERROR;
+    }
+    if (request->arity != arity || request->input_field_count != arity ||
+        signature->arity != arity || request->input_fields == NULL ||
+        signature->arguments == NULL || request->result_fields == NULL ||
+        signature->result_fields == NULL ||
+        request->result_layout != layout || signature->result_layout != layout ||
+        request->structure_kind != structure ||
+        signature->structure_kind != structure ||
+        request->result_field_count != result_fields ||
+        signature->result_field_count != result_fields ||
+        result->fields == NULL || result->field_capacity < result_fields)
+    {
+        return ZMATH_TESTING_ORACLE_ERROR;
+    }
+    *policy = ZMATH_TESTING_ALGEBRAIC_POLICY_UNKNOWN;
+    for (index = 0; index < arity; ++index) {
+        const zmath_testing_oracle_input_field *field =
+            &request->input_fields[index];
+        if (!zmath_testing_algebraic_descriptor_equal(
+                &field->descriptor,
+                &signature->arguments[index]) ||
+            field->reserved != 0)
+        {
+            return ZMATH_TESTING_ORACLE_ERROR;
+        }
+        if (graph == ZMATH_TESTING_ALGEBRAIC_GRAPH_GEOMETRY_ORIENT2 &&
+            index == ZMATH_TESTING_ALGEBRAIC_GEOMETRY_TAG_INDEX)
+        {
+            if (field->descriptor.kind != ZMATH_TESTING_ORACLE_FIELD_TAG ||
+                field->value_bits != 0)
+            {
+                return ZMATH_TESTING_ORACLE_ERROR;
+            }
+            status = zmath_testing_algebraic_policy_from_bytes(
+                field->tag_bytes, field->tag_length, policy);
+            if (status != ZMATH_TESTING_ORACLE_OK) return status;
+            continue;
+        }
+        if (index >= float_inputs) return ZMATH_TESTING_ORACLE_ERROR;
+        if (field->descriptor.kind != ZMATH_TESTING_ORACLE_FIELD_FLOAT) {
+            return ZMATH_TESTING_ORACLE_UNSUPPORTED;
+        }
+        status = zmath_testing_algebraic_format_from_descriptor(
+            &field->descriptor.format, &one);
+        if (status != ZMATH_TESTING_ORACLE_OK) return status;
+        if (index == 0) {
+            /* These five rows are declared for binary32 and binary64 only. */
+            if (one.code == ZMATH_TESTING_ORACLE_FORMAT_H) {
+                return ZMATH_TESTING_ORACLE_UNSUPPORTED;
+            }
+            *format = one;
+            source_code = one.code;
+        } else if (one.code != source_code) {
+            return ZMATH_TESTING_ORACLE_ERROR;
+        }
+        if (field->descriptor.value_bits != format->width ||
+            (field->value_bits & ~format->value_mask) != 0 ||
+            field->tag_bytes != NULL || field->tag_length != 0)
+        {
+            return ZMATH_TESTING_ORACLE_ERROR;
+        }
+    }
+    for (index = 0; index < result_fields; ++index) {
+        const zmath_testing_oracle_field_descriptor *field =
+            &request->result_fields[index];
+        if (!zmath_testing_algebraic_descriptor_equal(
+                field, &signature->result_fields[index]))
+        {
+            return ZMATH_TESTING_ORACLE_ERROR;
+        }
+        if (index < result_floats) {
+            if (field->kind != ZMATH_TESTING_ORACLE_FIELD_FLOAT) {
+                return ZMATH_TESTING_ORACLE_UNSUPPORTED;
+            }
+            status = zmath_testing_algebraic_format_from_descriptor(
+                &field->format, &one);
+            if (status != ZMATH_TESTING_ORACLE_OK) return status;
+            if (one.code != source_code || field->value_bits != one.width) {
+                return ZMATH_TESTING_ORACLE_ERROR;
+            }
+            continue;
+        }
+        if (result_fields - result_floats != 1u) {
+            return ZMATH_TESTING_ORACLE_ERROR;
+        }
+        if (graph == ZMATH_TESTING_ALGEBRAIC_GRAPH_LU_SOLVE2) {
+            if (field->kind != ZMATH_TESTING_ORACLE_FIELD_BOOLEAN ||
+                field->value_bits != 1u)
+            {
+                return ZMATH_TESTING_ORACLE_ERROR;
+            }
+        } else if (graph == ZMATH_TESTING_ALGEBRAIC_GRAPH_GEOMETRY_ORIENT2) {
+            if (field->kind != ZMATH_TESTING_ORACLE_FIELD_SIGNED_INTEGER ||
+                field->value_bits != 32u)
+            {
+                return ZMATH_TESTING_ORACLE_ERROR;
+            }
+        } else {
+            return ZMATH_TESTING_ORACLE_ERROR;
+        }
+    }
+    if (graph == ZMATH_TESTING_ALGEBRAIC_GRAPH_GEOMETRY_ORIENT2 &&
+        *policy == ZMATH_TESTING_ALGEBRAIC_POLICY_UNKNOWN)
+    {
+        return ZMATH_TESTING_ORACLE_UNSUPPORTED;
+    }
+    return ZMATH_TESTING_ORACLE_OK;
+}
+
+/*
+ * One binary primitive of a compound graph, rounded to the target format.
+ * The exact rational is the evidence for that one rounding. It is not kept
+ * past this call, and class_out may be null when the caller reads no class.
+ */
+static int zmath_testing_algebraic_graph_step(
+    uint64_t *bits_out,
+    uint32_t *class_out,
+    zmath_testing_algebraic_kernel kernel,
+    const zmath_testing_algebraic_format *format,
+    uint64_t first_bits,
+    uint64_t second_bits
+) {
+    zmath_testing_algebraic_value first;
+    zmath_testing_algebraic_value second;
+    mpq_t left;
+    mpq_t right;
+    mpq_t value;
+    uint32_t class_code;
+    int success = 0;
+
+    if (bits_out == NULL || format == NULL) return 0;
+    zmath_testing_algebraic_decode_value(format, first_bits, &first);
+    zmath_testing_algebraic_decode_value(format, second_bits, &second);
+    /* The first NaN operand wins. Only the same-sign infinity subtraction
+     * and the infinite times zero are invalid. */
+    if (zmath_testing_algebraic_special_binary(
+            bits_out,
+            &class_code,
+            kernel,
+            format,
+            format,
+            &first,
+            &second))
+    {
+        if (class_out != NULL) *class_out = class_code;
+        return 1;
+    }
+    /*
+     * Every NaN, infinity, and zero pair is above. Two finite nonzero
+     * operands are left, so the exact result is never zero and the sign of
+     * a zero never has to be reconstructed.
+     */
+    mpq_init(left);
+    mpq_init(right);
+    mpq_init(value);
+    if (zmath_testing_algebraic_ratio_from_bits(left, format, first_bits) &&
+        zmath_testing_algebraic_ratio_from_bits(right, format, second_bits))
+    {
+        switch (kernel) {
+            case ZMATH_TESTING_ALGEBRAIC_ADD:
+                mpq_add(value, left, right);
+                break;
+            case ZMATH_TESTING_ALGEBRAIC_SUB:
+                mpq_sub(value, left, right);
+                break;
+            case ZMATH_TESTING_ALGEBRAIC_MUL:
+                mpq_mul(value, left, right);
+                break;
+            default:
+                goto cleanup;
+        }
+        success = zmath_testing_algebraic_encode_rational(
+            bits_out, &class_code, format, value, 0);
+    }
+    if (success && class_out != NULL) *class_out = class_code;
+cleanup:
+    mpq_clear(value);
+    mpq_clear(right);
+    mpq_clear(left);
+    return success;
+}
+
+static int zmath_testing_algebraic_complex_add(
+    const zmath_testing_oracle_request *request,
+    const zmath_testing_algebraic_format *format,
+    zmath_testing_oracle_result *result
+) {
+    uint64_t bits[2];
+    uint32_t class_code[2];
+    uint32_t index;
+
+    /* Each component is its own addition and owns its own IEEE state, so an
+     * invalid real part leaves the imaginary part exact. */
+    if (!zmath_testing_algebraic_graph_step(
+            &bits[0],
+            &class_code[0],
+            ZMATH_TESTING_ALGEBRAIC_ADD,
+            format,
+            request->input_fields[0].value_bits,
+            request->input_fields[2].value_bits) ||
+        !zmath_testing_algebraic_graph_step(
+            &bits[1],
+            &class_code[1],
+            ZMATH_TESTING_ALGEBRAIC_ADD,
+            format,
+            request->input_fields[1].value_bits,
+            request->input_fields[3].value_bits))
+    {
+        return ZMATH_TESTING_ORACLE_ERROR;
+    }
+    for (index = 0; index < 2u; ++index) {
+        if (!zmath_testing_algebraic_result_field(
+                &result->fields[index],
+                &request->result_fields[index],
+                bits[index],
+                class_code[index]))
+        {
+            return ZMATH_TESTING_ORACLE_ERROR;
+        }
+    }
+    result->field_count = 2u;
+    return ZMATH_TESTING_ORACLE_OK;
+}
+
+static int zmath_testing_algebraic_complex_mul(
+    const zmath_testing_oracle_request *request,
+    const zmath_testing_algebraic_format *format,
+    zmath_testing_oracle_result *result
+) {
+    uint64_t inputs[4];
+    uint64_t products[4];
+    uint64_t bits[2];
+    uint32_t class_code[2];
+    zmath_testing_algebraic_value decoded;
+    uint64_t shared_nan;
+    uint32_t index;
+    uint32_t first_nan = 4u;
+
+    for (index = 0; index < 4u; ++index) {
+        inputs[index] = request->input_fields[index].value_bits;
+    }
+    for (index = 0; index < 4u; ++index) {
+        zmath_testing_algebraic_decode_value(format, inputs[index], &decoded);
+        if (decoded.nan) {
+            first_nan = index;
+            break;
+        }
+    }
+    if (first_nan < 4u) {
+        /*
+         * A product has one result and not two, so the first NaN operand is
+         * quieted into BOTH components. An infinity beside it must not leak
+         * out as a component of the same product.
+         */
+        shared_nan = zmath_testing_algebraic_quiet_nan(
+            format, format, inputs[first_nan]);
+        for (index = 0; index < 2u; ++index) {
+            bits[index] = shared_nan;
+            class_code[index] = ZMATH_TESTING_ORACLE_CLASS_QNAN;
+        }
+    } else {
+        if (!zmath_testing_algebraic_graph_step(
+                &products[0], NULL, ZMATH_TESTING_ALGEBRAIC_MUL, format,
+                inputs[0], inputs[2]) ||
+            !zmath_testing_algebraic_graph_step(
+                &products[1], NULL, ZMATH_TESTING_ALGEBRAIC_MUL, format,
+                inputs[1], inputs[3]) ||
+            !zmath_testing_algebraic_graph_step(
+                &products[2], NULL, ZMATH_TESTING_ALGEBRAIC_MUL, format,
+                inputs[0], inputs[3]) ||
+            !zmath_testing_algebraic_graph_step(
+                &products[3], NULL, ZMATH_TESTING_ALGEBRAIC_MUL, format,
+                inputs[1], inputs[2]))
+        {
+            return ZMATH_TESTING_ORACLE_ERROR;
+        }
+        if (!zmath_testing_algebraic_graph_step(
+                &bits[0], &class_code[0], ZMATH_TESTING_ALGEBRAIC_SUB, format,
+                products[0], products[1]) ||
+            !zmath_testing_algebraic_graph_step(
+                &bits[1], &class_code[1], ZMATH_TESTING_ALGEBRAIC_ADD, format,
+                products[2], products[3]))
+        {
+            return ZMATH_TESTING_ORACLE_ERROR;
+        }
+        if (class_code[0] == ZMATH_TESTING_ORACLE_CLASS_QNAN ||
+            class_code[1] == ZMATH_TESTING_ORACLE_CLASS_QNAN)
+        {
+            /* One invalid component makes the product invalid, so both
+             * fields carry the positive canonical NaN. */
+            shared_nan = zmath_testing_algebraic_canonical_nan(format);
+            for (index = 0; index < 2u; ++index) {
+                bits[index] = shared_nan;
+                class_code[index] = ZMATH_TESTING_ORACLE_CLASS_QNAN;
+            }
+        }
+    }
+    for (index = 0; index < 2u; ++index) {
+        if (!zmath_testing_algebraic_result_field(
+                &result->fields[index],
+                &request->result_fields[index],
+                bits[index],
+                class_code[index]))
+        {
+            return ZMATH_TESTING_ORACLE_ERROR;
+        }
+    }
+    result->field_count = 2u;
+    return ZMATH_TESTING_ORACLE_OK;
+}
+
+static int zmath_testing_algebraic_matrix_det2(
+    const zmath_testing_oracle_request *request,
+    const zmath_testing_algebraic_format *format,
+    zmath_testing_oracle_result *result
+) {
+    uint64_t left;
+    uint64_t right;
+    uint64_t bits;
+    uint32_t class_code;
+
+    /*
+     * fl(fl(a00 * a11) - fl(a01 * a10)), and NOT the single rounded exact
+     * determinant. Rounding each product is the whole difference between
+     * the two, so each one is rounded on its own and exactly.
+     */
+    if (!zmath_testing_algebraic_graph_step(
+            &left, NULL, ZMATH_TESTING_ALGEBRAIC_MUL, format,
+            request->input_fields[0].value_bits,
+            request->input_fields[3].value_bits) ||
+        !zmath_testing_algebraic_graph_step(
+            &right, NULL, ZMATH_TESTING_ALGEBRAIC_MUL, format,
+            request->input_fields[1].value_bits,
+            request->input_fields[2].value_bits) ||
+        !zmath_testing_algebraic_graph_step(
+            &bits, &class_code, ZMATH_TESTING_ALGEBRAIC_SUB, format,
+            left, right))
+    {
+        return ZMATH_TESTING_ORACLE_ERROR;
+    }
+    if (!zmath_testing_algebraic_result_field(
+            &result->fields[0], &request->result_fields[0], bits, class_code))
+    {
+        return ZMATH_TESTING_ORACLE_ERROR;
+    }
+    result->field_count = 1u;
+    return ZMATH_TESTING_ORACLE_OK;
+}
+
+/*
+ * A refused solve has no solution to report. The two inactive components
+ * carry the canonical positive zero, which is not a number the criterion
+ * could have produced, and the flag says the pair is inactive.
+ */
+static int zmath_testing_algebraic_lu_refused(
+    const zmath_testing_oracle_request *request,
+    zmath_testing_oracle_result *result
+) {
+    uint32_t index;
+
+    for (index = 0; index < 2u; ++index) {
+        if (!zmath_testing_algebraic_result_field(
+                &result->fields[index],
+                &request->result_fields[index],
+                0,
+                ZMATH_TESTING_ORACLE_CLASS_ZERO))
+        {
+            return ZMATH_TESTING_ORACLE_ERROR;
+        }
+    }
+    if (!zmath_testing_algebraic_result_field(
+            &result->fields[2],
+            &request->result_fields[2],
+            0,
+            ZMATH_TESTING_ORACLE_CLASS_NONE))
+    {
+        return ZMATH_TESTING_ORACLE_ERROR;
+    }
+    result->field_count = 3u;
+    return ZMATH_TESTING_ORACLE_OK;
+}
+
+static int zmath_testing_algebraic_lu_solve2(
+    const zmath_testing_oracle_request *request,
+    const zmath_testing_algebraic_format *format,
+    zmath_testing_oracle_result *result
+) {
+    mpq_t entries[6];
+    mpq_t determinant;
+    mpq_t numerator;
+    mpq_t solution;
+    mpq_t scale;
+    mpq_t tau;
+    mpq_t leading;
+    mpq_t margin;
+    mpq_t trailing;
+    mpq_t product;
+    mpq_t magnitude;
+    zmath_testing_algebraic_value decoded;
+    uint64_t bits[2];
+    uint64_t trailing_bits = 0;
+    uint32_t class_code[2];
+    uint32_t trailing_class = ZMATH_TESTING_ORACLE_CLASS_NONE;
+    uint32_t index;
+    int status = ZMATH_TESTING_ORACLE_ERROR;
+
+    for (index = 0; index < 6u; ++index) mpq_init(entries[index]);
+    mpq_init(determinant);
+    mpq_init(numerator);
+    mpq_init(solution);
+    mpq_init(scale);
+    mpq_init(tau);
+    mpq_init(leading);
+    mpq_init(margin);
+    mpq_init(trailing);
+    mpq_init(product);
+    mpq_init(magnitude);
+
+    for (index = 0; index < 6u; ++index) {
+        zmath_testing_algebraic_decode_value(
+            format, request->input_fields[index].value_bits, &decoded);
+        if (!decoded.nan && !decoded.infinity) continue;
+        /*
+         * The matrix and the right-hand side are different domains. A
+         * non-finite matrix entry has no finite scale to weigh against the
+         * threshold and no finite pivot to factor from, so the solve is
+         * refused and reports the inactive pair with ok false. A non-finite
+         * right-hand side decides nothing about the matrix, so it names no
+         * reference at all and the request carries no field.
+         */
+        if (index < 4u) {
+            status = zmath_testing_algebraic_lu_refused(request, result);
+        } else {
+            status = ZMATH_TESTING_ORACLE_UNSUPPORTED;
+        }
+        goto cleanup;
+    }
+    for (index = 0; index < 6u; ++index) {
+        if (!zmath_testing_algebraic_ratio_from_bits(
+                entries[index],
+                format,
+                request->input_fields[index].value_bits))
+        {
+            goto cleanup;
+        }
+    }
+    /* det = a00 * a11 - a01 * a10, exactly, with no rounding anywhere. */
+    mpq_mul(product, entries[0], entries[3]);
+    mpq_mul(magnitude, entries[1], entries[2]);
+    mpq_sub(determinant, product, magnitude);
+    /*
+     * scale is the largest entry magnitude of the matrix and tau is the
+     * PUBLIC threshold: the unit roundoff of the format, which is
+     * 2^-fraction_bits, times the 2^(n-1) element-growth bound of a
+     * reduction, which is 2^(fraction_bits - 2) for binary32 and binary64
+     * alike and gives 2^-21 and 2^-50. Every term below is an exact
+     * rational, so this criterion never reads a rounded product and never
+     * copies a Doolittle loop.
+     */
+    mpq_abs(scale, entries[0]);
+    for (index = 1; index < 4u; ++index) {
+        mpq_abs(magnitude, entries[index]);
+        if (mpq_cmp(magnitude, scale) > 0) mpq_set(scale, magnitude);
+    }
+    mpz_set_ui(mpq_numref(tau), 1);
+    mpz_set_ui(mpq_denref(tau), 1);
+    mpz_mul_2exp(
+        mpq_denref(tau),
+        mpq_denref(tau),
+        (mp_bitcnt_t)(format->fraction_bits - 2u));
+    mpq_canonicalize(tau);
+    mpq_mul(tau, tau, scale);
+    /*
+     * leading is p, the magnitude of the first pivot a partial-pivoting
+     * reduction selects from the leading column, and it has to clear tau.
+     */
+    mpq_abs(leading, entries[0]);
+    mpq_abs(magnitude, entries[2]);
+    if (mpq_cmp(magnitude, leading) > 0) mpq_set(leading, magnitude);
+    if (mpq_cmp(leading, tau) <= 0) {
+        status = zmath_testing_algebraic_lu_refused(request, result);
+        goto cleanup;
+    }
+    /*
+     * The trailing pivot of that reduction is det / p in exact arithmetic
+     * whichever row the partial pivoting chose, because the two candidate
+     * pivots differ only in sign, so it clears the same threshold exactly
+     * when |det| clears p * tau.
+     */
+    mpq_mul(margin, leading, tau);
+    mpq_abs(magnitude, determinant);
+    if (mpq_cmp(magnitude, margin) <= 0) {
+        status = zmath_testing_algebraic_lu_refused(request, result);
+        goto cleanup;
+    }
+    /*
+     * A factor that leaves the range of the format has no finite pivot left
+     * to divide by. The MAGNITUDE of the trailing pivot is that factor, so
+     * encoding it and reading the class decides the overflow without a
+     * signed pivot swap to get backwards and without elimination to
+     * imitate.
+     */
+    mpq_div(trailing, magnitude, leading);
+    if (!zmath_testing_algebraic_encode_rational(
+            &trailing_bits, &trailing_class, format, trailing, 0))
+    {
+        goto cleanup;
+    }
+    if (trailing_class == ZMATH_TESTING_ORACLE_CLASS_INFINITY) {
+        status = zmath_testing_algebraic_lu_refused(request, result);
+        goto cleanup;
+    }
+    /* x0 = (b0 * a11 - a01 * b1) / det, rounded once to the target format. */
+    mpq_mul(product, entries[4], entries[3]);
+    mpq_mul(magnitude, entries[1], entries[5]);
+    mpq_sub(numerator, product, magnitude);
+    mpq_div(solution, numerator, determinant);
+    if (!zmath_testing_algebraic_encode_rational(
+            &bits[0], &class_code[0], format, solution, 0))
+    {
+        goto cleanup;
+    }
+    /* x1 = (a00 * b1 - b0 * a10) / det, rounded once to the target format. */
+    mpq_mul(product, entries[0], entries[5]);
+    mpq_mul(magnitude, entries[4], entries[2]);
+    mpq_sub(numerator, product, magnitude);
+    mpq_div(solution, numerator, determinant);
+    if (!zmath_testing_algebraic_encode_rational(
+            &bits[1], &class_code[1], format, solution, 0))
+    {
+        goto cleanup;
+    }
+    /*
+     * A finite right-hand side may solve past the range of the format. That
+     * is the IEEE infinity with its own sign and ok stays true, because only
+     * a pivot or a factor the public factorization refuses makes a solve a
+     * refusal, and refusing this would hide two different signs behind one
+     * inactive pair.
+     */
+    for (index = 0; index < 2u; ++index) {
+        if (!zmath_testing_algebraic_result_field(
+                &result->fields[index],
+                &request->result_fields[index],
+                bits[index],
+                class_code[index]))
+        {
+            goto cleanup;
+        }
+    }
+    if (!zmath_testing_algebraic_result_field(
+            &result->fields[2],
+            &request->result_fields[2],
+            1,
+            ZMATH_TESTING_ORACLE_CLASS_NONE))
+    {
+        goto cleanup;
+    }
+    result->field_count = 3u;
+    status = ZMATH_TESTING_ORACLE_OK;
+cleanup:
+    mpq_clear(magnitude);
+    mpq_clear(product);
+    mpq_clear(trailing);
+    mpq_clear(margin);
+    mpq_clear(leading);
+    mpq_clear(tau);
+    mpq_clear(scale);
+    mpq_clear(solution);
+    mpq_clear(numerator);
+    mpq_clear(determinant);
+    for (index = 0; index < 6u; ++index) mpq_clear(entries[index]);
+    return status;
+}
+
+/*
+ * The sign of a rounded value, read the way a comparison reads it. A zero
+ * is collinear and an unordered comparison is not a sign, so both report no
+ * orientation at all.
+ */
+static int zmath_testing_algebraic_float_sign(
+    uint64_t bits,
+    uint32_t class_code,
+    const zmath_testing_algebraic_format *format,
+    int *sign_out
+) {
+    if (format == NULL || sign_out == NULL) return 0;
+    switch (class_code) {
+        case ZMATH_TESTING_ORACLE_CLASS_NORMAL:
+        case ZMATH_TESTING_ORACLE_CLASS_SUBNORMAL:
+        case ZMATH_TESTING_ORACLE_CLASS_INFINITY:
+            *sign_out = (bits & format->sign_mask) != 0 ? -1 : 1;
+            return 1;
+        case ZMATH_TESTING_ORACLE_CLASS_ZERO:
+        case ZMATH_TESTING_ORACLE_CLASS_QNAN:
+        case ZMATH_TESTING_ORACLE_CLASS_SNAN:
+            *sign_out = 0;
+            return 1;
+        default:
+            return 0;
+    }
+}
+
+static int zmath_testing_algebraic_geometry_orient2(
+    const zmath_testing_oracle_request *request,
+    const zmath_testing_algebraic_format *format,
+    zmath_testing_algebraic_policy policy,
+    zmath_testing_oracle_result *result
+) {
+    /* b - a and c - a, as the input index of each end of each edge. */
+    static const uint32_t edge_end[4] = { 2, 3, 4, 5 };
+    static const uint32_t edge_origin[4] = { 0, 1, 0, 1 };
+    mpq_t stored[ZMATH_TESTING_ALGEBRAIC_GEOMETRY_COORDINATES];
+    mpq_t edge[4];
+    mpq_t product;
+    mpq_t determinant;
+    zmath_testing_algebraic_value decoded;
+    uint64_t steps[7];
+    uint32_t class_code = ZMATH_TESTING_ORACLE_CLASS_NONE;
+    uint32_t word;
+    uint32_t index;
+    int sign = 0;
+    int status = ZMATH_TESTING_ORACLE_ERROR;
+
+    for (index = 0; index < ZMATH_TESTING_ALGEBRAIC_GEOMETRY_COORDINATES;
+         ++index)
+    {
+        mpq_init(stored[index]);
+    }
+    for (index = 0; index < 4u; ++index) mpq_init(edge[index]);
+    mpq_init(product);
+    mpq_init(determinant);
+
+    for (index = 0; index < ZMATH_TESTING_ALGEBRAIC_GEOMETRY_COORDINATES;
+         ++index)
+    {
+        zmath_testing_algebraic_decode_value(
+            format, request->input_fields[index].value_bits, &decoded);
+        /* The finite coordinate domain is the domain of both policies, so a
+         * non-finite coordinate names no reference under either one. */
+        if (decoded.nan || decoded.infinity) {
+            status = ZMATH_TESTING_ORACLE_UNSUPPORTED;
+            goto cleanup;
+        }
+        if (!zmath_testing_algebraic_ratio_from_bits(
+                stored[index],
+                format,
+                request->input_fields[index].value_bits))
+        {
+            goto cleanup;
+        }
+    }
+    if (policy == ZMATH_TESTING_ALGEBRAIC_POLICY_ADAPTIVE_EXACT) {
+        /*
+         * The exact determinant of the ORIGINAL stored coordinates. A
+         * difference rounded into the format first can erase a nonzero cross
+         * product, and no later rounding can bring it back.
+         */
+        mpq_sub(edge[0], stored[edge_end[0]], stored[edge_origin[0]]);
+        mpq_sub(edge[1], stored[edge_end[1]], stored[edge_origin[1]]);
+        mpq_sub(edge[2], stored[edge_end[2]], stored[edge_origin[2]]);
+        mpq_sub(edge[3], stored[edge_end[3]], stored[edge_origin[3]]);
+        mpq_mul(product, edge[0], edge[3]);
+        mpq_mul(stored[0], edge[1], edge[2]);
+        mpq_sub(determinant, product, stored[0]);
+        sign = mpq_sgn(determinant);
+    } else {
+        /* The fast policy: four differences, two products, and the
+         * subtraction, each rounded on its own, and only then the sign. */
+        for (index = 0; index < 4u; ++index) {
+            if (!zmath_testing_algebraic_graph_step(
+                    &steps[index],
+                    NULL,
+                    ZMATH_TESTING_ALGEBRAIC_SUB,
+                    format,
+                    request->input_fields[edge_end[index]].value_bits,
+                    request->input_fields[edge_origin[index]].value_bits))
+            {
+                goto cleanup;
+            }
+        }
+        if (!zmath_testing_algebraic_graph_step(
+                &steps[4], NULL, ZMATH_TESTING_ALGEBRAIC_MUL, format,
+                steps[0], steps[3]) ||
+            !zmath_testing_algebraic_graph_step(
+                &steps[5], NULL, ZMATH_TESTING_ALGEBRAIC_MUL, format,
+                steps[1], steps[2]) ||
+            !zmath_testing_algebraic_graph_step(
+                &steps[6], &class_code, ZMATH_TESTING_ALGEBRAIC_SUB, format,
+                steps[4], steps[5]))
+        {
+            goto cleanup;
+        }
+        if (!zmath_testing_algebraic_float_sign(
+                steps[6], class_code, format, &sign))
+        {
+            goto cleanup;
+        }
+    }
+    /* The result field is a signed 32-bit integer, so the sign travels as
+     * the two's-complement word of its own width: -1 is 0xffffffff, not a
+     * 64-bit -1. */
+    word = sign < 0 ? UINT32_MAX : (uint32_t)sign;
+    if (!zmath_testing_algebraic_result_field(
+            &result->fields[0],
+            &request->result_fields[0],
+            (uint64_t)word,
+            ZMATH_TESTING_ORACLE_CLASS_NONE))
+    {
+        goto cleanup;
+    }
+    result->field_count = 1u;
+    status = ZMATH_TESTING_ORACLE_OK;
+cleanup:
+    mpq_clear(determinant);
+    mpq_clear(product);
+    for (index = 0; index < 4u; ++index) mpq_clear(edge[index]);
+    for (index = 0; index < ZMATH_TESTING_ALGEBRAIC_GEOMETRY_COORDINATES;
+         ++index)
+    {
+        mpq_clear(stored[index]);
+    }
+    return status;
+}
+
+static int zmath_testing_algebraic_graph_evaluate(
+    const zmath_testing_oracle_operation_signature *signature,
+    const zmath_testing_oracle_request *request,
+    zmath_testing_oracle_result *result,
+    zmath_testing_algebraic_graph graph
+) {
+    zmath_testing_algebraic_format format;
+    zmath_testing_algebraic_policy policy;
+    int status;
+
+    status = zmath_testing_algebraic_graph_request_is_valid(
+        signature, request, result, graph, &format, &policy);
+    if (status != ZMATH_TESTING_ORACLE_OK) return status;
+    switch (graph) {
+        case ZMATH_TESTING_ALGEBRAIC_GRAPH_COMPLEX_ADD:
+            return zmath_testing_algebraic_complex_add(
+                request, &format, result);
+        case ZMATH_TESTING_ALGEBRAIC_GRAPH_COMPLEX_MUL:
+            return zmath_testing_algebraic_complex_mul(
+                request, &format, result);
+        case ZMATH_TESTING_ALGEBRAIC_GRAPH_MATRIX_DET2:
+            return zmath_testing_algebraic_matrix_det2(
+                request, &format, result);
+        case ZMATH_TESTING_ALGEBRAIC_GRAPH_LU_SOLVE2:
+            return zmath_testing_algebraic_lu_solve2(
+                request, &format, result);
+        case ZMATH_TESTING_ALGEBRAIC_GRAPH_GEOMETRY_ORIENT2:
+            return zmath_testing_algebraic_geometry_orient2(
+                request, &format, policy, result);
+        default:
+            return ZMATH_TESTING_ORACLE_UNSUPPORTED;
+    }
+}
+
 static void zmath_testing_oracle_evaluate_algebraic_impl(
     const zmath_testing_oracle_operation_signature *signature,
     const zmath_testing_oracle_request *request,
@@ -1520,6 +2491,7 @@ static void zmath_testing_oracle_evaluate_algebraic_impl(
     zmath_testing_algebraic_format source;
     zmath_testing_algebraic_format destination;
     zmath_testing_algebraic_kernel kernel;
+    zmath_testing_algebraic_graph graph;
     zmath_testing_algebraic_value values[3];
     uint64_t bits;
     uint32_t class_code;
@@ -1529,6 +2501,19 @@ static void zmath_testing_oracle_evaluate_algebraic_impl(
 
     zmath_testing_algebraic_initialize_result(result);
     if (result == NULL) return;
+    /*
+     * The five compound rows are dispatched BEFORE the scalar validation
+     * below. That validation owns a three-element argument array, a single
+     * float result, and no tag input, so it can neither describe a seven
+     * input geometry row nor accept a two component complex result. Reading
+     * one there would send seven arguments into a three-slot array.
+     */
+    graph = zmath_testing_algebraic_graph_for(signature);
+    if (graph != ZMATH_TESTING_ALGEBRAIC_GRAPH_NONE) {
+        result->status = (uint32_t)zmath_testing_algebraic_graph_evaluate(
+            signature, request, result, graph);
+        return;
+    }
     status = zmath_testing_algebraic_request_is_valid(
         signature, request, result, &source, &destination, &kernel);
     if (status != ZMATH_TESTING_ORACLE_OK) {

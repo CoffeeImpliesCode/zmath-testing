@@ -465,6 +465,50 @@ special_policy = "zmath_c23_v1"
 max_ulp = 0
 
 [[function]]
+op = "complexAdd"
+provenance = ["zmath"]
+status = "correct"
+arity = 4
+inputs = ["float:f", "float:f", "float:f", "float:f"]
+result = "struct:complex:f"
+oracle = "algebraic"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "complexAdd"
+provenance = ["zmath"]
+status = "correct"
+arity = 4
+inputs = ["float:d", "float:d", "float:d", "float:d"]
+result = "struct:complex:d"
+oracle = "algebraic"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "complexMul"
+provenance = ["zmath"]
+status = "correct"
+arity = 4
+inputs = ["float:f", "float:f", "float:f", "float:f"]
+result = "struct:complex:f"
+oracle = "algebraic"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "complexMul"
+provenance = ["zmath"]
+status = "correct"
+arity = 4
+inputs = ["float:d", "float:d", "float:d", "float:d"]
+result = "struct:complex:d"
+oracle = "algebraic"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
 op = "compoundn"
 provenance = ["zmath"]
 status = "correct"
@@ -1653,6 +1697,28 @@ special_policy = "zmath_c23_v1"
 max_ulp = 0
 
 [[function]]
+op = "geometryOrient2"
+provenance = ["zmath"]
+status = "correct"
+arity = 7
+inputs = ["float:f", "float:f", "float:f", "float:f", "float:f", "float:f", "tag"]
+result = "integer:i32"
+oracle = "algebraic"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "geometryOrient2"
+provenance = ["zmath"]
+status = "correct"
+arity = 7
+inputs = ["float:d", "float:d", "float:d", "float:d", "float:d", "float:d", "tag"]
+result = "integer:i32"
+oracle = "algebraic"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
 op = "getPayload"
 provenance = ["zmath"]
 status = "correct"
@@ -2144,6 +2210,50 @@ arity = 1
 inputs = ["float:d"]
 result = "struct:integer:d"
 oracle = "exact_bits"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "luSolve2"
+provenance = ["zmath"]
+status = "correct"
+arity = 6
+inputs = ["float:f", "float:f", "float:f", "float:f", "float:f", "float:f"]
+result = "struct:luSolve:f"
+oracle = "algebraic"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "luSolve2"
+provenance = ["zmath"]
+status = "correct"
+arity = 6
+inputs = ["float:d", "float:d", "float:d", "float:d", "float:d", "float:d"]
+result = "struct:luSolve:d"
+oracle = "algebraic"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "matrixDet2"
+provenance = ["zmath"]
+status = "correct"
+arity = 4
+inputs = ["float:f", "float:f", "float:f", "float:f"]
+result = "float:f"
+oracle = "algebraic"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "matrixDet2"
+provenance = ["zmath"]
+status = "correct"
+arity = 4
+inputs = ["float:d", "float:d", "float:d", "float:d"]
+result = "float:d"
+oracle = "algebraic"
 special_policy = "zmath_c23_v1"
 max_ulp = 0
 

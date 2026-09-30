@@ -10,7 +10,7 @@ from pathlib import Path
 
 HARNESS_ROOT = Path(__file__).resolve().parents[1]
 CORPUS_ROOT = HARNESS_ROOT / "test/corpus/generated"
-METADATA_SHA256 = "c5ad22d8e987af219619f17222c16d044197a130586fad90048a39dc3be371ab"
+METADATA_SHA256 = "f4e0f9f186b1a52a35503353e40b634f0aee3dcd1b6c6ec85ff2c824ff4b5d70"
 SOURCES = (
     (
         "asin",
@@ -22,9 +22,9 @@ SOURCES = (
     ),
     (
         "tanh",
-        "277_tanh.zcdr",
+        "287_tanh.zcdr",
         "824069309d2e1e2b059dd74a79563becd051531a342141d55e583c1e18c44910",
-        277,
+        287,
         0x2745,
         0x4481,
     ),

@@ -41,7 +41,7 @@ as an input and `classification` only as a result.
 
 ## Ownership and provenance
 
-The manifest has 337 sorted typed rows. Provenance records ownership, not
+The manifest has 347 sorted typed rows. Provenance records ownership, not
 acceptance. Use only these ordered arrays:
 
 - `["zmath"]` for zmath-owned operations.
@@ -55,7 +55,7 @@ order. The operation spelling declaration is exactly
 
 The authoritative C operation table maps every manifest operation-format key
 exactly once. It assigns 150 descriptors to `exact_bits`, 126 to `mpfr_arb`,
-39 to `algebraic`, and 22 to `definitional`.
+49 to `algebraic`, and 22 to `definitional`.
 
 `definitional` is a fourth evaluator category, not a near-miss oracle. It
 names the 22 descriptors whose correct result is fixed by the IEEE 754
@@ -66,7 +66,7 @@ operations `algebraConjugate`, `algebraDual`, `algebraDualComplement`,
 `algebraReverse`, and `quaternionMul` in binary32 and binary64. Their stored
 values are compared against the definition, so `definitional` is never
 reported as numerical oracle evidence. No descriptor is assigned to two
-categories, and the four counts sum to the 337 manifest rows.
+categories, and the four counts sum to the 347 manifest rows.
 
 ## Status and evidence
 
@@ -83,20 +83,35 @@ or `bounded` row establishes manifest acceptance only. Corpus evidence covers
 stored tuples. Whole-domain proof requires exhaustive inputs or a separate
 proof for the complete operation-format domain.
 
-The checked-in manifest accepts all 337 descriptors as `correct` with `max_ulp = 0`.
-The current publication contains 337 descriptor artifacts, 72,035,318 records, and 5,164,903,241 record bytes.
-Full replay verified every descriptor, and the benchmark exercised every descriptor.
+The checked-in manifest accepts all 347 descriptors as `correct` with `max_ulp = 0`.
+The current publication contains 347 descriptor artifacts, 72,035,642 records, and 5,164,943,119 record bytes.
+Scalar and four-lane replay verified every descriptor.
 These figures describe the stored tuples, not wider IEEE domains.
 The 62 `exhaustive_h_unary` campaigns cover their one-argument binary16 domains.
 
-The evaluator split is 150 `exact_bits`, 126 `mpfr_arb`, 39 `algebraic`, and 22 `definitional` descriptors.
-The ten non-scalar rows cover four Cl(3) involutions and quaternion multiplication in two formats.
-They check 176 stored convention cases.
-Complex, matrix, linalg, and geometry have no manifest rows.
+The evaluator split is 150 `exact_bits`, 126 `mpfr_arb`, 49 `algebraic`, and 22 `definitional` descriptors.
+Ten definitional non-scalar rows cover four Cl(3) involutions and quaternion multiplication in two formats.
+They check 176 stored convention cases, not independent numerical accuracy.
+Ten additional rows cover selected complex, matrix, linalg, and geometry operations in binary32 and binary64.
+They add 324 stored numerical records.
 
-Before republication, `metadata.txt` had 315 descriptors against the 337-descriptor manifest.
+| Operation | Records per format | Reference contract |
+| --- | --- | --- |
+| `complexAdd` | 20 | Exact component sums, each rounded to the target format, with component-local IEEE special values |
+| `complexMul` | 25 | Target-rounded products, followed by target-rounded component sums or differences |
+| `matrixDet2` | 34 | Two target-rounded products, followed by a target-rounded subtraction, not a single-rounded determinant |
+| `luSolve2` | 19 | Exact selected-family pivot acceptance and rational Cramer solutions, rounded once per component |
+| `geometryOrient2` | 64 | Exact determinant of stored coordinates for `adaptive_exact`, or the target-rounded arithmetic graph for `fast` |
+
+The independent GMP evaluator checks these numerical contracts.
+The LU families use the public relative pivot thresholds, `2^-21` for binary32 and `2^-50` for binary64.
+A refused factorization returns canonical `+0`, `+0`, and `false`.
+A finite accepted solve can return IEEE infinities with `ok = true`.
+These selected families do not prove agreement for arbitrary matrices or complete non-scalar domains.
+
+Before the first republication, `metadata.txt` had 315 descriptors against the 337-descriptor manifest.
 The loader rejected that snapshot with `error.IncompleteSelection`.
-The current metadata and `COMPLETE` now match the regenerated publication.
+`metadata.txt` and `COMPLETE` now match the 347-descriptor publication.
 Record files remain gitignored, so a new checkout must regenerate them before replay.
 
 ## Typed publication
@@ -189,23 +204,27 @@ Commit publication metadata, `COMPLETE`, `replay.txt`, and `benchmark.txt`.
 Regenerate raw records with `generate-corpus` in a new checkout.
 
 The metadata SHA-256 is
-`c5ad22d8e987af219619f17222c16d044197a130586fad90048a39dc3be371ab`.
+`f4e0f9f186b1a52a35503353e40b634f0aee3dcd1b6c6ec85ff2c824ff4b5d70`.
 The status-oracle snapshots record the generation-time state.
 Status promotion does not change numerical descriptor identity or record hashes.
 The loader checks both historical snapshots and the current manifest.
 
-The committed publication is exactly four files: `metadata.txt`, `COMPLETE`,
-`replay.txt`, and `benchmark.txt`. `COMPLETE` is the digest authority: it
-records the `metadata_sha256`, and `corpus_set.load` recomputes the SHA-256 of
-`metadata.txt` and refuses the publication when the two disagree. There is
-deliberately no hand-maintained JSON of run counters beside them. A counter
-with no producer is a number nobody can reproduce, and a hand-kept snapshot of
-one only ever goes stale. If machine-readable counters are wanted later, the
-producer belongs in `test/oracle/corpus_generate.zig`, beside the code that
-already writes `metadata.txt` and `COMPLETE`, not in an external tool.
+The committed publication files are `metadata.txt`, `COMPLETE`, `replay.txt`,
+and `benchmark.txt`. `COMPLETE` is the digest authority: it records
+`metadata_sha256`, and `corpus_set.load` recomputes the SHA-256 of
+`metadata.txt` and refuses the publication when the two disagree.
+The current scalar `replay.txt` records all 347 descriptors and 72,035,642 records.
+The retained `benchmark.txt` is a measured receipt of this 347-descriptor
+publication: one row per descriptor, each naming the artifact and the SHA-256
+the benchmark revalidated before measuring, so it covers the ten numerical
+non-scalar rows as well. It reports timings only and grants no acceptance.
+The vector benchmark reports `available=false` for the non-scalar rows, with
+`reason=no_registered_vector_target` or `reason=non_float_result`, rather than
+measuring them through a substituted scalar path.
+No hand-maintained JSON counters supplement the producer-owned metadata.
 
 The half-table generator pins this metadata digest and the immutable `asin` and `tanh` binary16 artifacts.
-Their current signatures are 17 and 277.
+Their current signatures are 17 and 287.
 The artifact digests did not change when republication moved their descriptor positions.
 Check the retained runtime tables without a new corpus campaign:
 
@@ -216,6 +235,35 @@ python3 bench/generate_half_tables.py --check --runtime-output ../zmath/src/scal
 The `replay-vector` and `run-bench-vector` lanes are additional evidence
 recorded by their own build steps. They publish their own result lines and are
 not part of the corpus producer's counters.
+
+## Reusing verified artifacts
+
+`--reuse-existing` takes the directory that contains a source publication's
+`metadata.txt` and `COMPLETE`, not its `records/` directory.
+Use a fresh output root:
+
+```text
+zig-out/bin/zmath-testing-corpus-producer "$DEST" --reuse-existing="$VERIFIED/generated"
+```
+
+The producer validates the source completion digest, qualified profile,
+descriptor identity, artifact paths, record counts, ordering, and hashes.
+Source signature indices are checked against source records; copied records
+and metadata use the current descriptor positions.
+The copy is streamed with bounded buffers and flushed before publication.
+New descriptors run their declared campaigns. Reused descriptors do not rerun
+their numerical evaluators. The ordinary producer writes the new metadata and
+completion receipt; no receipt counters or digests are edited by hand.
+Reuse is scope-locked. A filtered publication may seed only the same
+`--operation` and `--format` selection, and a full publication may seed only a
+full publication, so `ReuseScopeMismatch` refuses the cross-scope case rather
+than moving a filtered publication's rows into an unfiltered one.
+
+The 337-to-347 staging run reused all 337 verified artifacts and generated
+only the 324 new bounded numerical records. It took 137.84 s.
+Both staged and checked-in publications passed scalar and four-lane replay.
+This is reuse and selected-case evidence, not a full regeneration or an
+exhaustive binary32 campaign.
 
 ## Deterministic replay and benchmark
 
@@ -301,26 +349,24 @@ The vector lane is a flag on that same executable, so
 `zig build replay-vector` wrapper reach it without a new module, a new root
 source file, or a new codec version.
 
-It replays the same stored records through the `zmath.vector` entry points,
-packing four records into each `@Vector(4, T)` group, and asserts every
-result field of lane `i` against the stored accepted bits of record `i`. That
-is corpus-level evidence that the vector surface is bit-identical to the
-accepted scalar results over the published tuples. It reuses the existing
-`ZCDR` version 1 record format, the existing `corpus_runner` module, and the
-published set, so the record codec and the scalar replay path are untouched.
-A descriptor with no `zmath.vector` entry point is reported as uncovered, and
-the lane fails when no descriptor is covered. The final partial group pads
-its unused lanes with the neutral positive zero bit pattern and asserts only
-the lanes that exist, so no record is invented for the tail. Its success line
-is distinct from the scalar one:
+Replay packs four stored records into each lane group and compares every
+result field with its stored accepted bits. Operations with portable
+`zmath.vector` entry points use those entry points. Non-scalar operations,
+including the selected complex, matrix, linalg, geometry, algebra, and
+quaternion rows, use the identical public scalar operation once per lane.
+This scalar-backed path verifies every published descriptor; it does not
+claim a native SIMD kernel or extra throughput for those operations.
+Replay reuses `ZCDR` version 1, `corpus_runner`, and the published set.
+The final partial group pads unused lanes with positive zero and compares
+only real records. Its success line is distinct from the scalar one:
 `vector corpus replay verified: descriptors={d} records={d}`.
 
-`run-bench-vector` times that same lane-parallel API over the same published
-corpora and validates publication metadata and artifact digests before
-measurement, exactly as the scalar benchmark does. `zmath.vector` applies the
-identical accepted scalar kernel once per lane, so it is a uniform
-lane-parallel API rather than a hand-written SIMD kernel, and the benchmark
-measures it exactly as it exists.
+`run-bench-vector` measures only registered vector targets with implemented
+benchmark entry points, currently `exp`, `log`, and `sin`.
+Other descriptors are reported as `available=false` with a reason, not
+measured through a substituted scalar path.
+The benchmark validates metadata and measured artifact digests before timing.
+Measurements grant no numerical acceptance or whole-domain proof.
 
 ## Historical TSV fixtures
 
@@ -497,7 +543,7 @@ tree, so the shards can be deleted as soon as the merge succeeds.
    N=$(grep -c '^\[\[function\]\]' test/corpus/manifest.toml)
    ```
 
-   The checked-in manifest has 337 rows. That command counts the UNFILTERED
+   The checked-in manifest has 347 rows. That command counts the UNFILTERED
    selection; a campaign that passes `--operation` or `--format` selects fewer
    descriptors, and `N` is compared against that smaller selection.
 
@@ -564,11 +610,11 @@ tree, so the shards can be deleted as soon as the merge succeeds.
 
 ### What was measured
 
-Measured on this host at a filtered selection of 118 of 337 descriptors under
-`--format=f`: 3,560,836 records in 270 MB. The unmerged run took 42.0 s. The
-same selection as three shards took 15.5 s, 14.8 s, and 13.5 s, and
-`--assemble=3` took 1.5 s. The assembled `metadata.txt` (89,166 bytes) and
-`COMPLETE` were byte-identical to the unmerged run's, and replay on the
+Measured on this host at a filtered selection of 118 of the then-current 337
+descriptors under `--format=f`: 3,560,836 records in 270 MB. The unmerged run
+took 42.0 s. The same selection as three shards took 15.5 s, 14.8 s, and 13.5
+s, and `--assemble=3` took 1.5 s. The assembled `metadata.txt` (89,166 bytes)
+and `COMPLETE` were byte-identical to the unmerged run's, and replay on the
 assembled tree reported `descriptors=118 records=3560836` with exit status 0.
 These are observations at that selection and that shard count, not a bound.
 
@@ -576,7 +622,7 @@ These are observations at that selection and that shard count, not a bound.
 
 - The determinism demonstration is at a filtered selection of 118 descriptors
   and `n=3`. Nothing here shows that an assembled publication is byte-identical
-  to an unmerged one at full 337-descriptor scale, or at a larger shard count.
+  to an unmerged one at full 347-descriptor scale, or at a larger shard count.
 - The LPT balance is not shown at a shard count where shards are small relative
   to the manifest. Three shards on one selection is one observation, not a
   balance guarantee.
@@ -584,6 +630,79 @@ These are observations at that selection and that shard count, not a bound.
   that is a full copy plus a full SHA-256 pass, and that cost has not been
   measured at scale. The copy is deliberate — it is what makes the assembled
   publication independent of the shard tree — not a deferred optimisation.
+
+## Explicit binary32 input ranges
+
+`--f32-range=LOW:HIGH` selects a half-open interval of unsigned raw input
+encodings: `0 <= LOW < HIGH <= 4294967296`. The flag is mandatory for this
+mode. An ordinary publication never infers an exhaustive binary32 scan.
+Eligibility is one **input** `float:f` and arity one, not a binary32 result.
+The existing `--format` filter still refers to the result format, so
+`f16sqrtf32 --format=h` is eligible and `f32sqrtf64 --format=f` is not.
+
+The current manifest has 63 eligible descriptors:
+
+```text
+abs acos acosh asin asinh atan atanh canonicalize cbrt ceil classify
+cos cosh erf exp exp10 exp10m1 exp2 exp2m1 expm1 f16sqrtf32 floor frexp
+getPayload ilogb llogb llrint llround log log10 log1p log2 logb logp1
+lrint lround modf nearbyint nextDown nextUp rint round roundeven rsqrt
+setPayload setPayloadSig sin sinh sinpi sqrt tan tanh tanpi trunc
+acospi asinpi atanpi cospi erfc lgamma log10p1 log2p1 tgamma
+```
+
+Build the qualified producer and replay tools as above. For a bounded
+eight-input example, use one unchanged binary for both workers and assembly:
+
+```sh
+zig-out/bin/zmath-testing-corpus-producer "$out" \
+  --operation=abs --format=f --f32-range=0:8 --shard=0/2
+zig-out/bin/zmath-testing-corpus-producer "$out" \
+  --operation=abs --format=f --f32-range=0:8 --shard=1/2
+zig-out/bin/zmath-testing-corpus-producer "$out" \
+  --operation=abs --format=f --f32-range=0:8 --assemble=2
+zig-out/bin/zmath-corpus-replay "$out" \
+  --operation=abs --format=f --f32-range=0:8
+```
+
+Workers partition the raw interval for every selected descriptor. Their
+receipts live under
+`range-shards/<op>-<fmt>/<LOW>-<HIGH>/<i>-of-<n>/RANGE_SHARD`.
+Unsharded range output uses `ranges/<op>-<fmt>/<LOW>-<HIGH>/RANGE`;
+assembly uses `RANGE_COMPLETE` there. None writes ordinary `COMPLETE`.
+The plan binds the qualified profile, filters, descriptors, declared bounds,
+worker count/index and worker subrange. Assembly proves every source's
+receipt, count, digest, framing and consecutive 32-bit inputs before changing
+the destination, then copies the records and retains the source shards.
+Only proved complete tiling of `[0,4294967296)` can claim exhaustive coverage.
+Every smaller interval remains `range_coverage=partial`.
+
+The actual producer, two-worker assembly and scalar replay passed for `abs`
+and narrowing `f16sqrtf32` on all four intervals: `[0,8)`,
+`[2147483644,2147483652)` (sign boundary),
+`[2139095036,2139095044)` (infinity/signalling-NaN boundary), and
+`[4294967288,4294967296)` (upper endpoint). This generated 32 inputs per
+operation, not an exhaustive scan. Refused completed destinations, stale
+bounds/counts, missing receipts, out-of-domain bounds and ineligible binary64
+inputs left every stored source and publication file unchanged.
+
+### Storage and deferred cluster approval
+
+The 63 stored unary record widths are 51–70 bytes and sum to 3,631 bytes
+per raw input index. Their complete binary32 domains would contain
+270,582,939,648 records and 15,595,026,251,776 bytes (14.18359375 TiB).
+Copying assembly while retaining all workers needs at least 28.3671875 TiB,
+plus metadata and filesystem overhead. These are codec-size projections,
+not measured exhaustive campaign throughput or allocation guarantees.
+
+No exhaustive generation or Slurm submission is authorized. Before either,
+the operator must approve the exact operation selection, interval partition,
+qualified FMA-capable CPUs, allocation and scratch path with enough space
+for retained workers and assembly. The observed local scratch and NFS free
+space cannot hold all 63 complete domains. Ivy Bridge nodes do not satisfy
+the pinned Haswell/FMA execution profile. Any further smoke, repetition or
+reference check stays within the approved 4,096-input budget per selected
+operation.
 
 ## Exploratory fuzzing
 

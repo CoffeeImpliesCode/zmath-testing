@@ -4,7 +4,7 @@ Date: 2026-09-09. Runtime snapshot: `e6673837a3c7a7ea249f586c7b9da2d9b684e4e6`.
 
 All campaign measurements below are dated historical receipts, not current corpus totals.
 Keep their original descriptor counts, timings, and digests.
-The current publication has 337 descriptors and 72,035,318 records.
+The current publication has 347 descriptors and 72,035,642 records.
 See [the corpus README](../test/corpus/README.md#status-and-evidence) for current acceptance evidence.
 
 ## 2026-09-26 optimization campaign

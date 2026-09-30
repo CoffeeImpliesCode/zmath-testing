@@ -288,6 +288,12 @@ static unsigned zmath_testing_structure_field_count(unsigned structure_kind) {
         /* Eight coefficients: one per basis blade of Cl(3), in mask order. */
         case ZMATH_TESTING_ORACLE_STRUCTURE_ALGEBRA:
             return 8;
+        /* Two components: the complex result's real and imaginary parts. */
+        case ZMATH_TESTING_ORACLE_STRUCTURE_COMPLEX:
+            return 2;
+        /* Three channels: x0, x1, and the acceptance flag. */
+        case ZMATH_TESTING_ORACLE_STRUCTURE_LU_SOLVE:
+            return 3;
         default:
             return 0;
     }
@@ -374,6 +380,13 @@ static int zmath_testing_validate_structure_fields(
                 return ZMATH_TESTING_ORACLE_ERROR;
             }
             break;
+        /*
+         * COMPLEX is MODF's shape: a second float of the first field's format.
+         * LU_SOLVE adds a trailing boolean, so its second field repeats the
+         * same check and the third is left to the arm below.
+         */
+        case ZMATH_TESTING_ORACLE_STRUCTURE_COMPLEX:
+        case ZMATH_TESTING_ORACLE_STRUCTURE_LU_SOLVE:
         case ZMATH_TESTING_ORACLE_STRUCTURE_MODF:
             if (second->kind != ZMATH_TESTING_ORACLE_FIELD_FLOAT ||
                 second->value_bits != first->value_bits ||
@@ -394,7 +407,20 @@ static int zmath_testing_validate_structure_fields(
         default:
             return ZMATH_TESTING_ORACLE_ERROR;
     }
-    return zmath_testing_validate_field_descriptor(second, &ignored);
+    status = zmath_testing_validate_field_descriptor(second, &ignored);
+    if (status != ZMATH_TESTING_ORACLE_OK ||
+        request->structure_kind != ZMATH_TESTING_ORACLE_STRUCTURE_LU_SOLVE) {
+        return status;
+    }
+    /*
+     * LU_SOLVE is the only three-field structure, and its caller has already
+     * fixed the width at three, so the flag is in range here.
+     */
+    if (request->result_fields[2].kind != ZMATH_TESTING_ORACLE_FIELD_BOOLEAN) {
+        return ZMATH_TESTING_ORACLE_ERROR;
+    }
+    return zmath_testing_validate_field_descriptor(
+        &request->result_fields[2], &ignored);
 }
 
 static int zmath_testing_operation_name_is_valid(

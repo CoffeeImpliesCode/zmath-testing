@@ -583,6 +583,686 @@ fn buildAlgebraTuples(comptime format: corpus.Format) [algebra_cases.len]HardTup
 const algebra_tuples_f: [algebra_cases.len]HardTuple = buildAlgebraTuples(.f);
 const algebra_tuples_d: [algebra_cases.len]HardTuple = buildAlgebraTuples(.d);
 
+// ---------------------------------------------------------------------------
+// Bounded numeric input tuple campaigns for the structured operations
+//
+// complexAdd, complexMul, matrixDet2, luSolve2 and geometryOrient2 take four to
+// seven operands, so no Cartesian product over a usable operand pool can be
+// enumerated and each one names its tuples instead: the campaign IS the list,
+// the exact GMP evaluator produces the result channel, and no expected value
+// is written down here, because a hand-written golden could only restate the
+// reference and disagree with it.
+//
+// Operands are named by bit pattern rather than by decimal literal. A literal
+// cannot spell a signalling NaN or a diagnostic payload, and it changes
+// silently at the format boundary: the binary64 largest finite value narrows
+// to an infinity and the binary64 smallest subnormal narrows to a zero, and
+// both are operands these campaigns are about.
+
+fn floatBits(comptime format: corpus.Format, comptime value: f64) u64 {
+    return switch (format) {
+        .f => @as(u64, @as(u32, @bitCast(@as(f32, @floatCast(value))))),
+        .d => @as(u64, @bitCast(value)),
+        .h => unreachable,
+    };
+}
+
+/// One float field, named by its raw bits.
+fn hardFloatBits(comptime format: corpus.Format, comptime bits: u64) corpus.CorpusField {
+    return .{ .float = .{ .format = format, .bits = bits, .class = .none } };
+}
+
+fn flipSign(comptime format: corpus.Format, comptime bits: u64) u64 {
+    return switch (format) {
+        .f => bits ^ 0x8000_0000,
+        .d => bits ^ 0x8000_0000_0000_0000,
+        .h => unreachable,
+    };
+}
+
+/// Positive infinity.
+fn infinityBits(comptime format: corpus.Format) u64 {
+    return switch (format) {
+        .f => 0x7f80_0000,
+        .d => 0x7ff0_0000_0000_0000,
+        .h => unreachable,
+    };
+}
+
+/// The positive canonical quiet NaN, which is what an invalid operation
+/// reports because the host indefinite NaN carries no specification-pinned
+/// sign and no payload.
+fn canonicalNanBits(comptime format: corpus.Format) u64 {
+    return switch (format) {
+        .f => 0x7fc0_0000,
+        .d => 0x7ff8_0000_0000_0000,
+        .h => unreachable,
+    };
+}
+
+/// A signalling NaN: the quiet bit is clear, so an operand that reaches a
+/// primitive still has to be quieted, and the payload has to survive.
+fn signalingNanBits(comptime format: corpus.Format) u64 {
+    return switch (format) {
+        .f => 0x7f80_0001,
+        .d => 0x7ff0_0000_0000_0001,
+        .h => unreachable,
+    };
+}
+
+fn negativeZeroBits(comptime format: corpus.Format) u64 {
+    return switch (format) {
+        .f => 0x8000_0000,
+        .d => 0x8000_0000_0000_0000,
+        .h => unreachable,
+    };
+}
+
+fn largestFiniteBits(comptime format: corpus.Format) u64 {
+    return switch (format) {
+        .f => floatBits(format, 0x1.fffffep+127),
+        .d => floatBits(format, 0x1.fffffffffffffp+1023),
+        .h => unreachable,
+    };
+}
+
+fn smallestSubnormalBits(comptime format: corpus.Format) u64 {
+    return switch (format) {
+        .f => floatBits(format, 0x1p-149),
+        .d => floatBits(format, 0x1p-1074),
+        .h => unreachable,
+    };
+}
+
+/// One unit in the last place above one. The leading product of two of these
+/// needs one bit more than the format has, so it has to round.
+fn nextAboveOneBits(comptime format: corpus.Format) u64 {
+    return switch (format) {
+        .f => floatBits(format, 1 + 0x1p-23),
+        .d => floatBits(format, 1 + 0x1p-52),
+        .h => unreachable,
+    };
+}
+
+/// A small power of two, normal in both formats and far enough below one that
+/// `1 - it` rounds back to one in both.
+fn smallPowerBits(comptime format: corpus.Format) u64 {
+    return switch (format) {
+        .f => floatBits(format, 0x1p-100),
+        .d => floatBits(format, 0x1p-60),
+        .h => unreachable,
+    };
+}
+
+/// `k - 1`, `2k` and `3k`, where `k` is the power of two whose predecessor is
+/// exactly representable and whose successor by one unit is the halfway value
+/// that rounds back to `k`. A triangle placed on those three x coordinates
+/// keeps an exact sign that a widened subtraction has already lost, in
+/// binary64 at `2^53` and in binary32 at `2^24`.
+fn translatedWitnessBits(comptime format: corpus.Format) [3]u64 {
+    const k: f64 = switch (format) {
+        .f => 0x1p+24,
+        .d => 0x1p+53,
+        .h => unreachable,
+    };
+    return .{
+        floatBits(format, k - 1),
+        floatBits(format, 2 * k),
+        floatBits(format, 3 * k),
+    };
+}
+
+/// `k` and `k + 2`, exactly representable on both sides of the rounding
+/// boundary that `k` sits on, so a triangle on them is collinear in both the
+/// exact and the rounded evaluation.
+fn collinearWitnessBits(comptime format: corpus.Format) [2]u64 {
+    const k: f64 = switch (format) {
+        .f => 0x1p+24,
+        .d => 0x1p+53,
+        .h => unreachable,
+    };
+    return .{ floatBits(format, k), floatBits(format, k + 2) };
+}
+
+fn buildFloatQuadTuples(
+    comptime format: corpus.Format,
+    comptime template: InputTuple,
+    comptime count: usize,
+    comptime cases: []const [4]u64,
+) [count]HardTuple {
+    comptime {
+        if (cases.len != count) @compileError("a four-operand table must match its count");
+    }
+    var tuples: [count]HardTuple = undefined;
+    for (cases, 0..) |case, index| {
+        var fields: [4]corpus.CorpusField = undefined;
+        for (case, 0..) |bits, component| {
+            fields[component] = hardFloatBits(format, bits);
+        }
+        tuples[index] = .{ .arguments = hardTuple(template, &fields) };
+    }
+    return tuples;
+}
+
+fn buildFloatSixTuples(
+    comptime format: corpus.Format,
+    comptime template: InputTuple,
+    comptime count: usize,
+    comptime cases: []const [6]u64,
+) [count]HardTuple {
+    comptime {
+        if (cases.len != count) @compileError("a six-operand table must match its count");
+    }
+    var tuples: [count]HardTuple = undefined;
+    for (cases, 0..) |case, index| {
+        var fields: [6]corpus.CorpusField = undefined;
+        for (case, 0..) |bits, component| {
+            fields[component] = hardFloatBits(format, bits);
+        }
+        tuples[index] = .{ .arguments = hardTuple(template, &fields) };
+    }
+    return tuples;
+}
+
+// ---------------------------------------------------------------------------
+// complexAdd
+//
+// Four operands, a.re, a.im, b.re, b.im, and two componentwise results. The
+// addition is decided per component, so a row where exactly one component is
+// interesting is what pins that independence; a row where one component is
+// invalid is what pins the canonical NaN that the other component does not
+// inherit.
+
+const complex_add_tuple_count = 20;
+
+fn buildComplexAddTuples(comptime format: corpus.Format) [complex_add_tuple_count]HardTuple {
+    const zero = floatBits(format, 0);
+    const one = floatBits(format, 1);
+    const two = floatBits(format, 2);
+    const three = floatBits(format, 3);
+    const four = floatBits(format, 4);
+    const neg_one = flipSign(format, one);
+    const neg_four = flipSign(format, four);
+    const largest = largestFiniteBits(format);
+    const neg_largest = flipSign(format, largest);
+    const tiny = smallestSubnormalBits(format);
+    const neg_tiny = flipSign(format, tiny);
+    const nan = canonicalNanBits(format);
+    const neg_nan = flipSign(format, nan);
+    const snan = signalingNanBits(format);
+    const inf = infinityBits(format);
+    const neg_inf = flipSign(format, inf);
+    const nz = negativeZeroBits(format);
+    return buildFloatQuadTuples(format, blankTuple(), complex_add_tuple_count, &.{
+        // Ordinary sums, one with both results negative.
+        .{ one, two, three, four },
+        .{ one, two, neg_one, neg_four },
+        // Every operand zero.
+        .{ zero, zero, zero, zero },
+        // -0 + -0 keeps the sign in both components, and -0 + +0 does not.
+        .{ nz, nz, nz, nz },
+        .{ nz, zero, zero, nz },
+        // A negative zero added to a nonzero operand leaves it alone.
+        .{ one, one, nz, nz },
+        // The top of the range: an overflow, an exact cancellation, and a unit
+        // that is smaller than the ulp at the top.
+        .{ largest, zero, largest, zero },
+        .{ largest, zero, neg_largest, zero },
+        .{ largest, zero, one, zero },
+        // The bottom of the range: a subnormal doubling and a subnormal
+        // cancellation.
+        .{ tiny, zero, tiny, zero },
+        .{ tiny, zero, neg_tiny, zero },
+        // Opposite-sign infinities make an invalid sum; a finite summand
+        // leaves an infinite component infinite.
+        .{ inf, zero, neg_inf, zero },
+        .{ neg_inf, zero, one, zero },
+        // One infinite component does not touch the other one.
+        .{ one, neg_inf, one, one },
+        // A NaN lands in its own component only, and it is quieted, keeps its
+        // payload and keeps its sign.
+        .{ nan, zero, one, zero },
+        .{ one, snan, one, one },
+        .{ one, one, snan, zero },
+        .{ one, one, one, neg_nan },
+        // Two NaN operands, one per component, so neither payload can hide
+        // behind the other.
+        .{ snan, neg_nan, one, one },
+        .{ neg_nan, one, one, snan },
+    });
+}
+
+const complex_add_tuples_f: [complex_add_tuple_count]HardTuple = buildComplexAddTuples(.f);
+const complex_add_tuples_d: [complex_add_tuple_count]HardTuple = buildComplexAddTuples(.d);
+
+// ---------------------------------------------------------------------------
+// complexMul
+//
+// The product scans all four operands for a NaN before it multiplies anything,
+// and a NaN anywhere puts that one NaN into BOTH results. After that it is
+// four rounded products, a subtraction and an addition, and an invalid result
+// anywhere makes BOTH results the canonical NaN. The rows below are arranged so
+// each of those five outcomes is reached, and so the NaN scan position that
+// decides which payload wins is moved through all four slots.
+
+const complex_mul_tuple_count = 25;
+
+fn buildComplexMulTuples(comptime format: corpus.Format) [complex_mul_tuple_count]HardTuple {
+    const zero = floatBits(format, 0);
+    const one = floatBits(format, 1);
+    const two = floatBits(format, 2);
+    const three = floatBits(format, 3);
+    const four = floatBits(format, 4);
+    const neg_one = flipSign(format, one);
+    const neg_three = flipSign(format, three);
+    const neg_four = flipSign(format, four);
+    const largest = largestFiniteBits(format);
+    const tiny = smallestSubnormalBits(format);
+    const near_one = nextAboveOneBits(format);
+    const nan = canonicalNanBits(format);
+    const neg_nan = flipSign(format, nan);
+    const snan = signalingNanBits(format);
+    const inf = infinityBits(format);
+    const nz = negativeZeroBits(format);
+    return buildFloatQuadTuples(format, blankTuple(), complex_mul_tuple_count, &.{
+        // Ordinary products, with every operand sign flipped on the second.
+        .{ one, two, three, four },
+        .{ one, two, neg_three, neg_four },
+        // The two unit products: the multiplicative identity and i squared.
+        .{ zero, zero, zero, zero },
+        .{ one, zero, zero, zero },
+        .{ zero, one, zero, one },
+        // Signed zeros decide the real component against the imaginary one in
+        // the same tuple.
+        .{ nz, nz, one, nz },
+        // The top of the range: an overflow from one product and from a
+        // doubling, and the largest finite operand against the unit.
+        .{ largest, zero, largest, zero },
+        .{ largest, zero, two, zero },
+        .{ largest, zero, one, one },
+        // An infinity times a zero is invalid whatever the other component
+        // does, and a valid product beside an invalid one still makes both
+        // components the canonical NaN.
+        .{ inf, one, zero, zero },
+        .{ inf, one, one, zero },
+        .{ zero, zero, inf, one },
+        // Cancellation inside the real component, and a sign split between the
+        // two components.
+        .{ one, one, one, one },
+        .{ one, one, one, neg_one },
+        .{ neg_one, neg_one, neg_one, neg_one },
+        // The bottom of the range: a subnormal doubling and a product of two
+        // subnormals that underflows to zero.
+        .{ tiny, zero, two, zero },
+        .{ tiny, tiny, tiny, tiny },
+        // A leading product that needs one bit more than the format has.
+        .{ near_one, zero, near_one, zero },
+        // The top of the range against zero, which is not an invalid product.
+        .{ largest, zero, zero, zero },
+        // The NaN scan, moved through all four slots.
+        .{ snan, zero, one, one },
+        .{ zero, snan, one, one },
+        .{ zero, zero, snan, one },
+        .{ zero, zero, one, snan },
+        // Precedence between two NaNs, on both sides of the scan.
+        .{ neg_nan, zero, nan, one },
+        .{ one, one, neg_nan, snan },
+    });
+}
+
+const complex_mul_tuples_f: [complex_mul_tuple_count]HardTuple = buildComplexMulTuples(.f);
+const complex_mul_tuples_d: [complex_mul_tuple_count]HardTuple = buildComplexMulTuples(.d);
+
+// ---------------------------------------------------------------------------
+// matrixDet2
+//
+// The reference is the documented rounded graph, two rounded products and one
+// rounded subtraction, NOT a single-round exact determinant. A campaign that
+// only used products that are exact would never see the difference, so the
+// rows below include a leading product that has to round, and the rows whose
+// two products are equal and cancel to zero have to cancel as ROUNDED zeros.
+
+const matrix_det2_tuple_count = 34;
+
+fn buildMatrixDet2Tuples(comptime format: corpus.Format) [matrix_det2_tuple_count]HardTuple {
+    const zero = floatBits(format, 0);
+    const one = floatBits(format, 1);
+    const two = floatBits(format, 2);
+    const three = floatBits(format, 3);
+    const four = floatBits(format, 4);
+    const eight = floatBits(format, 8);
+    const half = floatBits(format, 0.5);
+    const neg_one = flipSign(format, one);
+    const largest = largestFiniteBits(format);
+    const tiny = smallestSubnormalBits(format);
+    const near_one = nextAboveOneBits(format);
+    const nan = canonicalNanBits(format);
+    const neg_nan = flipSign(format, nan);
+    const snan = signalingNanBits(format);
+    const inf = infinityBits(format);
+    const neg_inf = flipSign(format, inf);
+    const nz = negativeZeroBits(format);
+    return buildFloatQuadTuples(format, blankTuple(), matrix_det2_tuple_count, &.{
+        // The two units, and an ordinary matrix.
+        .{ one, zero, zero, one },
+        .{ zero, one, one, zero },
+        .{ one, two, three, four },
+        .{ two, one, one, two },
+        // Rank one: the two products are equal and cancel to a POSITIVE zero.
+        .{ one, two, two, four },
+        .{ two, four, four, eight },
+        .{ one, one, one, one },
+        // A zero matrix, and a zero row that is not the whole matrix.
+        .{ zero, zero, zero, zero },
+        .{ one, zero, zero, zero },
+        // Signed zeros decide the sign of the difference.
+        .{ nz, zero, zero, one },
+        .{ one, zero, zero, nz },
+        .{ nz, zero, zero, nz },
+        .{ one, one, zero, zero },
+        // The top of the range: an overflow from a square and from a doubling,
+        // and the exact halving of the largest finite value.
+        .{ largest, zero, zero, largest },
+        .{ largest, zero, zero, two },
+        .{ largest, zero, zero, half },
+        // The bottom of the range: a subnormal doubling, a subnormal
+        // passthrough, and a subnormal tie to even that falls to zero.
+        .{ tiny, zero, zero, two },
+        .{ tiny, zero, zero, one },
+        .{ tiny, zero, zero, half },
+        // A leading product that needs one bit more than the format has.
+        .{ near_one, zero, zero, near_one },
+        // The sign of the determinant follows the leading product.
+        .{ neg_one, zero, zero, one },
+        .{ one, zero, zero, neg_one },
+        .{ neg_one, zero, zero, neg_one },
+        .{ neg_one, one, one, one },
+        // Only a same-sign infinity difference is invalid.
+        .{ inf, one, one, one },
+        .{ inf, one, one, neg_inf },
+        .{ inf, one, inf, one },
+        .{ zero, one, inf, one },
+        .{ inf, zero, zero, one },
+        // A NaN in a product is quieted and survives the subtraction, with its
+        // payload, and a signalling NaN is quieted on the way.
+        .{ nan, one, one, one },
+        .{ one, nan, one, one },
+        .{ one, one, snan, one },
+        .{ neg_nan, one, one, one },
+        .{ three, four, one, two },
+    });
+}
+
+const matrix_det2_tuples_f: [matrix_det2_tuple_count]HardTuple = buildMatrixDet2Tuples(.f);
+const matrix_det2_tuples_d: [matrix_det2_tuple_count]HardTuple = buildMatrixDet2Tuples(.d);
+
+// ---------------------------------------------------------------------------
+// luSolve2
+//
+// Six operands: a00, a01, a10, a11, b0, b1, a row-major literal. Every family
+// here is one an exact rational reference decides and the public graph
+// reproduces bit for bit: every intermediate the elimination and the two
+// substitution passes compute is exactly representable in the target format,
+// so the reference is a single rounded Cramer's rule and no tolerance is
+// claimed. A general system whose solution carries an ulp of error belongs to
+// a tolerance campaign, and no claim is made about a family this table does
+// not name.
+//
+// The public graph is `linalg.lu` then `linalg.solveLu`, and a refusal is
+// decided by the matrix alone: no row of this table carries an expected
+// value. The factorization refuses on a non-finite entry, on a global scale
+// of zero, on any pivot that is not strictly above
+// `matrix.inverse_pivot_threshold_f` or `_d` times the largest entry
+// magnitude of the WHOLE input, and on a factor that leaves the format's
+// range after every pivot has cleared that test. The solve refuses only on a
+// stored pivot of U that is zero or not finite, which a successful
+// factorization cannot produce, so no row here is a solve-only refusal. An
+// accepted matrix whose SOLUTION leaves the format is not a refusal either:
+// the infinite components are the answer, and one row is exactly that case.
+
+const lu_solve2_tuple_count = 19;
+
+fn buildLuSolve2Tuples(comptime format: corpus.Format) [lu_solve2_tuple_count]HardTuple {
+    const zero = floatBits(format, 0);
+    const one = floatBits(format, 1);
+    const half = floatBits(format, 0.5);
+    const two = floatBits(format, 2);
+    const three = floatBits(format, 3);
+    const four = floatBits(format, 4);
+    const five = floatBits(format, 5);
+    const six = floatBits(format, 6);
+    const eight = floatBits(format, 8);
+    const eleven = floatBits(format, 11);
+    const sixteen = floatBits(format, 16);
+    const neg_one = flipSign(format, one);
+    const neg_two = flipSign(format, two);
+    const neg_four = flipSign(format, four);
+    const huge = floatBits(format, 0x1p+60);
+    const largest = largestFiniteBits(format);
+    const neg_largest = flipSign(format, largest);
+    const small = smallPowerBits(format);
+    // A pivot strictly below the format's relative threshold, and the exact
+    // solution of the system it belongs to is exactly (1, 1).
+    const under_threshold = switch (format) {
+        .f => floatBits(format, 0x1p-23),
+        .d => floatBits(format, 0x1p-52),
+        .h => unreachable,
+    };
+    // An accepted skewed system. The second diagonal entry carries low bits
+    // the first diagonal entry cannot reach, so the elimination cancels only
+    // its leading term, and the exact difference is the second pivot. The
+    // much larger top right entry sets the global scale, so that second
+    // pivot has to clear a fraction of THAT entry and not of itself.
+    const skew_upper = switch (format) {
+        .f => floatBits(format, 0x1p+24),
+        .d => floatBits(format, 0x1p+53),
+        .h => unreachable,
+    };
+    const skew_lower = switch (format) {
+        .f => floatBits(format, 0x1p+23 + 16),
+        .d => floatBits(format, 0x1p+52 + 16),
+        .h => unreachable,
+    };
+    const nan = canonicalNanBits(format);
+    const inf = infinityBits(format);
+    return buildFloatSixTuples(format, blankTuple(), lu_solve2_tuple_count, &.{
+        // The identity, a diagonal that is not one, and a diagonal that is
+        // half one: three unpivoted factorizations.
+        .{ one, zero, zero, one, three, four },
+        .{ two, zero, zero, four, six, eight },
+        .{ half, zero, zero, one, half, one },
+        // A row interchange that leaves an identity behind, and one that
+        // leaves a lower triangular matrix whose multiplier is a zero.
+        .{ zero, one, one, zero, two, five },
+        .{ zero, one, one, one, two, three },
+        // A general matrix whose largest first column entry is in row one, so
+        // the pivot is promoted, one elimination updates the other entry and
+        // the solution is (-1, 3) exactly.
+        .{ one, two, four, five, five, eleven },
+        // A negative diagonal, and a matrix whose exact solution is the pair
+        // of halves.
+        .{ neg_two, zero, zero, neg_four, six, eight },
+        .{ one, neg_one, one, one, one, zero },
+        // A diagonal at the small power: the global scale is the pivot itself,
+        // so the threshold is that same power times the constant and both
+        // pivots clear it.
+        .{ small, zero, zero, small, small, small },
+        // The threshold is relative to the WHOLE matrix and not to the pivot
+        // column, so a diagonal that spans a hundred and sixty binades is
+        // refused at its second pivot: the huge entry sets the scale and the
+        // small one cannot clear a fraction of it. The exact solution exists
+        // and is finite, and the graph never reaches it.
+        .{ huge, zero, zero, small, huge, one },
+        // A well-conditioned matrix with a zero right-hand side, where the
+        // public graph produces the canonical zero pair and an exact rational
+        // reference rounds its zero to those same bits. No row here asks for a
+        // mathematical zero under a negative pivot, because that sign is not
+        // a property an exact rational carries.
+        .{ two, one, one, three, zero, zero },
+        // The refusals. A rank deficient matrix: the first pivot is promoted
+        // and clears the threshold, and the second pivot is the exact zero
+        // the rank deficiency leaves behind.
+        .{ one, two, two, four, three, six },
+        // An all-zero matrix, whose global scale is zero, so its first pivot
+        // clears nothing at all.
+        .{ zero, zero, zero, zero, one, one },
+        // A first pivot below the relative threshold, with an exact solution
+        // of exactly (1, 1) that the graph never returns.
+        .{ under_threshold, zero, zero, one, under_threshold, one },
+        // A non-finite entry, once as an infinity and once as a NaN: the
+        // finiteness scan runs before any arithmetic, so both refuse there.
+        .{ inf, zero, zero, one, one, one },
+        .{ nan, zero, zero, one, one, one },
+        // An accepted factorization whose SOLUTION overflows. Both pivots
+        // clear the threshold and both factors are in range, so this is the
+        // one row whose exact solution leaves the format, and the graph
+        // returns the infinite pair with a true flag instead of a refusal.
+        // The lower left entry is zero, so no infinite component of the
+        // solution ever reaches an invalid product.
+        .{ half, one, zero, half, zero, largest },
+        // An accepted skewed system: the elimination cancels the leading term
+        // of the second diagonal entry exactly, and the exact difference is
+        // the second pivot, which still clears the threshold that the huge
+        // top right entry sets.
+        .{ sixteen, skew_upper, eight, skew_lower, zero, sixteen },
+        // A matrix whose SECOND pivot leaves the format. The first pivot is
+        // the largest entry magnitude itself, so it clears the threshold that
+        // same magnitude sets with room to spare, and the elimination then
+        // forms the sum of the top row with itself: twice that magnitude,
+        // which neither format reaches. Every pivot test therefore passes and
+        // it is the finiteness scan on the factors that refuses. The exact
+        // solution is a finite pair, one subnormal component and one zero,
+        // and the graph never returns it.
+        .{ largest, largest, largest, neg_largest, one, one },
+    });
+}
+
+const lu_solve2_tuples_f: [lu_solve2_tuple_count]HardTuple = buildLuSolve2Tuples(.f);
+const lu_solve2_tuples_d: [lu_solve2_tuple_count]HardTuple = buildLuSolve2Tuples(.d);
+
+// ---------------------------------------------------------------------------
+// geometryOrient2
+//
+// Six finite coordinates and, as the seventh operand, the policy. Every triple
+// appears under BOTH policies, adaptive_exact first, because the difference
+// between the two answers is the whole subject: on the rows marked below the
+// exact evaluation keeps a sign that the rounded one has already lost.
+//
+// Coordinates are finite by construction. No row carries an infinity or a NaN,
+// so no row depends on the fail-closed path, and the finite domain is the one
+// the exact policy is defined over.
+
+const geometry_triple_count = 32;
+const geometry_tuple_count = geometry_triple_count * 2;
+
+fn buildGeometryOrient2Tuples(
+    comptime format: corpus.Format,
+) [geometry_tuple_count]HardTuple {
+    @setEvalBranchQuota(8192);
+    const zero = floatBits(format, 0);
+    const one = floatBits(format, 1);
+    const two = floatBits(format, 2);
+    const three = floatBits(format, 3);
+    const four = floatBits(format, 4);
+    const neg_one = flipSign(format, one);
+    const largest = largestFiniteBits(format);
+    const neg_largest = flipSign(format, largest);
+    const tiny = smallestSubnormalBits(format);
+    const neg_tiny = flipSign(format, tiny);
+    const small = smallPowerBits(format);
+    const nz = negativeZeroBits(format);
+    const thousand = floatBits(format, 1024);
+    const two_thousand = floatBits(format, 2048);
+    const witness = translatedWitnessBits(format);
+    const collinear = collinearWitnessBits(format);
+    const triples = [_][6]u64{
+        // The unit triangle, its reversal, and a quarter turn.
+        .{ zero, zero, one, zero, zero, one },
+        .{ zero, zero, one, zero, zero, flipSign(format, one) },
+        .{ zero, zero, zero, one, one, zero },
+        // Every degenerate shape the predicate has to report as zero: an end
+        // point, two coincident points, three coincident points, and a third
+        // point collinear with the first two on either side of the segment.
+        .{ zero, zero, one, one, one, one },
+        .{ zero, zero, zero, zero, one, one },
+        .{ zero, zero, one, one, zero, zero },
+        .{ zero, zero, one, one, two, two },
+        .{ zero, zero, two, two, one, one },
+        .{ one, one, one, one, one, one },
+        // An exact translation, and the same triangle in the third quadrant.
+        .{ thousand, thousand, two_thousand, thousand, thousand, two_thousand },
+        .{ neg_one, neg_one, zero, neg_one, neg_one, zero },
+        // The translated exact witness: a is one unit below a power of two, b
+        // is two above it and c is three. Every difference the exact predicate
+        // forms is exact, and every difference the rounded predicate forms has
+        // already lost the unit that decides the sign.
+        .{ witness[0], zero, witness[1], one, witness[2], two },
+        // The largest finite difference in each direction. The difference
+        // overflows the format it is formed in, so only an exact evaluation of
+        // the ORIGINAL coordinates can carry a sign at all.
+        .{ neg_largest, zero, largest, zero, zero, one },
+        .{ largest, largest, neg_largest, largest, zero, zero },
+        // The small-power witness and its mirror: one minus the power rounds
+        // back to one, so the rounded difference of b from a is exactly minus
+        // one and the rounded determinant cancels to zero.
+        .{ one, zero, small, one, zero, one },
+        .{ one, zero, small, flipSign(format, one), zero, flipSign(format, one) },
+        // The same small coordinate at a instead of at b, where nothing is
+        // lost, and a product of two of them.
+        .{ small, zero, one, one, zero, one },
+        .{ zero, zero, zero, small, small, zero },
+        // A product of two smallest subnormals underflows to zero in the
+        // rounded evaluation and keeps its sign in the exact one.
+        .{ zero, zero, tiny, zero, zero, tiny },
+        .{ zero, zero, tiny, zero, zero, neg_tiny },
+        // Infinities reached by a product, in each position and sign.
+        .{ zero, zero, largest, largest, zero, largest },
+        .{ zero, zero, neg_largest, largest, zero, largest },
+        .{ zero, zero, largest, largest, largest, zero },
+        // Right triangles about the origin, and the same pair translated.
+        .{ zero, zero, one, zero, one, one },
+        .{ zero, zero, one, one, one, zero },
+        .{ zero, zero, three, four, one, two },
+        .{ one, one, one, two, two, one },
+        .{ one, one, two, one, one, two },
+        // A negative zero coordinate.
+        .{ zero, nz, one, zero, zero, one },
+        // Collinear across the rounding boundary a power of two sits on: the
+        // rounded products are equal and cancel, and so is the exact one.
+        .{ zero, zero, collinear[0], collinear[0], collinear[1], collinear[1] },
+        // A tiny negative determinant, and the top of the range with a zero
+        // difference.
+        .{ zero, zero, one, small, one, zero },
+        .{ zero, zero, largest, zero, largest, one },
+    };
+    comptime {
+        if (triples.len != geometry_triple_count) {
+            @compileError("a geometry table must match its triple count");
+        }
+    }
+    // The policy is the seventh operand, after all six coordinates, and every
+    // triple is emitted once per policy so the two answers sit next to each
+    // other in the campaign.
+    const policies = [_][]const u8{ "adaptive_exact", "fast" };
+    var tuples: [geometry_tuple_count]HardTuple = undefined;
+    for (triples, 0..) |triple, triple_index| {
+        for (policies, 0..) |policy, policy_index| {
+            var fields: [7]corpus.CorpusField = undefined;
+            for (triple, 0..) |bits, coordinate| {
+                fields[coordinate] = hardFloatBits(format, bits);
+            }
+            fields[6] = .{ .tag = policy };
+            tuples[triple_index * 2 + policy_index] = .{ .arguments = hardTuple(blankTuple(), &fields) };
+        }
+    }
+    return tuples;
+}
+
+const geometry_orient2_tuples_f: [geometry_tuple_count]HardTuple =
+    buildGeometryOrient2Tuples(.f);
+const geometry_orient2_tuples_d: [geometry_tuple_count]HardTuple =
+    buildGeometryOrient2Tuples(.d);
+
 pub const campaign_table = [_]CampaignRule{
     makeCampaignRule(.{
         .operation = "abs",
@@ -1146,6 +1826,63 @@ pub const campaign_table = [_]CampaignRule{
         .artifact = "test/corpus/campaigns/041-ceil-d-hard_corpus_d.zcdr",
         .deterministic_seed = 0xd79344a89305be72,
         .tuple_count = 256,
+    }),
+    // Four operands and a two-field structured result. The generator pool
+    // product over four binary32 arguments is past any reachable count, and
+    // over four binary64 arguments it is past enumeration entirely, so each
+    // campaign is the named tuple table above. That table reaches every branch
+    // of the operation: both the per-component independence of an addition and
+    // the four-position NaN scan of a multiplication, both signed-zero rules,
+    // the subnormal range, and the overflow and invalid paths. No tuple names
+    // an expected result, so the exact GMP evaluator supplies the result
+    // channel and the claim stays selected_cartesian over named tuples.
+    makeCampaignRule(.{
+        .operation = "complexAdd",
+        .provenance = .zmath,
+        .shape_code = 0x422223e,
+        .format = .f,
+        .campaign_class = .selected_cartesian,
+        .source_path = "src/complex.zig",
+        .artifact = "test/corpus/campaigns/000-complexAdd-f-named_hard_tuple_corpus.zcdr",
+        .deterministic_seed = 0x4b1d7c05e93a6f18,
+        .tuple_count = complex_add_tuple_count,
+        .tuples = &complex_add_tuples_f,
+    }),
+    makeCampaignRule(.{
+        .operation = "complexAdd",
+        .provenance = .zmath,
+        .shape_code = 0x433333f,
+        .format = .d,
+        .campaign_class = .selected_cartesian,
+        .source_path = "src/complex.zig",
+        .artifact = "test/corpus/campaigns/000-complexAdd-d-named_hard_tuple_corpus.zcdr",
+        .deterministic_seed = 0x2f60a9c47d1b83e5,
+        .tuple_count = complex_add_tuple_count,
+        .tuples = &complex_add_tuples_d,
+    }),
+    makeCampaignRule(.{
+        .operation = "complexMul",
+        .provenance = .zmath,
+        .shape_code = 0x422223e,
+        .format = .f,
+        .campaign_class = .selected_cartesian,
+        .source_path = "src/complex.zig",
+        .artifact = "test/corpus/campaigns/000-complexMul-f-named_hard_tuple_corpus.zcdr",
+        .deterministic_seed = 0x71c3e8a0d5f42b69,
+        .tuple_count = complex_mul_tuple_count,
+        .tuples = &complex_mul_tuples_f,
+    }),
+    makeCampaignRule(.{
+        .operation = "complexMul",
+        .provenance = .zmath,
+        .shape_code = 0x433333f,
+        .format = .d,
+        .campaign_class = .selected_cartesian,
+        .source_path = "src/complex.zig",
+        .artifact = "test/corpus/campaigns/000-complexMul-d-named_hard_tuple_corpus.zcdr",
+        .deterministic_seed = 0x0e9b47d26a8c35f1,
+        .tuple_count = complex_mul_tuple_count,
+        .tuples = &complex_mul_tuples_d,
     }),
     makeCampaignRule(.{
         .operation = "compoundn",
@@ -2749,6 +3486,71 @@ pub const campaign_table = [_]CampaignRule{
         .deterministic_seed = 0x5d0a0ba5127726c2,
         .tuple_count = 256,
     }),
+    // Six operands and a three-field structured result whose third field is
+    // the acceptance flag, and four operands with one result. Neither has a
+    // reachable Cartesian product, so each campaign is its named tuple table.
+    // The luSolve2 table names nineteen families and says nothing about any
+    // other one. Twelve are accepted by the public factorization and solved to
+    // an exact rational the graph reproduces bit for bit, one of those twelve
+    // because its SOLUTION leaves the format and comes back as an infinite
+    // pair with a true flag. Seven are refused, each on a different decision
+    // the public graph actually reaches: a non-finite entry as an infinity and
+    // as a NaN, a global scale of zero, a first pivot under the relative
+    // threshold whose exact solution exists, a second pivot under that same
+    // threshold because a huge entry set the global scale, an exact zero
+    // second pivot that rank deficiency leaves behind, and a second pivot that
+    // leaves the format once every pivot test has already passed.
+    // The matrixDet2 table pins the documented ROUNDED graph rather than a
+    // single-round exact determinant, which is why it contains a leading
+    // product that has to round.
+    makeCampaignRule(.{
+        .operation = "luSolve2",
+        .provenance = .zmath,
+        .shape_code = 0x622222242,
+        .format = .f,
+        .campaign_class = .selected_cartesian,
+        .source_path = "src/linalg.zig",
+        .artifact = "test/corpus/campaigns/000-luSolve2-f-named_hard_tuple_corpus.zcdr",
+        .deterministic_seed = 0x5c02de8b41a97f36,
+        .tuple_count = lu_solve2_tuple_count,
+        .tuples = &lu_solve2_tuples_f,
+    }),
+    makeCampaignRule(.{
+        .operation = "luSolve2",
+        .provenance = .zmath,
+        .shape_code = 0x633333343,
+        .format = .d,
+        .campaign_class = .selected_cartesian,
+        .source_path = "src/linalg.zig",
+        .artifact = "test/corpus/campaigns/000-luSolve2-d-named_hard_tuple_corpus.zcdr",
+        .deterministic_seed = 0x2a9f6013c7de48b5,
+        .tuple_count = lu_solve2_tuple_count,
+        .tuples = &lu_solve2_tuples_d,
+    }),
+    makeCampaignRule(.{
+        .operation = "matrixDet2",
+        .provenance = .zmath,
+        .shape_code = 0x4222202,
+        .format = .f,
+        .campaign_class = .selected_cartesian,
+        .source_path = "src/matrix.zig",
+        .artifact = "test/corpus/campaigns/000-matrixDet2-f-named_hard_tuple_corpus.zcdr",
+        .deterministic_seed = 0x63a51fd807be2c94,
+        .tuple_count = matrix_det2_tuple_count,
+        .tuples = &matrix_det2_tuples_f,
+    }),
+    makeCampaignRule(.{
+        .operation = "matrixDet2",
+        .provenance = .zmath,
+        .shape_code = 0x4333303,
+        .format = .d,
+        .campaign_class = .selected_cartesian,
+        .source_path = "src/matrix.zig",
+        .artifact = "test/corpus/campaigns/000-matrixDet2-d-named_hard_tuple_corpus.zcdr",
+        .deterministic_seed = 0x18e7b3d05c9a64f2,
+        .tuple_count = matrix_det2_tuple_count,
+        .tuples = &matrix_det2_tuples_d,
+    }),
     makeCampaignRule(.{
         .operation = "modf",
         .provenance = .zmath,
@@ -4034,6 +4836,40 @@ pub const campaign_table = [_]CampaignRule{
         .deterministic_seed = 0xc2a22a8fa5047279,
         .tuple_count = 256,
     }),
+    // Six finite coordinates and a policy tag, seven operands. The tag makes
+    // this the one shape here whose last operand is not a float, so the
+    // campaign names its tuples: thirty-two triples under EACH of the two
+    // policies, sixty-four rows per format, and every coordinate is finite so
+    // no row depends on the fail-closed path. Six of the thirty-two triples
+    // separate the two policies, and three of those six are the reason the
+    // exact path exists: the translated witness that a widened subtraction has
+    // already rounded away, the small-power witness and its mirror, and the
+    // product of two smallest subnormals. The binary32 rows carry the same
+    // three facts scaled to 2^24 and to the binary32 subnormal floor.
+    makeCampaignRule(.{
+        .operation = "geometryOrient2",
+        .provenance = .zmath,
+        .shape_code = 0x7222222d07,
+        .format = .f,
+        .campaign_class = .selected_cartesian,
+        .source_path = "src/geometry.zig",
+        .artifact = "test/corpus/campaigns/000-geometryOrient2-f-named_hard_tuple_corpus.zcdr",
+        .deterministic_seed = 0x34b8e07d29c15fa6,
+        .tuple_count = geometry_tuple_count,
+        .tuples = &geometry_orient2_tuples_f,
+    }),
+    makeCampaignRule(.{
+        .operation = "geometryOrient2",
+        .provenance = .zmath,
+        .shape_code = 0x7333333d07,
+        .format = .d,
+        .campaign_class = .selected_cartesian,
+        .source_path = "src/geometry.zig",
+        .artifact = "test/corpus/campaigns/000-geometryOrient2-d-named_hard_tuple_corpus.zcdr",
+        .deterministic_seed = 0x7d61c3a90e2f48b1,
+        .tuple_count = geometry_tuple_count,
+        .tuples = &geometry_orient2_tuples_d,
+    }),
     // scaleBf and scaleBd are scaleB at binary32 and binary64. Neither has a
     // binary16 operand, so the bounded binary16 integer domain that carries
     // scaleB cannot describe them; the selected Cartesian product is the real
@@ -4393,7 +5229,11 @@ pub const campaign_table = [_]CampaignRule{
         .tuple_count = 32,
     }),
 };
-pub const manifest_campaign_count: usize = 337;
+// One campaign rule per manifest function row. Deriving the count from the
+// table rather than restating it means a row cannot be added without the
+// matrix sizing itself to match, and a row cannot be dropped without the check
+// firing.
+pub const manifest_campaign_count: usize = campaign_table.len;
 pub const unavailable_artifact = "test/corpus/unavailable/source-metadata-unavailable.zcdr";
 
 pub const CampaignMatrixError = error{
@@ -4841,6 +5681,11 @@ fn structureShapeCode(kind: corpus.StructureKind) u64 {
         .integer => 8,
         .quaternion => 9,
         .algebra => 10,
+        // The two non-scalar structures this tranche added. Their codes are the
+        // on-disk corpus structure codes, eleven and twelve, so a stored record
+        // and a shape code cannot name the same structure twice.
+        .complex => 11,
+        .luSolve => 12,
     };
 }
 

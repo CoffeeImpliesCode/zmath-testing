@@ -2,13 +2,14 @@ const std = @import("std");
 
 pub const manifest_text = @embedFile("corpus/manifest.toml");
 
-pub const canonical_function_count: usize = 337;
+pub const canonical_function_count: usize = 347;
 pub const function_count_max: usize = canonical_function_count;
 pub const max_function_count: usize = function_count_max;
 const function_key_count: usize = 9;
 // The widest input list in the vocabulary is eight coefficients, the whole of
-// one quaternion or one Cl(3) multivector. Every narrower operation leaves the
-// tail at its declared default.
+// one quaternion or one Cl(3) multivector. The seven-argument orientation
+// query, six coordinates then its policy tag, is the next widest. Every
+// narrower operation leaves the tail at its declared default.
 const input_count_max: usize = 8;
 const manifest_bytes_max: usize = 256 * 1024;
 const manifest_line_bytes_max: usize = 512;
@@ -19,7 +20,8 @@ const manifest_line_bytes_max: usize = 512;
 // thirty-two, and every array sized by it follows.
 pub const max_argument_count: usize = 32;
 // Two fields covered every structure until the non-scalar tranche added a
-// four-component quaternion and an eight-coefficient multivector.
+// four-component quaternion and an eight-coefficient multivector. A two-solution
+// solve needs a third, for its acceptance flag.
 pub const max_result_field_count: usize = 8;
 pub const max_provenance_count: usize = 2;
 pub const oracle_abi_version: u32 = 2;
@@ -71,6 +73,8 @@ pub const OracleStructureKind = enum(c_uint) {
     integer = 9,
     quaternion = 10,
     algebra = 11,
+    complex = 12,
+    luSolve = 13,
     _,
 };
 
@@ -304,6 +308,8 @@ pub const ManifestOperation = enum(u8) {
     cbrt,
     ceil,
     classify,
+    complexAdd,
+    complexMul,
     compoundn,
     copySign,
     cos,
@@ -358,6 +364,7 @@ pub const ManifestOperation = enum(u8) {
     fromfpx,
     fsqrt,
     fsub,
+    geometryOrient2,
     getPayload,
     hypot,
     ilogb,
@@ -376,6 +383,8 @@ pub const ManifestOperation = enum(u8) {
     logp1,
     lrint,
     lround,
+    luSolve2,
+    matrixDet2,
     modf,
     nan,
     nearbyint,
@@ -554,9 +563,11 @@ pub const StructureKind = enum(u8) {
     algebra,
     atan2,
     canonicalize,
+    complex,
     frexp,
     integer,
     lgamma,
+    luSolve,
     modf,
     payload,
     power,
@@ -576,6 +587,8 @@ pub const StructureKind = enum(u8) {
             .integer => 9,
             .quaternion => 10,
             .algebra => 11,
+            .complex => 12,
+            .luSolve => 13,
         };
     }
 };
@@ -717,13 +730,15 @@ pub const ResultDescriptor = union(enum) {
     pub fn oracleFieldCount(descriptor: ResultDescriptor) usize {
         return switch (descriptor) {
             .float, .integer, .boolean, .classification => 1,
-            // Every published structure but the two non-scalar ones carries a
+            // Every published structure but the non-scalar ones carries a
             // value and an auxiliary integer or boolean. A quaternion is four
-            // components and a Cl(3) multivector is eight coefficients, both in
-            // one format, so the count follows the kind rather than a constant.
+            // components, a Cl(3) multivector is eight coefficients, and a
+            // solve is two solutions plus its acceptance flag, so the count
+            // follows the kind rather than a constant.
             .structure => |structure| switch (structure.kind) {
                 .quaternion => 4,
                 .algebra => 8,
+                .luSolve => 3,
                 else => 2,
             },
         };
@@ -754,6 +769,17 @@ pub const ResultDescriptor = union(enum) {
                     // One coefficient per basis blade of Cl(3), in ascending
                     // mask order, which is the order the runtime stores.
                     .algebra => if (index < 8) return float_descriptor,
+                    // The real part then the imaginary part, the order the
+                    // complex value stores and the runtime returns.
+                    .complex => if (index < 2) return float_descriptor,
+                    // The two solutions then the acceptance flag. A refused
+                    // solve reports canonical positive zero in both solution
+                    // fields, never a fabricated answer.
+                    .luSolve => switch (index) {
+                        0, 1 => return float_descriptor,
+                        2 => return oracleBooleanFieldDescriptor(),
+                        else => {},
+                    },
                     .lgamma => {
                         if (index == 0) return float_descriptor;
                         if (index == 1) return IntegerType.i2.oracleDescriptor();
@@ -1410,6 +1436,8 @@ fn corpusStructureCode(kind: StructureKind) u8 {
         .integer => 8,
         .quaternion => 9,
         .algebra => 10,
+        .complex => 11,
+        .luSolve => 12,
     };
 }
 fn parseCorpusStructure(code: u8) CorpusRecordError!StructureKind {
@@ -1425,6 +1453,8 @@ fn parseCorpusStructure(code: u8) CorpusRecordError!StructureKind {
         8 => .integer,
         9 => .quaternion,
         10 => .algebra,
+        11 => .complex,
+        12 => .luSolve,
         else => error.UnknownStructureKind,
     };
 }
@@ -2000,8 +2030,8 @@ fn compareProvenance(previous: ProvenanceList, current: ProvenanceList) std.math
 // generator writes one descriptor's records in that manifest order. Provenance
 // therefore leads here too. Ordering operation bytes first was only ever
 // indistinguishable from this: with one provenance the two keys agree, so none
-// of the 301 `["zmath"]` rows noticed. With two provenances they do not. The
-// 337-row manifest closes its `["zmath"]` block at `ulpDistance` and opens its
+// of the 311 `["zmath"]` rows noticed. With two provenances they do not. The
+// 347-row manifest closes its `["zmath"]` block at `ulpDistance` and opens its
 // `["zmath", "core_math"]` block at `acospi`, and `ulpDistance` sorts after
 // `acospi`, so an operation-major key rejected the provenance boundary of
 // every publication it was asked to read.
@@ -2224,14 +2254,20 @@ fn pinnedFormatOperation(operation: ManifestOperation) ?Format {
 const binary32_and_64 = [_]Format{ .f, .d };
 
 // The non-scalar tranche has no binary16 instantiation: a quaternion and a
-// Cl(3) multivector are published at binary32 and binary64 only. An absent
-// instantiation is a missing row, not a three-format loop.
+// Cl(3) multivector are published at binary32 and binary64 only, and the
+// complex, matrix determinant, solve and orientation operations join them
+// there. An absent instantiation is a missing row, not a three-format loop.
 fn nonScalarFormats(operation: ManifestOperation) ?[]const Format {
     return switch (operation) {
         .algebraConjugate,
         .algebraDual,
         .algebraDualComplement,
         .algebraReverse,
+        .complexAdd,
+        .complexMul,
+        .geometryOrient2,
+        .luSolve2,
+        .matrixDet2,
         .quaternionMul,
         => binary32_and_64[0..],
         else => null,
@@ -2265,6 +2301,10 @@ const SignatureShape = enum {
     round_integral,
     quaternion_mul,
     algebra_involution,
+    complex_binary,
+    matrix_det2,
+    lu_solve2,
+    geometry_orient2,
 };
 
 const canonical_function_descriptors: [canonical_function_count]FunctionDescriptor =
@@ -2551,6 +2591,56 @@ fn standardDescriptor(
             .inputs = floatInputs(format, 8),
             .result = .{ .structure = .{ .kind = .algebra, .format = format } },
         },
+        // The complex operations take both operands flat: the real and
+        // imaginary parts of the first, then of the second. The manifest
+        // input vocabulary has no aggregate kind, so the layout is fixed by
+        // the operation and named here.
+        .complex_binary => .{
+            .operation = operation,
+            .provenance = provenance,
+            .format = format,
+            .arity = 4,
+            .inputs = floatInputs(format, 4),
+            .result = .{ .structure = .{ .kind = .complex, .format = format } },
+        },
+        // One 2x2 matrix in row-major order, a00, a01, a10, a11.
+        .matrix_det2 => .{
+            .operation = operation,
+            .provenance = provenance,
+            .format = format,
+            .arity = 4,
+            .inputs = floatInputs(format, 4),
+            .result = .{ .float = format },
+        },
+        // The same 2x2 matrix, then the right-hand side b0, b1.
+        .lu_solve2 => .{
+            .operation = operation,
+            .provenance = provenance,
+            .format = format,
+            .arity = 6,
+            .inputs = floatInputs(format, 6),
+            .result = .{ .structure = .{ .kind = .luSolve, .format = format } },
+        },
+        // Three points flat, a, then b, then c, each x before y. The policy
+        // is a tag, not a typed input, so it never multiplies the row count.
+        // The result carries the sign as an integer value, so its own format
+        // is read from the coordinates, not from the result descriptor.
+        .geometry_orient2 => .{
+            .operation = operation,
+            .provenance = provenance,
+            .format = format,
+            .arity = 7,
+            .inputs = try taggedInputs(&.{
+                .{ .float = format },
+                .{ .float = format },
+                .{ .float = format },
+                .{ .float = format },
+                .{ .float = format },
+                .{ .float = format },
+                .tag,
+            }),
+            .result = .{ .integer = .i32 },
+        },
     };
 }
 
@@ -2624,6 +2714,10 @@ fn signatureShape(operation: ManifestOperation) ?SignatureShape {
         .roundIntegral, .roundIntegrald, .roundIntegralf => .round_integral,
         .quaternionMul => .quaternion_mul,
         .algebraConjugate, .algebraDual, .algebraDualComplement, .algebraReverse => .algebra_involution,
+        .complexAdd, .complexMul => .complex_binary,
+        .matrixDet2 => .matrix_det2,
+        .luSolve2 => .lu_solve2,
+        .geometryOrient2 => .geometry_orient2,
         // ziglint-ignore: Z024
         .fadd, .fdiv, .ffma, .fmul, .fsqrt, .fsub, .f16addf32, .f16addf64, .f16divf32, .f16divf64, .f16fmaf32, .f16fmaf64, .f16mulf32, .f16mulf64, .f16sqrtf32, .f16sqrtf64, .f16subf32, .f16subf64, .f32addf64, .f32divf64, .f32fmaf64, .f32mulf64, .f32sqrtf64, .f32subf64 => null,
     };

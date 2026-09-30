@@ -1,3 +1,16 @@
+//! `zmath-testing-corpus-replay <out_root> [--operation=OP] [--format=FMT]
+//! [--vector]` replays an ordinary publication.
+//!
+//! `zmath-testing-corpus-replay <out_root> --f32-range=LOW:HIGH` replays a
+//! range publication instead: `<out_root>/ranges/<probe>/<low>-<high>`. The
+//! loader there understands the `RANGE` and `RANGE_COMPLETE` receipts, recomputes
+//! the coverage claim from the declared interval and the proved tiling rather
+//! than reading it as a promise, and refuses a range root that also holds an
+//! ordinary `COMPLETE`. Each artifact is then streamed and checked against the
+//! interval: record `i` must carry raw input `LOW + i`, so the replay proves
+//! every raw input in the interval exactly once, for every selected
+//! descriptor, in ascending order.
+
 const std = @import("std");
 const active_target_mode = @import("active_target_mode");
 const corpus = @import("corpus_support");
@@ -14,22 +27,52 @@ pub fn main(init: std.process.Init) !void {
     const arguments = try init.minimal.args.toSlice(init.arena.allocator());
     const parsed = try parseArguments(arguments);
     const manifest = try corpus.parseManifest(corpus.manifest_text);
+    const profile: corpus_set.Profile = .{
+        .target = active_target_mode.target,
+        .cpu = active_target_mode.cpu,
+        .mode = active_target_mode.mode,
+    };
+    const directory = std.Io.Dir.cwd();
+
+    if (parsed.range) |declared| {
+        const filters: corpus_set.Filters = .{
+            .operation = parsed.filters.operation,
+            .format = parsed.filters.format,
+        };
+        const run_root = try buildRangeRunRoot(init.gpa, parsed, declared);
+        defer init.gpa.free(run_root);
+        var loaded = try corpus_set.loadRange(
+            init.gpa,
+            init.io,
+            directory,
+            run_root,
+            &manifest,
+            profile,
+            filters,
+            declared,
+        );
+        defer loaded.deinit(init.gpa);
+        try replayRangeSelection(
+            init.io,
+            directory,
+            &manifest,
+            &loaded,
+            declared,
+        );
+        return;
+    }
+
     const selected_count = try requestedSelectionCount(&manifest, parsed.filters);
     const run_root = try buildRunRoot(init.gpa, parsed);
     defer init.gpa.free(run_root);
 
-    const directory = std.Io.Dir.cwd();
     var published = try corpus_set.load(
         init.gpa,
         init.io,
         directory,
         run_root,
         &manifest,
-        .{
-            .target = active_target_mode.target,
-            .cpu = active_target_mode.cpu,
-            .mode = active_target_mode.mode,
-        },
+        profile,
     );
     defer published.deinit(init.gpa);
     try validatePublishedSelection(
@@ -60,6 +103,88 @@ pub fn main(init: std.process.Init) !void {
     );
 }
 
+/// Replays every record of every selected descriptor against the interval the
+/// receipt declares. The per-record raw identity is checked by the streaming
+/// guard inside `streamRangeArtifact`, and the runtime result of each record is
+/// checked here, so a range publication is verified with the same numerical
+/// rigour as an ordinary one and with the extra proof that no raw input in the
+/// interval is missing, repeated, or out of order.
+fn replayRangeSelection(
+    io: std.Io,
+    directory: std.Io.Dir,
+    manifest: *const corpus.Manifest,
+    loaded: *const corpus_set.LoadedRange,
+    declared: corpus_set.RawRange,
+) !void {
+    var total_records: u64 = 0;
+    for (loaded.set.entries[0..loaded.set.count]) |*entry| {
+        const function = &manifest.function_values[entry.signature_index];
+        const prepared = try runner.prepareRuntime(function.*);
+        const context: RangeReplayContext = .{
+            .entry = entry,
+            .function = function,
+            .prepared = &prepared,
+        };
+        const record_count = try corpus_set.streamRangeArtifact(
+            io,
+            directory,
+            entry.artifact,
+            declared,
+            entry.operation,
+            entry.digest,
+            context,
+            replayRangeRecord,
+        );
+        total_records = std.math.add(u64, total_records, record_count) catch
+            return error.RecordCountOverflow;
+        const digest_hex = std.fmt.bytesToHex(entry.digest, .lower);
+        std.debug.print(
+            "range replay verified: signature={} operation={s} range={d}:{d} " ++
+                "records={} sha256={s}\n",
+            .{
+                entry.signature_index,
+                entry.operation,
+                declared.low,
+                declared.high,
+                record_count,
+                digest_hex[0..],
+            },
+        );
+    }
+    std.debug.print(
+        "range corpus replay verified: kind={s} coverage={s} range={d}:{d} " ++
+            "descriptors={} records={}\n",
+        .{
+            @tagName(loaded.receipt.kind),
+            @tagName(loaded.receipt.coverage),
+            declared.low,
+            declared.high,
+            loaded.set.count,
+            total_records,
+        },
+    );
+}
+
+const RangeReplayContext = struct {
+    entry: *const corpus_set.Entry,
+    function: *const corpus.Function,
+    prepared: *const runner.PreparedRuntime,
+};
+
+fn replayRangeRecord(
+    context: RangeReplayContext,
+    record_index: u64,
+    record: *const corpus.CorpusRecord,
+) !void {
+    try replayRecord(
+        context.entry,
+        context.function,
+        context.prepared,
+        record_index,
+        record,
+    );
+}
+
 const FilterOptions = struct {
     operation: ?[]const u8 = null,
     format: ?corpus.Format = null,
@@ -69,6 +194,7 @@ const ParsedArguments = struct {
     output_root: []const u8,
     filters: FilterOptions,
     vector: bool = false,
+    range: ?corpus_set.RawRange = null,
 };
 
 const EncodedInput = struct {
@@ -102,6 +228,9 @@ fn parseArguments(arguments: []const []const u8) !ParsedArguments {
             parsed.filters.format =
                 std.meta.stringToEnum(corpus.Format, format_name) orelse
                 return error.InvalidFormatFilter;
+        } else if (std.mem.startsWith(u8, argument, "--f32-range=")) {
+            if (parsed.range != null) return error.InvalidArguments;
+            parsed.range = try corpus_set.parseRawRangeSpec(argument["--f32-range=".len..]);
         } else if (std.mem.eql(u8, argument, "--vector")) {
             if (parsed.vector) return error.InvalidArguments;
             parsed.vector = true;
@@ -109,7 +238,48 @@ fn parseArguments(arguments: []const []const u8) !ParsedArguments {
             return error.InvalidArguments;
         }
     }
+    // The vector lane batches whole records through a packed invoker. A range
+    // publication is replayed record by record so the raw input identity is
+    // checked against the interval as it streams, so the two lanes are kept
+    // apart rather than silently reduced to whichever one was asked for.
+    if (parsed.vector and parsed.range != null) return error.InvalidArguments;
     return parsed;
+}
+
+/// The range root the producer writes, derived exactly as the producer derives
+/// it: `<out>/ranges/<probe>/<low>-<high>`.
+fn buildRangeRunRoot(
+    allocator: std.mem.Allocator,
+    arguments: ParsedArguments,
+    declared: corpus_set.RawRange,
+) ![]u8 {
+    const ranges_root = try std.fs.path.join(
+        allocator,
+        &.{ arguments.output_root, "ranges" },
+    );
+    defer allocator.free(ranges_root);
+    const probe_name = try probeName(allocator, arguments.filters);
+    defer allocator.free(probe_name);
+    const leaf = try std.fmt.allocPrint(
+        allocator,
+        "{d}-{d}",
+        .{ declared.low, declared.high },
+    );
+    defer allocator.free(leaf);
+    return std.fs.path.join(allocator, &.{ ranges_root, probe_name, leaf });
+}
+
+fn probeName(allocator: std.mem.Allocator, filters: FilterOptions) ![]u8 {
+    if (filters.operation == null and filters.format == null) {
+        return allocator.dupe(u8, "all-all");
+    }
+    const operation_name = filters.operation orelse "all";
+    const format_name = if (filters.format) |format| @tagName(format) else "all";
+    return std.fmt.allocPrint(
+        allocator,
+        "{s}-{s}",
+        .{ operation_name, format_name },
+    );
 }
 
 fn buildRunRoot(

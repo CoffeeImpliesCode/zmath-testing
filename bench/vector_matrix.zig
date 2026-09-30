@@ -130,7 +130,21 @@ pub fn main(init: std.process.Init) !void {
         if (!options.matches(function)) return error.CorpusSelectionMismatch;
         // A vector target is measured only when the registry registers it, so
         // the measured set is exactly the set with a real published corpus.
-        const format = targetFormat(function.result.floatFormat() orelse continue);
+        //
+        // A row whose result carries no float format has no lane element type,
+        // so there is no group to build and nothing to time. It is reported as
+        // unavailable rather than skipped, because a skipped row leaves the
+        // published set and the benchmark log disagreeing about what was run.
+        const result_format = function.result.floatFormat() orelse {
+            std.debug.print(
+                "signature={} operation={s} artifact={s} corpus_records={} lane_width=0 " ++
+                    "corpus_sha256=none provider=zmath-vector available=false " ++
+                    "reason=non_float_result\n",
+                .{ entry.signature_index, function.op, entry.artifact, entry.records },
+            );
+            continue;
+        };
+        const format = targetFormat(result_format);
         const descriptor = targets.lookup(function.op, format) orelse {
             std.debug.print(
                 "signature={} operation={s} artifact={s} corpus_records={} lane_width=1 " ++

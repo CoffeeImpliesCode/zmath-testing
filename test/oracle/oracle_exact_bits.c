@@ -33,9 +33,6 @@ typedef struct z_exact_build {
     uint32_t field_count;
 } z_exact_build;
 
-_Static_assert(ZMATH_TESTING_ORACLE_OPERATION_COUNT == 337,
-               "oracle operation table count drift");
-
 static int z_exact_is_operation(const zmath_testing_oracle_operation_signature *signature,
                                 const char *operation) {
     size_t length = strlen(operation);

@@ -73,6 +73,17 @@ enum zmath_testing_oracle_structure_kind {
      */
     ZMATH_TESTING_ORACLE_STRUCTURE_QUATERNION = 10,
     ZMATH_TESTING_ORACLE_STRUCTURE_ALGEBRA = 11,
+    /*
+     * COMPLEX and LU_SOLVE are two more non-scalar result shapes. Both stay
+     * inside the eight-field ceiling, so the request and result layouts do
+     * not change and the ABI version stays at 2. COMPLEX carries a real and an
+     * imaginary field of ONE format; LU_SOLVE carries two solution floats of
+     * ONE format and then the acceptance flag. A reader that predates them
+     * meets 12 or 13 in zmath_testing_structure_field_count, whose default arm
+     * refuses, so the extension fails closed instead of being reinterpreted.
+     */
+    ZMATH_TESTING_ORACLE_STRUCTURE_COMPLEX = 12,
+    ZMATH_TESTING_ORACLE_STRUCTURE_LU_SOLVE = 13,
 };
 
 enum zmath_testing_oracle_class {
