@@ -46,6 +46,13 @@ fn enableCoverage(
     }
 }
 
+/// Returns a borrow of build-graph arena memory, not an owned slice.
+/// `std.Build.Graph.arena` is an `Allocator` whose arena is documented as
+/// living for the whole process, and the only caller passes the result
+/// straight to `addEmbeddedArtifactModule`, which formats it into a
+/// generated module. `toOwnedSlice` would not hand the caller ownership
+/// either: on an arena it copies the used bytes into a fresh block the
+/// caller still cannot free.
 fn addReferencedCorpusArtifacts(
     b: *std.Build,
     corpus_support_package: anytype,
@@ -119,7 +126,7 @@ fn addReferencedCorpusArtifacts(
             current_inputs,
         );
     }
-    return artifact_entries.items;
+    return artifact_entries.items; // zbc-disable-line: return-arraylist-items — finding accepted not fixed: `.items` borrows b.graph.arena which lives for the whole process; the only caller just formats it. See the doc comment above.
 }
 
 fn addFunctionArtifact(
@@ -198,8 +205,15 @@ fn unquoteBuildValue(value: []const u8) ?[]const u8 {
 }
 
 fn descriptorFormat(result: []const u8, inputs: []const u8) ?u8 {
-    if (std.mem.startsWith(u8, result, "float:") and result.len == "float:x".len) {
-        return result[result.len - 1];
+    // A `float:` result is the marker plus exactly one format byte, so the
+    // length is pinned to `"float:x".len` by the first conjunct and the format
+    // byte is the one the second conjunct puts after the marker. Naming that
+    // offset leaves no `result.len - 1` for an empty result to underflow, and
+    // the length test comes first so the bound is read before the index.
+    if (result.len == "float:x".len and
+        std.mem.startsWith(u8, result, "float:"))
+    {
+        return result["float:".len];
     }
     if (std.mem.startsWith(u8, result, "struct:") and result.len > 0) {
         const format = result[result.len - 1];
@@ -282,6 +296,13 @@ fn addOracleSources(b: *std.Build, module: *std.Build.Module) void {
 /// so linking the oracle failed with "searched paths: none". LIBRARY_PATH is
 /// where devenv publishes those directories, so feed every entry in as an
 /// explicit `-L`. mpfr, gmp, and flint all arrive this way.
+///
+/// Only the entries that exist are fed in. The devshell rewrites store paths
+/// to the sandbox prefix, and six of them are not in that sandbox's store, so
+/// LIBRARY_PATH names six directories that are not there. A missing `-L` makes
+/// the compiler child die after warning, with no diagnostic and a zero exit
+/// status, which takes every oracle-linked tool with it; a directory that is
+/// not there cannot satisfy `-l` either, so dropping one loses nothing.
 fn addOracleLibraryPaths(b: *std.Build, module: *std.Build.Module) void {
     const library_path = b.graph.environ_map.get("LIBRARY_PATH") orelse return;
     var dirs = std.mem.splitScalar(u8, library_path, std.fs.path.delimiter);
@@ -289,7 +310,9 @@ fn addOracleLibraryPaths(b: *std.Build, module: *std.Build.Module) void {
         // `cwd_relative` is the LazyPath tag documented for an absolute host
         // path such as a system environment path, which is what LIBRARY_PATH
         // holds.
-        if (dir.len != 0) module.addLibraryPath(.{ .cwd_relative = dir });
+        if (dir.len == 0) continue;
+        std.Io.Dir.cwd().access(b.graph.io, dir, .{}) catch continue;
+        module.addLibraryPath(.{ .cwd_relative = dir });
     }
     // The store's libflint cannot be loaded by a host binary at all, so flint
     // is linked from a prefix built for this host and named by
@@ -899,6 +922,48 @@ pub fn build(b: *std.Build) void {
     if (b.args) |args| run_power.addArgs(args);
     const run_power_step = b.step("run-power", "Run the power resource benchmark");
     run_power_step.dependOn(&run_power.step);
+
+    // Every tool this project publishes, in the one place that says so.
+    // `zig build` builds the default install target, which is none of these,
+    // so a schema change that missed `test/oracle/corpus_generate.zig`
+    // reached a green gate and then emitted the old 315-row publication from
+    // a new 323-row manifest: the producer binary was never rebuilt.
+    // `scripts.gate.exec` runs this step before `zig-gate`.
+    //
+    // The run lanes are absent on purpose. `generate-corpus` republishes
+    // 5.1 GB over 18 minutes, and `replay-corpus`, `replay-vector` and
+    // `run-bench-*` are measurements, not build proofs. `compare` and `docs`
+    // belong to the comparative lane, which links the packaged Google
+    // Benchmark and the core-math objects under a C++ ABI matched to them.
+    const published_tool_steps = [_]*std.Build.Step{
+        oracle_step,
+        generator_test_step,
+        oracle_fuzz_step,
+        generator_step,
+        replay_build_step,
+        bench_step,
+        scalar_bench_step,
+        vector_bench_step,
+        bench_helpers_step,
+        bench_power_step,
+    };
+    const published_tools_step = b.step(
+        "published-tools",
+        "Build every published tool and every tool-owning test step",
+    );
+    for (published_tool_steps) |published_step| {
+        published_tools_step.dependOn(published_step);
+    }
+
+    // This step is only meaningful under the qualified publication profile,
+    // and the tools enforce that themselves: `bench/public_api.zig` raises a
+    // comptime error naming the triple, the CPU and the mode, and the
+    // producer, the replay tool and the benchmark matrices return
+    // `error.UnapprovedCorpusProfile` at run time. A check here would run
+    // while every other step is configured, including the host-default
+    // `zig build` and `zig build test` that `zig-gate` runs, and would break
+    // those to guard this one step.
+
     // The comparative lane uses an explicit GNU toolchain so its C++ ABI is
     // identical to the packaged Google Benchmark library.
     const compare_target_query = std.Target.Query.parse(.{

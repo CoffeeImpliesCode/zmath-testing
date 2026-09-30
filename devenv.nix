@@ -260,13 +260,40 @@ rec {
     ZMATH_COMPARE_COREMATH_PATH = "${coreMathReference}/lib/libzmath-coremath.so";
   };
 
-  # zig-gate builds its ziglint file list with `find`, which bypasses ziglint's own
-  # .gitignore handling, so generated artifacts would otherwise be linted as if
-  # they were source. Exclude the gitignored result directories here.
+  # `zig build` builds the default install target, which is none of the corpus
+  # tools, so a green gate did not mean the corpus could be produced: a stale
+  # producer binary emitted the old 315-row publication from a new 323-row
+  # manifest. `zig build published-tools` compiles every published tool and
+  # every tool-owning test step.
+  #
+  # It runs first, and chained with `&&` rather than on its own line, because
+  # it is the cheaper ordering — a broken tool fails in seconds instead of
+  # after the whole gate — and because a failing build must not fall through
+  # to a gate whose own `zig build` would then pass. The profile is pinned
+  # rather than left at the host defaults: every one of those tools guards on
+  # the qualified corpus profile and `bench/public_api.zig` will not compile
+  # without it. The oracle libraries arrive through LIBRARY_PATH and
+  # ZMATH_ORACLE_HOST_PREFIX from .envrc, and the produced binaries carry the
+  # RUNPATH for the store-built flint, so this is a link-only build.
+  #
+  # GATE_EXCLUDE stays as it is: zig-gate builds its ziglint file list with
+  # `find`, which bypasses ziglint's own .gitignore handling, so generated
+  # artifacts would otherwise be linted as if they were source. Exclude the
+  # gitignored result directories here.
+  #
+  # KEEP IN SYNC WITH THE gate SHIM IN .envrc. On a host with a store this is
+  # what runs; on a host without one the shim is what runs, and it used to omit
+  # the `zig build published-tools` step, which would have left the blind spot
+  # this step closes alive exactly where it was added.
   scripts.gate.exec = ''
-    GATE_EXCLUDE="./bench/results/ ./.devenv/ ./graphify-out/" zig-gate
+    zig build published-tools -Dtarget=x86_64-linux-gnu.2.38 -Dcpu=haswell -Doptimize=ReleaseSafe &&
+      GATE_EXCLUDE="./bench/results/ ./.devenv/ ./graphify-out/" zig-gate
   '';
 
+
+  # `zig-cov` is hardcoded to another machine's home directory and does not
+  # exist here, so this script cannot run on this host. It is left as the
+  # upstream contract rather than silently repointed.
   scripts.coverage.exec = ''
     PATH=${coverageZig}:$PATH ~/tools/zcov/zig-out/bin/zig-cov test
   '';
