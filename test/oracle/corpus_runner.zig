@@ -77,8 +77,10 @@ pub const RunError = error{
     InputBitsOutOfRange,
     InputCountMismatch,
     InputTagCountMismatch,
+    InputTagTooLong,
     InvalidResultClass,
     InvalidResultDescriptor,
+    OperationTooLong,
     ReferenceError,
     ReferenceShapeMismatch,
     ReferenceUncertain,
@@ -184,7 +186,10 @@ const RequestStorage = struct {
                 .descriptor = descriptor,
                 .value_bits = bits,
                 .tag_bytes = if (tag.len == 0) null else tag.ptr,
-                .tag_length = @intCast(tag.len),
+                // The ABI carries the tag length in a u32. A caller tag wider
+                // than that is refused instead of narrowed.
+                .tag_length = std.math.cast(u32, tag.len) orelse
+                    return error.InputTagTooLong,
                 .reserved = 0,
             };
         }
@@ -202,13 +207,18 @@ const RequestStorage = struct {
             .abi_version = corpus.oracle_abi_version,
             .reserved = 0,
             .operation = constPointer(u8, function.op),
-            .operation_length = @intCast(function.op.len),
-            .arity = @intCast(arguments.len),
+            // Manifest operation names are short, but the ABI field is a u32,
+            // so the encoder states the width instead of narrowing blindly.
+            .operation_length = std.math.cast(u32, function.op.len) orelse
+                return error.OperationTooLong,
+            // `function.arity` is a u8 that the shape guard above forced to
+            // equal `arguments.len`, so it already carries the input count.
+            .arity = function.arity,
             .input_fields = constPointer(
                 OracleInputField,
                 self.input_fields[0..arguments.len],
             ),
-            .input_field_count = @intCast(arguments.len),
+            .input_field_count = function.arity,
             .result_layout = function.result.oracleLayout(),
             .structure_kind = function.result.oracleStructureKind(),
             .result_field_count = @intCast(self.result_field_count),
@@ -536,7 +546,7 @@ fn runFunctionInternal(
     }
 
     var reference_fields: [max_oracle_fields]OracleResultField = undefined;
-    var reference = emptyOracleResult(
+    var reference = try emptyOracleResult(
         reference_fields[0..storage.result_field_count],
     );
     corpus.zmath_testing_oracle_v2_mpfr_reference(&storage.request, &reference);
@@ -552,9 +562,9 @@ fn runFunctionInternal(
         error.ReferenceShapeMismatch,
     );
 
-    var candidate = runtimeOracleResult(&runtime);
+    var candidate = try runtimeOracleResult(&runtime);
     var proof_fields: [max_oracle_fields]OracleResultField = undefined;
-    var proof = emptyOracleResult(proof_fields[0..storage.result_field_count]);
+    var proof = try emptyOracleResult(proof_fields[0..storage.result_field_count]);
     corpus.zmath_testing_oracle_v2_arb_prove(
         &storage.request,
         &candidate,
@@ -2020,23 +2030,29 @@ fn valueBitsFitDescriptor(descriptor: OracleFieldDescriptor, bits: u64) bool {
         else => false,
     };
 }
-fn emptyOracleResult(fields: []OracleResultField) OracleResult {
+fn emptyOracleResult(fields: []OracleResultField) RunError!OracleResult {
+    // The result capacity is a u32 ABI field, so a wider storage buffer is a
+    // shape error rather than a truncated cast.
+    const field_capacity = std.math.cast(u32, fields.len) orelse
+        return error.DescriptorCountOverflow;
     return .{
         .status = .@"error",
         .reserved = 0,
-        .field_capacity = @intCast(fields.len),
+        .field_capacity = field_capacity,
         .field_count = 0,
         .fields = outputPointer(fields),
     };
 }
 
-fn runtimeOracleResult(runtime: *RuntimeResult) OracleResult {
+fn runtimeOracleResult(runtime: *RuntimeResult) RunError!OracleResult {
     const fields = runtime.fields[0..runtime.field_count];
+    const field_capacity = std.math.cast(u32, fields.len) orelse
+        return error.DescriptorCountOverflow;
     return .{
         .status = .ok,
         .reserved = 0,
-        .field_capacity = @intCast(fields.len),
-        .field_count = @intCast(fields.len),
+        .field_capacity = field_capacity,
+        .field_count = field_capacity,
         .fields = outputPointer(fields),
     };
 }

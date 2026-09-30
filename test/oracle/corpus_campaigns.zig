@@ -83,7 +83,9 @@ pub const InputTuple = struct {
         if (fields.len == 0 or fields.len > max_arity) return error.TupleArityMismatch;
         var tuple: InputTuple = .{
             .fields = blankFields(),
-            .count = @intCast(fields.len),
+            // `count` is a u8. The arity check above already excludes a longer
+            // list, and the checked cast keeps the narrowing total by itself.
+            .count = std.math.cast(u8, fields.len) orelse return error.TupleArityMismatch,
         };
         @memcpy(tuple.fields[0..fields.len], fields);
         return tuple;
@@ -269,11 +271,12 @@ pub const CampaignDefinition = struct {
             .bounded_h_integer_domain => |spec| boundedCampaignCardinality(self.function, spec),
             .explicit_special_tuple_grid => |spec| tupleGridCardinality(spec.axes),
             .selected_cartesian => |spec| if (spec.tuples.len != 0)
-                @intCast(spec.tuples.len)
+                std.math.cast(u64, spec.tuples.len) orelse return error.CardinalityOverflow
             else
                 finiteCartesianCardinality(self.function),
             .selected_unary_f, .selected_unary_d => finiteCartesianCardinality(self.function),
-            .exact_bit_status => |spec| @intCast(spec.cases.len),
+            .exact_bit_status => |spec| std.math.cast(u64, spec.cases.len) orelse
+                return error.CardinalityOverflow,
         };
     }
 
@@ -4252,17 +4255,22 @@ pub fn makeSourcePinnedHardTuples(
     }
     return .{
         .function = function,
-        .data = .{ .selected_cartesian = .{
-            .source = source,
-            .artifact = "test/corpus/ad-hoc/source-pinned-tuples.zcdr",
-            .deterministic_seed = 1,
-            .tuples = tuples,
-            .generated_tuple_count = @intCast(tuples.len),
-            .evidence = if (has_expected orelse false)
-                .records_ready
-            else
-                .generation_ready,
-        } },
+        .data = .{
+            .selected_cartesian = .{
+                .source = source,
+                .artifact = "test/corpus/ad-hoc/source-pinned-tuples.zcdr",
+                .deterministic_seed = 1,
+                .tuples = tuples,
+                // `generated_tuple_count` is a u8, so a hard tuple list longer than
+                // that cannot be described and the campaign is refused.
+                .generated_tuple_count = std.math.cast(u8, tuples.len) orelse
+                    return error.InvalidDefinition,
+                .evidence = if (has_expected orelse false)
+                    .records_ready
+                else
+                    .generation_ready,
+            },
+        },
     };
 }
 
@@ -5009,7 +5017,8 @@ fn tupleGridCardinality(axes: []const TupleAxis) CampaignError!u64 {
     var result: u64 = 1;
     for (axes) |axis| {
         if (axis.values.len == 0) return error.EmptyAxis;
-        const count: u64 = @intCast(axis.values.len);
+        const count = std.math.cast(u64, axis.values.len) orelse
+            return error.CardinalityOverflow;
         if (result > std.math.maxInt(u64) / count) return error.CardinalityOverflow;
         result *= count;
     }
@@ -5071,13 +5080,20 @@ fn specialGridTuple(
     spec: SpecialTupleGridSpec,
     index: u64,
 ) CampaignError!InputTuple {
-    var tuple: InputTuple = .{ .fields = blankFields(), .count = @intCast(spec.axes.len) };
+    // `tuple.fields` holds `max_arity` slots and `InputTuple.count` is a u8, so
+    // an axis list wider than the arity could be neither indexed nor counted.
+    if (spec.axes.len == 0 or spec.axes.len > max_arity) return error.TupleArityMismatch;
+    var tuple: InputTuple = .{
+        .fields = blankFields(),
+        .count = std.math.cast(u8, spec.axes.len) orelse return error.TupleArityMismatch,
+    };
     var remainder = index;
     var axis_index = spec.axes.len;
     while (axis_index != 0) {
         axis_index -= 1;
         const axis = spec.axes[axis_index];
-        const axis_len: u64 = @intCast(axis.values.len);
+        const axis_len = std.math.cast(u64, axis.values.len) orelse
+            return error.CardinalityOverflow;
         const coordinate = remainder % axis_len;
         remainder /= axis_len;
         tuple.fields[axis_index] = axis.values[@intCast(coordinate)];

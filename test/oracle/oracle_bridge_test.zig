@@ -94,9 +94,13 @@ const OutputStorage = struct {
         std.debug.assert(expected.len == signature.result_field_count);
         std.debug.assert(signature.result_fields != null);
 
-        self.init(@intCast(expected.len));
+        // The ABI carries the field count in a u32, so the storage capacity
+        // comes from a checked conversion, not a narrowed slice length.
+        const field_count = std.math.cast(u32, expected.len) orelse
+            @panic("expected field count does not fit the oracle ABI");
+        self.init(field_count);
         self.result.status = c.ZMATH_TESTING_ORACLE_OK;
-        self.result.field_count = @intCast(expected.len);
+        self.result.field_count = field_count;
         for (expected, 0..) |field, index| {
             self.fields[index] = .{
                 .descriptor = signature.result_fields[index],
@@ -139,10 +143,11 @@ fn expectSuccess(
         @as(u32, c.ZMATH_TESTING_ORACLE_OK),
         output.result.status,
     );
-    try std.testing.expectEqual(
-        @as(u32, @intCast(expected.len)),
-        output.result.field_count,
-    );
+    // Same u32 ABI width as the candidate storage: compare against a checked
+    // conversion so an oversized expectation reports instead of trapping.
+    const field_count = std.math.cast(u32, expected.len) orelse
+        return error.ExpectedFieldCountOutOfRange;
+    try std.testing.expectEqual(field_count, output.result.field_count);
     for (expected, 0..) |field, index| {
         try std.testing.expectEqual(field.value_bits, output.fields[index].value_bits);
         try std.testing.expectEqual(field.class_code, output.fields[index].class_code);

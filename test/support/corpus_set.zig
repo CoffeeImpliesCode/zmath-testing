@@ -583,11 +583,14 @@ fn rejectIncompletePublication(
 
 fn parseCompletion(source: []const u8) !Digest {
     const prefix = "oracle-generate complete\nmetadata_sha256=";
-    const expected_length = prefix.len + @sizeOf(Digest) * 2 + 1;
-    if (source.len != expected_length) return error.InvalidCompletion;
+    const digest_offset = prefix.len;
+    const newline_offset = digest_offset + @sizeOf(Digest) * 2;
+    if (source.len != newline_offset + 1) return error.InvalidCompletion;
     if (!std.mem.startsWith(u8, source, prefix)) return error.InvalidCompletion;
-    if (source[source.len - 1] != '\n') return error.InvalidCompletion;
-    return parseDigest(source[prefix.len .. source.len - 1]) catch {
+    // Both offsets are compile-time constants, so the trailing newline and the
+    // digest hex sit at fixed positions and no length is decremented here.
+    if (source[newline_offset] != '\n') return error.InvalidCompletion;
+    return parseDigest(source[digest_offset..newline_offset]) catch {
         return error.InvalidCompletion;
     };
 }

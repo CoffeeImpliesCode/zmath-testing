@@ -729,18 +729,20 @@ fn replayVectorGroup(
     pending: *const [vector_lane_count]PendingVectorRecord,
     lane_count: usize,
 ) !void {
+    // Every lane starts as a copy of lane zero, so the whole group array holds a
+    // defined value before the invoker reads it. Live lanes are then replaced by
+    // their own record, and the tail lanes of a partial group keep the
+    // descriptors but carry the neutral positive zero bit pattern: the invoker
+    // computes every lane, but only the lanes that exist are asserted, so no
+    // record is invented for the tail.
     var batch: runner.VectorBatch = .{
-        .groups = undefined,
+        .groups = @splat(pending[0].inputs),
         .lane_count = lane_count,
         .values = [_]u64{0} ** corpus.max_argument_count,
     };
     for (0..lane_count) |lane| batch.groups[lane] = pending[lane].inputs;
-    // The tail lanes of a partial group carry the neutral positive zero bit
-    // pattern. The invoker computes every lane, but only the lanes that exist
-    // are asserted, so no record is invented for the tail.
     for (batch.groups[lane_count..]) |*lane| {
-        lane.* = pending[0].inputs;
-        for (lane[0..]) |*field| field.value_bits = 0;
+        for (lane) |*field| field.value_bits = 0;
     }
 
     try runner.invokeVectorBatch(prepared, &batch);

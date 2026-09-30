@@ -1641,7 +1641,11 @@ fn encodeCorpusField(writer: *CorpusWriter, field: CorpusField) CorpusRecordErro
         .unsigned_integer => |value| try writer.writeU64(value.value),
         .boolean => |value| try writer.writeU8(if (value) 1 else 0),
         .tag => |value| {
-            try writer.writeU32(@intCast(value.len));
+            // `validateCorpusField` already refuses a tag wider than the u32
+            // length field. The checked cast keeps the encoder total even if a
+            // record reaches it without that validation.
+            try writer.writeU32(std.math.cast(u32, value.len) orelse
+                return error.InvalidTagLength);
             try writer.bytes(value);
         },
         .rounding, .round_mode, .classification => {},
@@ -1734,7 +1738,11 @@ pub fn encodeCorpusRecord(
     try writer.bytes("ZCDR");
     try writer.writeU8(descriptor_corpus_codec_version);
     try writer.writeU32(@intCast(length));
-    try writer.writeU16(@intCast(record.operation.len));
+    // The header carries the operation name in a u16. `CorpusRecord.init`
+    // refuses a longer name; the checked cast keeps the encoder total for a
+    // record that did not come from `init`.
+    try writer.writeU16(std.math.cast(u16, record.operation.len) orelse
+        return error.OperationTooLong);
     try writer.writeU8(@intCast(record.provenance.count));
     try writer.writeU8(@intCast(record.arguments.count));
     try writer.writeU8(@intCast(record.results.count));

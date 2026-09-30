@@ -34,7 +34,7 @@ const Evaluation = struct {
                 .descriptor = descriptor,
                 .value_bits = values[index],
                 .tag_bytes = if (is_tag and tag.len != 0) tag.ptr else null,
-                .tag_length = if (is_tag) @intCast(tag.len) else 0,
+                .tag_length = if (is_tag) tagLength(tag) else 0,
                 .reserved = 0,
             };
         }
@@ -70,6 +70,13 @@ const Evaluation = struct {
         zmath_testing_oracle_evaluate_exact_bits(signature, &self.request, &self.result);
     }
 };
+
+// The ABI carries the tag length in a u32 field, so a test tag wider than that
+// aborts here instead of trapping inside a narrowing conversion.
+fn tagLength(tag: []const u8) u32 {
+    return std.math.cast(u32, tag.len) orelse
+        @panic("tag does not fit the oracle ABI tag length field");
+}
 
 fn operationSlice(signature: *const c.zmath_testing_oracle_operation_signature) []const u8 {
     std.debug.assert(signature.operation != null);
