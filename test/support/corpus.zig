@@ -2,7 +2,7 @@ const std = @import("std");
 
 pub const manifest_text = @embedFile("corpus/manifest.toml");
 
-pub const canonical_function_count: usize = 315;
+pub const canonical_function_count: usize = 323;
 pub const function_count_max: usize = canonical_function_count;
 pub const max_function_count: usize = function_count_max;
 const function_key_count: usize = 9;
@@ -38,6 +38,8 @@ pub const OracleFieldKind = enum(c_uint) {
     boolean = 4,
     tag = 5,
     rounding = 6,
+    round_mode = 7,
+    classification = 8,
     _,
 };
 
@@ -243,6 +245,8 @@ pub const ValidationError = error{
     InvalidBoolean,
     InvalidTagLength,
     UnknownRounding,
+    UnknownRoundMode,
+    UnknownClassification,
     InvalidResultDescriptor,
     ResultFieldMismatch,
     UnknownResultDescriptorKind,
@@ -253,7 +257,7 @@ pub const ValidationError = error{
 };
 
 // The runtime oracle dispatches only these operations. ManifestOperation below
-// is the complete schema-v3 operation vocabulary.
+// is the complete schema-v4 operation vocabulary.
 pub const Operation = enum(u8) {
     exp,
     log,
@@ -284,6 +288,7 @@ pub const ManifestOperation = enum(u8) {
     canonicalize,
     cbrt,
     ceil,
+    classify,
     compoundn,
     copySign,
     cos,
@@ -371,10 +376,12 @@ pub const ManifestOperation = enum(u8) {
     rint,
     rootn,
     round,
+    roundIntegral,
     roundeven,
     rsqrt,
     scalbln,
     scalbn,
+    scaleB,
     setPayload,
     setPayloadSig,
     sin,
@@ -390,6 +397,7 @@ pub const ManifestOperation = enum(u8) {
     trunc,
     ufromfp,
     ufromfpx,
+    ulpDistance,
 };
 
 pub const Format = enum(u8) {
@@ -433,6 +441,7 @@ pub const Oracle = enum(u8) {
     exact_bits,
     algebraic,
     mpfr_arb,
+    definitional,
 };
 
 pub const Provenance = enum(u8) {
@@ -552,11 +561,12 @@ pub const InputDescriptor = union(enum) {
     integer: IntegerType,
     tag,
     fromfp_round,
+    round_mode,
 
     pub fn floatFormat(descriptor: InputDescriptor) ?Format {
         return switch (descriptor) {
             .float => |format| format,
-            .integer, .tag, .fromfp_round => null,
+            .integer, .tag, .fromfp_round, .round_mode => null,
         };
     }
 
@@ -583,6 +593,18 @@ pub const InputDescriptor = union(enum) {
             },
             .fromfp_round => .{
                 .kind = .rounding,
+                .value_bits = 32,
+                .format = .{
+                    .code = .none,
+                    .storage_bits = 0,
+                    .exponent_bits = 0,
+                    .fraction_bits = 0,
+                    .reserved = 0,
+                },
+                .reserved = 0,
+            },
+            .round_mode => .{
+                .kind = .round_mode,
                 .value_bits = 32,
                 .format = .{
                     .code = .none,
@@ -625,17 +647,30 @@ fn formatOracleFieldDescriptor(format: Format) OracleFieldDescriptor {
     };
 }
 
+// The classification is a six-value enumeration, not an integer. The width is
+// the number of bits a value occupies so that the oracle bridge can reject an
+// out-of-range payload without decoding the enumeration.
+fn oracleClassificationFieldDescriptor() OracleFieldDescriptor {
+    return .{
+        .kind = .classification,
+        .value_bits = 3,
+        .format = .{ .code = .none, .storage_bits = 0, .exponent_bits = 0, .fraction_bits = 0, .reserved = 0 },
+        .reserved = 0,
+    };
+}
+
 pub const ResultDescriptor = union(enum) {
     float: Format,
     integer: IntegerType,
     boolean,
     structure: StructureDescriptor,
+    classification,
 
     pub fn floatFormat(descriptor: ResultDescriptor) ?Format {
         return switch (descriptor) {
             .float => |format| format,
             .structure => |structure| structure.format,
-            .integer, .boolean => null,
+            .integer, .boolean, .classification => null,
         };
     }
 
@@ -655,7 +690,7 @@ pub const ResultDescriptor = union(enum) {
 
     pub fn oracleFieldCount(descriptor: ResultDescriptor) usize {
         return switch (descriptor) {
-            .float, .integer, .boolean => 1,
+            .float, .integer, .boolean, .classification => 1,
             .structure => 2,
         };
     }
@@ -665,6 +700,7 @@ pub const ResultDescriptor = union(enum) {
             .float => |format| if (index == 0) formatOracleFieldDescriptor(format) else null,
             .integer => |integer_type| if (index == 0) integer_type.oracleDescriptor() else null,
             .boolean => if (index == 0) oracleBooleanFieldDescriptor() else null,
+            .classification => if (index == 0) oracleClassificationFieldDescriptor() else null,
             .structure => |structure| {
                 const float_descriptor = formatOracleFieldDescriptor(structure.format);
                 switch (structure.kind) {
@@ -817,6 +853,27 @@ pub const FromFpRound = enum {
     toward_negative,
 };
 
+// The four IEEE 754 rounding directions. This vocabulary is deliberately
+// distinct from FromFpRound: the numeric encodings differ, so a value of one
+// can never be reinterpreted as a value of the other.
+pub const RoundMode = enum {
+    nearest_even,
+    toward_zero,
+    toward_positive,
+    toward_negative,
+};
+
+// The six IEEE 754 classes of a finite-format value. The order matches
+// zmath.ieee.Class so the oracle and the library agree by construction.
+pub const Classification = enum {
+    zero,
+    subnormal,
+    normal,
+    infinity,
+    quiet_nan,
+    signaling_nan,
+};
+
 pub fn DescriptorList(comptime T: type, comptime capacity: usize) type {
     return struct {
         const Self = @This();
@@ -900,6 +957,9 @@ pub fn oracleLiteralInput(
         .fromfp_round => {
             if (value_bits > 4) return error.InvalidInputValue;
         },
+        .round_mode => {
+            if (value_bits > 3) return error.InvalidInputValue;
+        },
     }
     return oracleInputField(descriptor, value_bits);
 }
@@ -917,7 +977,7 @@ pub fn oracleResultField(
                 return error.InvalidResultClass;
             }
         },
-        .signed_integer, .unsigned_integer, .boolean => {
+        .signed_integer, .unsigned_integer, .boolean, .round_mode, .classification => {
             if (class_code != .none) return error.InvalidResultClass;
         },
         else => return error.InvalidResultClass,
@@ -1005,6 +1065,8 @@ pub const CorpusField = union(enum) {
     boolean: bool,
     tag: []const u8,
     rounding: FromFpRound,
+    round_mode: RoundMode,
+    classification: Classification,
 };
 
 pub const CorpusRecord = struct {
@@ -1258,6 +1320,36 @@ fn parseCorpusRounding(code: u8) CorpusRecordError!FromFpRound {
     };
 }
 
+fn corpusRoundModeCode(mode: RoundMode) u8 {
+    return @intFromEnum(mode);
+}
+
+fn parseCorpusRoundMode(code: u8) CorpusRecordError!RoundMode {
+    return switch (code) {
+        0 => .nearest_even,
+        1 => .toward_zero,
+        2 => .toward_positive,
+        3 => .toward_negative,
+        else => error.UnknownRoundMode,
+    };
+}
+
+fn corpusClassificationCode(classification: Classification) u8 {
+    return @intFromEnum(classification);
+}
+
+fn parseCorpusClassification(code: u8) CorpusRecordError!Classification {
+    return switch (code) {
+        0 => .zero,
+        1 => .subnormal,
+        2 => .normal,
+        3 => .infinity,
+        4 => .quiet_nan,
+        5 => .signaling_nan,
+        else => error.UnknownClassification,
+    };
+}
+
 fn corpusStructureCode(kind: StructureKind) u8 {
     return switch (kind) {
         .canonicalize => 0,
@@ -1294,6 +1386,8 @@ fn corpusFieldKindCode(field: CorpusField) u8 {
         .boolean => 3,
         .tag => 4,
         .rounding => 5,
+        .round_mode => 6,
+        .classification => 7,
     };
 }
 
@@ -1309,6 +1403,8 @@ fn corpusFieldTypeCode(field: CorpusField) u8 {
         .signed_integer => |value| corpusIntegerTypeCode(value.integer_type),
         .unsigned_integer => |value| corpusIntegerTypeCode(value.integer_type),
         .rounding => |value| corpusRoundingCode(value),
+        .round_mode => |value| corpusRoundModeCode(value),
+        .classification => |value| corpusClassificationCode(value),
         else => 0,
     };
 }
@@ -1419,6 +1515,10 @@ fn corpusFieldMatchesDescriptor(
             .boolean => {},
             else => return error.ResultFieldMismatch,
         },
+        .classification => switch (field) {
+            .classification => {},
+            else => return error.ResultFieldMismatch,
+        },
         else => return error.ResultFieldMismatch,
     }
 }
@@ -1446,7 +1546,7 @@ fn validateCorpusField(
                 return error.IntegerOutOfRange;
             }
         },
-        .boolean, .rounding => {},
+        .boolean, .rounding, .round_mode, .classification => {},
         .tag => |value| if (value.len > @as(usize, std.math.maxInt(u32))) return error.InvalidTagLength,
     }
 }
@@ -1478,6 +1578,12 @@ fn encodeCorpusResultDescriptor(
             try writer.writeU8(3);
             try writer.writeU8(corpusFormatCode(structure.format));
             try writer.writeU8(corpusStructureCode(structure.kind));
+            try writer.writeU8(0);
+        },
+        .classification => {
+            try writer.writeU8(4);
+            try writer.writeU8(0xff);
+            try writer.writeU8(0xff);
             try writer.writeU8(0);
         },
     }
@@ -1514,6 +1620,10 @@ fn decodeCorpusResultDescriptor(reader: *CorpusReader) CorpusRecordError!ResultD
                 },
             };
         },
+        4 => if (format_code != 0xff or structure_code != 0xff or integer_code != 0)
+            error.InvalidResultDescriptor
+        else
+            .{ .classification = {} },
         else => error.UnknownResultDescriptorKind,
     };
 }
@@ -1534,7 +1644,7 @@ fn encodeCorpusField(writer: *CorpusWriter, field: CorpusField) CorpusRecordErro
             try writer.writeU32(@intCast(value.len));
             try writer.bytes(value);
         },
-        .rounding => {},
+        .rounding, .round_mode, .classification => {},
     }
 }
 
@@ -1582,6 +1692,8 @@ fn decodeCorpusField(
             break :blk .{ .tag = try reader.take(length) };
         },
         5 => .{ .rounding = try parseCorpusRounding(type_code) },
+        6 => .{ .round_mode = try parseCorpusRoundMode(type_code) },
+        7 => .{ .classification = try parseCorpusClassification(type_code) },
         else => return error.UnknownFieldKind,
     };
     try validateCorpusField(field, result_descriptor);
@@ -1596,7 +1708,7 @@ pub fn corpusRecordEncodedLength(record: *const CorpusRecord) CorpusRecordError!
             .float, .signed_integer, .unsigned_integer => 8,
             .boolean => 1,
             .tag => |value| 4 + value.len,
-            .rounding => 0,
+            .rounding, .round_mode, .classification => 0,
         };
     }
     for (record.results.slice()) |field| {
@@ -1605,7 +1717,7 @@ pub fn corpusRecordEncodedLength(record: *const CorpusRecord) CorpusRecordError!
             .float, .signed_integer, .unsigned_integer => 8,
             .boolean => 1,
             .tag => |value| 4 + value.len,
-            .rounding => 0,
+            .rounding, .round_mode, .classification => 0,
         };
     }
     if (length > @as(usize, std.math.maxInt(u32))) return error.InvalidRecordLength;
@@ -1737,6 +1849,7 @@ fn corpusResultDescriptorKey(descriptor: ResultDescriptor) [4]u8 {
             corpusStructureCode(structure.kind),
             0,
         },
+        .classification => .{ 4, 0xff, 0xff, 0 },
     };
 }
 
@@ -1807,7 +1920,7 @@ fn compareCorpusField(previous: CorpusField, current: CorpusField) std.math.Orde
             .tag => |current_value| std.mem.order(u8, value, current_value),
             else => .gt,
         },
-        .rounding => .eq,
+        .rounding, .round_mode, .classification => .eq,
     };
 }
 
@@ -2006,6 +2119,17 @@ fn narrowingSignature(operation: ManifestOperation) ?NarrowingSignature {
     };
 }
 
+// zmath.ieee exposes scaleB and roundIntegral for binary16 only. The format is
+// part of the manifest key, so one row per operation is the whole inventory.
+// The rounding direction is an input value, never a descriptor, so it cannot
+// multiply the row count.
+fn binary16OnlyOperation(operation: ManifestOperation) bool {
+    return switch (operation) {
+        .roundIntegral, .scaleB => true,
+        else => false,
+    };
+}
+
 const SignatureShape = enum {
     unary_float,
     unary_canonicalize,
@@ -2027,13 +2151,17 @@ const SignatureShape = enum {
     binary_boolean,
     binary_atan2,
     unary_lgamma,
+    unary_classification,
+    binary_ulp_distance,
+    scale_b,
+    round_integral,
 };
 
 const canonical_function_descriptors: [canonical_function_count]FunctionDescriptor =
     buildCanonicalFunctionDescriptors();
 
 fn buildCanonicalFunctionDescriptors() [canonical_function_count]FunctionDescriptor {
-    // Bound: 16 backward branches for each of the 315 canonical rows.
+    // Bound: 16 backward branches for each of the 323 canonical rows.
     @setEvalBranchQuota(@intCast(canonical_function_count * 16));
     var descriptors: [canonical_function_count]FunctionDescriptor = undefined;
     var count: usize = 0;
@@ -2041,7 +2169,10 @@ fn buildCanonicalFunctionDescriptors() [canonical_function_count]FunctionDescrip
         const core_math = provenance == .zmath_core_math;
         inline for (std.meta.tags(ManifestOperation)) |operation| {
             if (isCoreMathOperation(operation) != core_math) continue;
-            if (narrowingSignature(operation)) |signature| {
+            if (binary16OnlyOperation(operation)) {
+                descriptors[count] = standardDescriptor(operation, provenance, .h);
+                count += 1;
+            } else if (narrowingSignature(operation)) |signature| {
                 descriptors[count] = .{
                     .operation = operation,
                     .provenance = provenance,
@@ -2061,7 +2192,7 @@ fn buildCanonicalFunctionDescriptors() [canonical_function_count]FunctionDescrip
     }
     comptime {
         if (count != canonical_function_count) {
-            @compileError("canonical descriptor inventory is not 315 rows");
+            @compileError("canonical descriptor inventory is not 323 rows");
         }
     }
     return descriptors;
@@ -2273,6 +2404,53 @@ fn standardDescriptor(
             .inputs = floatInputs(format, 1),
             .result = .{ .structure = .{ .kind = .lgamma, .format = format } },
         },
+        .unary_classification => .{
+            .operation = operation,
+            .provenance = provenance,
+            .format = format,
+            .arity = 1,
+            .inputs = floatInputs(format, 1),
+            .result = .classification,
+        },
+        .binary_ulp_distance => .{
+            .operation = operation,
+            .provenance = provenance,
+            .format = format,
+            .arity = 2,
+            .inputs = .{
+                .descriptors = .{ .{ .float = format }, .{ .float = format }, .tag },
+                .count = 2,
+            },
+            // The distance is reported in an unsigned integer as wide as the
+            // format, so a binary16 result never truncates a binary64 span.
+            .result = .{ .integer = switch (format) {
+                .h => .u16,
+                .f => .u32,
+                .d => .u64,
+            } },
+        },
+        .scale_b => .{
+            .operation = operation,
+            .provenance = provenance,
+            .format = format,
+            .arity = 3,
+            .inputs = .{
+                .descriptors = .{ .round_mode, .{ .float = format }, .{ .integer = .i32 } },
+                .count = 3,
+            },
+            .result = .{ .float = format },
+        },
+        .round_integral => .{
+            .operation = operation,
+            .provenance = provenance,
+            .format = format,
+            .arity = 2,
+            .inputs = .{
+                .descriptors = .{ .round_mode, .{ .float = format }, .tag },
+                .count = 2,
+            },
+            .result = .{ .float = format },
+        },
     };
 }
 
@@ -2317,6 +2495,10 @@ fn signatureShape(operation: ManifestOperation) ?SignatureShape {
         .totalOrder, .totalOrderMag => .binary_boolean,
         .atan2, .atan2pi => .binary_atan2,
         .lgamma => .unary_lgamma,
+        .classify => .unary_classification,
+        .ulpDistance => .binary_ulp_distance,
+        .scaleB => .scale_b,
+        .roundIntegral => .round_integral,
         // ziglint-ignore: Z024
         .fadd, .fdiv, .ffma, .fmul, .fsqrt, .fsub, .f16addf32, .f16addf64, .f16divf32, .f16divf64, .f16fmaf32, .f16fmaf64, .f16mulf32, .f16mulf64, .f16sqrtf32, .f16sqrtf64, .f16subf32, .f16subf64, .f32addf64, .f32divf64, .f32fmaf64, .f32mulf64, .f32sqrtf64, .f32subf64 => null,
     };
@@ -2640,7 +2822,7 @@ fn validateRootField(
     root_seen[key_index] = true;
 
     switch (key) {
-        .schema_version => try expectUnsigned(value, 3),
+        .schema_version => try expectUnsigned(value, 4),
         .core_math_repository => try expectString(
             value,
             "https://gitlab.inria.fr/core-math/core-math.git",
@@ -2947,6 +3129,7 @@ fn parseInputList(value: []const u8) ValidationError!InputList {
 fn parseInputDescriptor(text: []const u8) ValidationError!InputDescriptor {
     if (std.mem.eql(u8, text, "tag")) return .tag;
     if (std.mem.eql(u8, text, "fromfp_round")) return .fromfp_round;
+    if (std.mem.eql(u8, text, "round_mode")) return .round_mode;
     if (std.mem.startsWith(u8, text, "float:")) {
         const format = parseDescriptorFormat(text["float:".len..]) orelse
             return error.InvalidDescriptor;
@@ -2965,6 +3148,9 @@ fn parseInputDescriptor(text: []const u8) ValidationError!InputDescriptor {
 fn parseResultDescriptor(text: []const u8) ValidationError!ResultDescriptor {
     if (std.mem.eql(u8, text, "bool")) {
         return .boolean;
+    }
+    if (std.mem.eql(u8, text, "classification")) {
+        return .classification;
     }
     if (std.mem.startsWith(u8, text, "float:")) {
         const format = parseDescriptorFormat(text["float:".len..]) orelse

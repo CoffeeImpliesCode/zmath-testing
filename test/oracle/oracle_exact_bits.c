@@ -33,7 +33,7 @@ typedef struct z_exact_build {
     uint32_t field_count;
 } z_exact_build;
 
-_Static_assert(ZMATH_TESTING_ORACLE_OPERATION_COUNT == 315,
+_Static_assert(ZMATH_TESTING_ORACLE_OPERATION_COUNT == 323,
                "oracle operation table count drift");
 
 static int z_exact_is_operation(const zmath_testing_oracle_operation_signature *signature,
@@ -433,12 +433,13 @@ static void z_exact_fail(zmath_testing_oracle_result *result, uint32_t status) {
 
 static int z_exact_begin(const zmath_testing_oracle_operation_signature *signature,
                          const zmath_testing_oracle_request *request,
-                         zmath_testing_oracle_result *result, z_exact_build *build) {
+                         zmath_testing_oracle_result *result, z_exact_build *build,
+                         uint32_t category) {
     uint32_t index;
     if (result == NULL || signature == NULL || request == NULL || build == NULL) return 0;
     result->status = ZMATH_TESTING_ORACLE_ERROR; result->field_count = 0;
     if (result->reserved != 0 || request->reserved != 0 || request->abi_version != ZMATH_TESTING_ORACLE_ABI_VERSION ||
-        !z_exact_signature_is_table_row(signature) || signature->evaluator_category != ZMATH_TESTING_ORACLE_EVALUATOR_EXACT_BITS ||
+        !z_exact_signature_is_table_row(signature) || signature->evaluator_category != category ||
         signature->operation == NULL || request->operation == NULL || request->operation_length != signature->operation_length ||
         memcmp(request->operation, signature->operation, signature->operation_length) != 0 || request->arity != signature->arity ||
         request->input_field_count != signature->arity || request->input_fields == NULL || request->result_layout != signature->result_layout ||
@@ -459,6 +460,8 @@ static int z_exact_begin(const zmath_testing_oracle_operation_signature *signatu
             if (!z_exact_mask(field->descriptor.value_bits, &mask) || (field->value_bits & ~mask) != 0) return 0;
         } else if (field->descriptor.kind == ZMATH_TESTING_ORACLE_FIELD_ROUNDING) {
             if (field->value_bits > 4) return 0;
+        } else if (field->descriptor.kind == ZMATH_TESTING_ORACLE_FIELD_ROUND_MODE) {
+            if (field->value_bits > 3) return 0;
         } else if (field->descriptor.kind == ZMATH_TESTING_ORACLE_FIELD_TAG) {
             if (field->value_bits != 0 ||
                 (field->tag_bytes == NULL) != (field->tag_length == 0)) return 0;
@@ -967,13 +970,288 @@ static int z_exact_eval_annex_f(const zmath_testing_oracle_operation_signature *
     return 1;
 }
 
-void zmath_testing_oracle_evaluate_exact_bits(
-    const zmath_testing_oracle_operation_signature *signature,
-    const zmath_testing_oracle_request *request,
-    zmath_testing_oracle_result *result) {
+/*
+ * The IEEE 754 rounding directions, numbered as zmath.ieee.RoundMode numbers
+ * them. These codes are not the ROUNDING codes, which is why the two use
+ * different field kinds.
+ */
+enum z_exact_round_mode {
+    Z_EXACT_NEAREST_EVEN = 0,
+    Z_EXACT_TOWARD_ZERO = 1,
+    Z_EXACT_TOWARD_POSITIVE = 2,
+    Z_EXACT_TOWARD_NEGATIVE = 3,
+};
+
+/* The six IEEE 754 classes, numbered as zmath.ieee.Class numbers them. */
+enum z_exact_class {
+    Z_EXACT_CLASS_ZERO = 0,
+    Z_EXACT_CLASS_SUBNORMAL = 1,
+    Z_EXACT_CLASS_NORMAL = 2,
+    Z_EXACT_CLASS_INFINITY = 3,
+    Z_EXACT_CLASS_QUIET_NAN = 4,
+    Z_EXACT_CLASS_SIGNALING_NAN = 5,
+};
+
+static int z_exact_round_mode_input(const zmath_testing_oracle_request *request,
+                                    unsigned index, int *mode) {
+    const zmath_testing_oracle_input_field *field;
+    if (request == NULL || mode == NULL || request->input_fields == NULL ||
+        index >= request->input_field_count) return 0;
+    field = &request->input_fields[index];
+    if (field->descriptor.kind != ZMATH_TESTING_ORACLE_FIELD_ROUND_MODE ||
+        field->value_bits > 3) return 0;
+    *mode = (int)field->value_bits;
+    return 1;
+}
+
+static void z_exact_classification_result(zmath_testing_oracle_result_field *field, uint32_t value) {
+    field->value_bits = value;
+    field->class_code = ZMATH_TESTING_ORACLE_CLASS_NONE;
+    field->reserved = 0;
+}
+
+static void z_exact_unsigned_result(zmath_testing_oracle_result_field *field, uint64_t value) {
+    uint64_t mask;
+    field->value_bits = z_exact_mask(field->descriptor.value_bits, &mask) ? value & mask : 0;
+    field->class_code = ZMATH_TESTING_ORACLE_CLASS_NONE;
+    field->reserved = 0;
+}
+
+/*
+ * The class of a value follows from its exponent and fraction fields alone, so
+ * the enumeration is read straight out of the encoding.
+ */
+static uint32_t z_exact_classify_bits(const z_exact_format *format, uint64_t bits) {
+    const uint64_t exponent = bits & format->exponent_mask;
+    const uint64_t fraction = bits & format->fraction_mask;
+    if (exponent == 0) return fraction == 0 ? Z_EXACT_CLASS_ZERO : Z_EXACT_CLASS_SUBNORMAL;
+    if (exponent != format->exponent_mask) return Z_EXACT_CLASS_NORMAL;
+    if (fraction == 0) return Z_EXACT_CLASS_INFINITY;
+    return (fraction & format->quiet_nan_bit) != 0 ?
+               Z_EXACT_CLASS_QUIET_NAN : Z_EXACT_CLASS_SIGNALING_NAN;
+}
+
+static int z_exact_eval_classify(const zmath_testing_oracle_request *request, z_exact_build *build) {
+    z_exact_format format;
+    uint64_t bits;
+    if (!z_exact_float_input(request, 0, &format, &bits)) return 0;
+    z_exact_classification_result(&build->fields[0], z_exact_classify_bits(&format, bits));
+    return 1;
+}
+
+/*
+ * The monotone index reflects sign-magnitude about the sign bit, so two
+ * encodings one representable step apart have consecutive indices and the
+ * distance is their difference. Negative zero and positive zero share an
+ * index because they are the same number.
+ */
+static uint64_t z_exact_monotone_index(const z_exact_format *format, uint64_t bits) {
+    const uint64_t magnitude = bits & ~format->sign_mask;
+    return (bits & format->sign_mask) != 0 ?
+               format->sign_mask - magnitude : format->sign_mask + magnitude;
+}
+
+static int z_exact_eval_ulp_distance(const zmath_testing_oracle_request *request, z_exact_build *build) {
+    z_exact_format format;
+    uint64_t left;
+    uint64_t right;
+    uint64_t left_index;
+    uint64_t right_index;
+    uint64_t distance;
+    if (!z_exact_float_input(request, 0, &format, &left) ||
+        !z_exact_float_input(request, 1, &format, &right)) return 0;
+    if (z_exact_nan(&format, left) || z_exact_nan(&format, right)) {
+        /* The definition reports an unordered pair as the largest distance. */
+        distance = UINT64_MAX;
+    } else {
+        left_index = z_exact_monotone_index(&format, left);
+        right_index = z_exact_monotone_index(&format, right);
+        distance = left_index >= right_index ? left_index - right_index : right_index - left_index;
+    }
+    z_exact_unsigned_result(&build->fields[0], distance);
+    return 1;
+}
+
+/*
+ * Round a binary significand right by shift places. The exact remainder, the
+ * exact half, and the sign of the operand decide the increment, so no
+ * intermediate rounding can occur.
+ */
+static int z_exact_round_shift_right(const z_exact_format *format, int mode, int negative,
+                                     uint64_t significand, unsigned shift, uint64_t *result) {
+    uint64_t quotient;
+    uint64_t discarded;
+    uint64_t half;
+    int increment;
+    if (result == NULL) return 0;
+    if (shift > format->fraction_bits + 1) {
+        /* Everything is discarded, so only a directed mode can keep a step. */
+        if (mode == Z_EXACT_TOWARD_POSITIVE) increment = !negative;
+        else if (mode == Z_EXACT_TOWARD_NEGATIVE) increment = negative;
+        else if (mode == Z_EXACT_NEAREST_EVEN || mode == Z_EXACT_TOWARD_ZERO) increment = 0;
+        else return 0;
+        *result = (uint64_t)increment;
+        return 1;
+    }
+    quotient = significand >> shift;
+    discarded = significand & ((UINT64_C(1) << shift) - 1);
+    half = UINT64_C(1) << (shift - 1);
+    if (mode == Z_EXACT_NEAREST_EVEN) increment = discarded > half || (discarded == half && (quotient & 1) != 0);
+    else if (mode == Z_EXACT_TOWARD_ZERO) increment = 0;
+    else if (mode == Z_EXACT_TOWARD_POSITIVE) increment = !negative && discarded != 0;
+    else if (mode == Z_EXACT_TOWARD_NEGATIVE) increment = negative && discarded != 0;
+    else return 0;
+    *result = increment ? quotient + 1 : quotient;
+    return 1;
+}
+
+/*
+ * scaleByPowerOfTwo: the value is a dyadic rational, so scaling by a power of
+ * two is exact until it leaves the normal range. Overflow returns the infinity
+ * for the nearest-even and the increasing directions and the largest finite
+ * value for the decreasing direction, as the definition requires.
+ */
+static int z_exact_scale_by_power(const z_exact_format *format, uint64_t bits, int64_t exponent,
+                                  int mode, uint64_t *result) {
+    const uint64_t sign = bits & format->sign_mask;
+    const uint64_t magnitude = bits & ~format->sign_mask;
+    const uint64_t hidden = UINT64_C(1) << format->fraction_bits;
+    const int64_t maximum_exponent_field = ((int64_t)1 << format->exponent_bits) - 2;
+    uint64_t fraction;
+    uint64_t significand;
+    int64_t exponent_field;
+    int64_t scaled;
+    int negative;
+    uint64_t rounded;
+    unsigned shift;
+    if (result == NULL) return 0;
+    if (magnitude > format->exponent_mask) { *result = z_exact_quiet(format, bits); return 1; }
+    if (magnitude == 0 || magnitude == format->exponent_mask) { *result = bits; return 1; }
+    negative = sign != 0;
+    fraction = magnitude & format->fraction_mask;
+    exponent_field = (int64_t)((magnitude & format->exponent_mask) >> format->fraction_bits);
+    significand = fraction | hidden;
+    if (exponent_field == 0) {
+        /* A subnormal has no hidden bit, so normalize the fraction first. */
+        significand = fraction;
+        exponent_field = 1;
+        while (significand < hidden) { significand <<= 1; --exponent_field; }
+    }
+    scaled = z_exact_sat_add(exponent_field, exponent);
+    if (scaled > maximum_exponent_field) {
+        int to_infinity = mode == Z_EXACT_NEAREST_EVEN ? 1 :
+                          mode == Z_EXACT_TOWARD_POSITIVE ? !negative :
+                          mode == Z_EXACT_TOWARD_NEGATIVE ? negative : 0;
+        if (mode == Z_EXACT_TOWARD_ZERO) to_infinity = 0;
+        *result = sign | (to_infinity ? format->exponent_mask : format->exponent_mask - 1);
+        return 1;
+    }
+    if (scaled >= 1) {
+        *result = sign | ((uint64_t)scaled << format->fraction_bits) | (significand & format->fraction_mask);
+        return 1;
+    }
+    shift = (unsigned)(1 - scaled);
+    if (!z_exact_round_shift_right(format, mode, negative, significand, shift, &rounded)) return 0;
+    if (rounded >= hidden) rounded = hidden;
+    *result = sign | rounded;
+    return 1;
+}
+
+static int z_exact_eval_scale_b(const zmath_testing_oracle_request *request, z_exact_build *build) {
+    z_exact_format format;
+    uint64_t bits;
+    int64_t exponent;
+    int mode;
+    uint64_t result_bits;
+    if (!z_exact_round_mode_input(request, 0, &mode) ||
+        !z_exact_float_input(request, 1, &format, &bits) ||
+        !z_exact_signed_input(request, 2, &exponent) ||
+        !z_exact_result_format(request, 0, &format)) return 0;
+    if (!z_exact_scale_by_power(&format, bits, exponent, mode, &result_bits)) return 0;
+    z_exact_float_result(&build->fields[0], &format, result_bits);
+    return 1;
+}
+
+/*
+ * roundToIntegral: the discarded part is removed in the requested direction.
+ * Every value whose leading bit sits below the minimum normal lies between one
+ * half and one unit step of zero, so only the exact tie at one half separates
+ * the four directions there.
+ */
+static int z_exact_round_to_integral(const z_exact_format *format, uint64_t bits, int mode,
+                                     uint64_t *result) {
+    const uint64_t magnitude = bits & ~format->sign_mask;
+    const uint64_t exponent_field = (magnitude & format->exponent_mask) >> format->fraction_bits;
+    const uint64_t fraction = magnitude & format->fraction_mask;
+    const int negative = (bits & format->sign_mask) != 0;
+    int exponent;
+    unsigned shift;
+    uint64_t mask;
+    uint64_t discarded;
+    uint64_t truncated;
+    int increment = 0;
+    if (result == NULL) return 0;
+    if (exponent_field == ((UINT64_C(1) << format->exponent_bits) - 1)) {
+        *result = fraction == 0 ? bits : z_exact_quiet(format, bits);
+        return 1;
+    }
+    if (magnitude == 0) { *result = bits; return 1; }
+    exponent = exponent_field == 0 ? 1 - format->bias : (int)exponent_field - format->bias;
+    if (exponent < 0) {
+        if (mode == Z_EXACT_NEAREST_EVEN) increment = exponent == -1 && fraction != 0;
+        else if (mode == Z_EXACT_TOWARD_ZERO) increment = 0;
+        else if (mode == Z_EXACT_TOWARD_POSITIVE) increment = !negative;
+        else if (mode == Z_EXACT_TOWARD_NEGATIVE) increment = negative;
+        else return 0;
+        *result = (bits & format->sign_mask) |
+                  (increment ? (uint64_t)format->bias << format->fraction_bits : 0);
+        return 1;
+    }
+    if ((unsigned)exponent >= format->fraction_bits) { *result = bits; return 1; }
+    shift = format->fraction_bits - (unsigned)exponent;
+    mask = (UINT64_C(1) << shift) - 1;
+    discarded = magnitude & mask;
+    truncated = magnitude & ~mask;
+    if (discarded == 0) { *result = bits; return 1; }
+    if (mode == Z_EXACT_NEAREST_EVEN) {
+        const uint64_t half = UINT64_C(1) << (shift - 1);
+        increment = discarded > half ||
+                    (discarded == half && ((truncated >> shift) & 1) != 0);
+    } else if (mode == Z_EXACT_TOWARD_ZERO) increment = 0;
+    else if (mode == Z_EXACT_TOWARD_POSITIVE) increment = !negative;
+    else if (mode == Z_EXACT_TOWARD_NEGATIVE) increment = negative;
+    else return 0;
+    *result = (bits & format->sign_mask) | truncated + (increment ? UINT64_C(1) << shift : 0);
+    return 1;
+}
+
+static int z_exact_eval_round_integral_mode(const zmath_testing_oracle_request *request,
+                                            z_exact_build *build) {
+    z_exact_format format;
+    uint64_t bits;
+    int mode;
+    uint64_t result_bits;
+    if (!z_exact_round_mode_input(request, 0, &mode) ||
+        !z_exact_float_input(request, 1, &format, &bits) ||
+        !z_exact_result_format(request, 0, &format)) return 0;
+    if (!z_exact_round_to_integral(&format, bits, mode, &result_bits)) return 0;
+    z_exact_float_result(&build->fields[0], &format, result_bits);
+    return 1;
+}
+
+/*
+ * The definitional operations are decided by the IEEE 754 definition itself.
+ * They share this bit-level machinery with the exact-bits evaluator, but the
+ * category is threaded through so an exact-bits row can never be answered by
+ * the definitional entry point or the reverse.
+ */
+static void z_exact_evaluate(const zmath_testing_oracle_operation_signature *signature,
+                             const zmath_testing_oracle_request *request,
+                             zmath_testing_oracle_result *result,
+                             uint32_t category) {
     z_exact_build build;
     int ok = 0;
-    if (!z_exact_begin(signature, request, result, &build)) { z_exact_fail(result, ZMATH_TESTING_ORACLE_ERROR); return; }
+    if (!z_exact_begin(signature, request, result, &build, category)) { z_exact_fail(result, ZMATH_TESTING_ORACLE_ERROR); return; }
     if (z_exact_is_operation(signature, "abs")) ok = z_exact_eval_abs(request, &build);
     else if (z_exact_is_operation(signature, "ceil") || z_exact_is_operation(signature, "floor") || z_exact_is_operation(signature, "nearbyint") || z_exact_is_operation(signature, "rint") || z_exact_is_operation(signature, "round") || z_exact_is_operation(signature, "roundeven") || z_exact_is_operation(signature, "trunc")) ok = z_exact_eval_rounding(signature, request, &build);
     else if (z_exact_is_operation(signature, "fromfp") || z_exact_is_operation(signature, "fromfpx") || z_exact_is_operation(signature, "ufromfp") || z_exact_is_operation(signature, "ufromfpx")) ok = z_exact_eval_fromfp(signature, request, &build);
@@ -988,6 +1266,24 @@ void zmath_testing_oracle_evaluate_exact_bits(
     else if (z_exact_is_operation(signature, "ldexp") || z_exact_is_operation(signature, "scalbn") || z_exact_is_operation(signature, "scalbln")) ok = z_exact_eval_scale(request, &build);
     else if (z_exact_is_operation(signature, "canonicalize") || z_exact_is_operation(signature, "copySign") || z_exact_is_operation(signature, "nan") || z_exact_is_operation(signature, "nextAfter") || z_exact_is_operation(signature, "nextDown") || z_exact_is_operation(signature, "nextToward") || z_exact_is_operation(signature, "nextUp")) ok = z_exact_eval_ieee(signature, request, &build);
     else if (z_exact_is_operation(signature, "getPayload") || z_exact_is_operation(signature, "setPayload") || z_exact_is_operation(signature, "setPayloadSig") || z_exact_is_operation(signature, "totalOrder") || z_exact_is_operation(signature, "totalOrderMag")) ok = z_exact_eval_annex_f(signature, request, &build);
+    else if (z_exact_is_operation(signature, "classify")) ok = z_exact_eval_classify(request, &build);
+    else if (z_exact_is_operation(signature, "ulpDistance")) ok = z_exact_eval_ulp_distance(request, &build);
+    else if (z_exact_is_operation(signature, "scaleB")) ok = z_exact_eval_scale_b(request, &build);
+    else if (z_exact_is_operation(signature, "roundIntegral")) ok = z_exact_eval_round_integral_mode(request, &build);
     else ok = 0;
     if (!ok) z_exact_fail(result, ZMATH_TESTING_ORACLE_ERROR); else z_exact_finish(result, &build);
+}
+
+void zmath_testing_oracle_evaluate_exact_bits(
+    const zmath_testing_oracle_operation_signature *signature,
+    const zmath_testing_oracle_request *request,
+    zmath_testing_oracle_result *result) {
+    z_exact_evaluate(signature, request, result, ZMATH_TESTING_ORACLE_EVALUATOR_EXACT_BITS);
+}
+
+void zmath_testing_oracle_evaluate_definitional(
+    const zmath_testing_oracle_operation_signature *signature,
+    const zmath_testing_oracle_request *request,
+    zmath_testing_oracle_result *result) {
+    z_exact_evaluate(signature, request, result, ZMATH_TESTING_ORACLE_EVALUATOR_DEFINITIONAL);
 }

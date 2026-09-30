@@ -207,6 +207,27 @@ static int zmath_testing_validate_field_descriptor(
             }
             return descriptor->value_bits == 32 ?
                        ZMATH_TESTING_ORACLE_OK : ZMATH_TESTING_ORACLE_ERROR;
+        case ZMATH_TESTING_ORACLE_FIELD_ROUND_MODE:
+            if (descriptor->format.code != ZMATH_TESTING_ORACLE_FORMAT_NONE) {
+                return ZMATH_TESTING_ORACLE_ERROR;
+            }
+            status = zmath_testing_get_format(&descriptor->format, target);
+            if (status != ZMATH_TESTING_ORACLE_OK) {
+                return status;
+            }
+            return descriptor->value_bits == 32 ?
+                       ZMATH_TESTING_ORACLE_OK : ZMATH_TESTING_ORACLE_ERROR;
+        case ZMATH_TESTING_ORACLE_FIELD_CLASSIFICATION:
+            if (descriptor->format.code != ZMATH_TESTING_ORACLE_FORMAT_NONE) {
+                return ZMATH_TESTING_ORACLE_ERROR;
+            }
+            status = zmath_testing_get_format(&descriptor->format, target);
+            if (status != ZMATH_TESTING_ORACLE_OK) {
+                return status;
+            }
+            /* Six classes need three bits; a wider claim is a descriptor bug. */
+            return descriptor->value_bits == 3 ?
+                       ZMATH_TESTING_ORACLE_OK : ZMATH_TESTING_ORACLE_ERROR;
         default:
             return ZMATH_TESTING_ORACLE_ERROR;
     }
@@ -239,6 +260,12 @@ static int zmath_testing_value_bits_valid(
     }
     if (descriptor->kind == ZMATH_TESTING_ORACLE_FIELD_ROUNDING) {
         return (bits >> 32) == 0;
+    }
+    if (descriptor->kind == ZMATH_TESTING_ORACLE_FIELD_ROUND_MODE) {
+        return bits <= 3;
+    }
+    if (descriptor->kind == ZMATH_TESTING_ORACLE_FIELD_CLASSIFICATION) {
+        return bits <= 5;
     }
     return 1;
 }
@@ -603,6 +630,15 @@ static void zmath_testing_dispatch_evaluator(
                 zmath_testing_oracle_evaluate_mpfr_reference(
                     signature, request, result);
             }
+            return;
+        case ZMATH_TESTING_ORACLE_EVALUATOR_DEFINITIONAL:
+            /*
+             * A definitional row is decided by the IEEE 754 definition, not by
+             * a numerical oracle. Both entries return the single bit-level
+             * answer the definition fixes, so there is no interval to certify
+             * and therefore no separate proof route.
+             */
+            zmath_testing_oracle_evaluate_definitional(signature, request, result);
             return;
         default:
             result->status = ZMATH_TESTING_ORACLE_ERROR;

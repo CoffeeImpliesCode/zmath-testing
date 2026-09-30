@@ -3384,6 +3384,50 @@ pub const campaign_table = [_]CampaignRule{
         .deterministic_seed = 0x3330fa62c51af0cb,
         .tuple_count = 256,
     }),
+    // classify is a total function of its single operand, and the exhaustive
+    // binary16 campaign walks all 65536 raw encodings, so this row may claim
+    // exhaustive coverage of its one-operand space. It is the only claim of its
+    // kind among the definitional rows: the other two formats have no
+    // enumerable domain, and the other three operations take more than one
+    // operand.
+    makeCampaignRule(.{
+        .operation = "classify",
+        .provenance = .zmath,
+        .shape_code = 0x110f,
+        .format = .h,
+        .campaign_class = .exhaustive_h_unary,
+        .source_path = "src/ieee.zig",
+        .artifact = "test/corpus/campaigns/264-classify-h-exhaustive_h_unary.zcdr",
+        .deterministic_seed = 0x4b1d0c6a3f92e715,
+        .tuple_count = 65536,
+    }),
+    // binary32 and binary64 have no enumerable domain, so these two rows are a
+    // selection of edge encodings. The selected pool already holds a zero, a
+    // subnormal, a normal, an infinity, a quiet NaN and a signalling NaN per
+    // format, so all six classes are reached, but the operand domain is a
+    // selection and the row says so.
+    makeCampaignRule(.{
+        .operation = "classify",
+        .provenance = .zmath,
+        .shape_code = 0x120f,
+        .format = .f,
+        .campaign_class = .selected_unary_f,
+        .source_path = "src/ieee.zig",
+        .artifact = "test/corpus/campaigns/265-classify-f-hard_corpus_f.zcdr",
+        .deterministic_seed = 0x0e7a5b31d4c98f26,
+        .tuple_count = 256,
+    }),
+    makeCampaignRule(.{
+        .operation = "classify",
+        .provenance = .zmath,
+        .shape_code = 0x130f,
+        .format = .d,
+        .campaign_class = .selected_unary_d,
+        .source_path = "src/ieee.zig",
+        .artifact = "test/corpus/campaigns/266-classify-d-hard_corpus_d.zcdr",
+        .deterministic_seed = 0x9c2f6805ab3d417e,
+        .tuple_count = 256,
+    }),
     makeCampaignRule(.{
         .operation = "copySign",
         .provenance = .zmath,
@@ -3584,6 +3628,84 @@ pub const campaign_table = [_]CampaignRule{
         .artifact = "test/corpus/campaigns/281-nextUp-d-hard_corpus_d.zcdr",
         .deterministic_seed = 0x29a158ce29b6b9ed,
         .tuple_count = 256,
+    }),
+    // roundIntegral takes a rounding direction and one operand. It has no
+    // integer argument, so the bounded integer domain class cannot describe
+    // it, and it is not unary, so the exhaustive class cannot either. The
+    // selected Cartesian product is a real fit rather than a fallback: the
+    // generator's pool for a round_mode argument holds all four directions, so
+    // every IEEE 754 rounding direction is exercised against the selected
+    // binary16 edges. The claim is selected_cartesian, never exhaustive.
+    makeCampaignRule(.{
+        .operation = "roundIntegral",
+        .provenance = .zmath,
+        .shape_code = 0x2f101,
+        .format = .h,
+        .campaign_class = .selected_cartesian,
+        .source_path = "src/ieee.zig",
+        .artifact = "test/corpus/campaigns/285-roundIntegral-h-source_pinned_binary_ternary_hard_tuples.zcdr",
+        .deterministic_seed = 0x36d1e4b70a95cf83,
+        .tuple_count = 32,
+    }),
+    // scaleB is the one definitional row whose campaign must span its integer
+    // argument, so it takes the bounded integer domain class. The i32 exponent
+    // at index 2 is walked over -64 through 64 while the binary16 value at
+    // index 1 is enumerated exhaustively. That range reaches both ends of the
+    // binary16 exponent range and well past it, so overflow to infinity and
+    // flush to zero are both covered. The rounding direction at index 0 is held
+    // at the base value and is NOT covered, which is exactly why this row
+    // claims bounded_h_integer_domain and not an exhaustive Cartesian product.
+    makeCampaignRule(.{
+        .operation = "scaleB",
+        .provenance = .zmath,
+        .shape_code = 0x3f1701,
+        .format = .h,
+        .campaign_class = .bounded_h_integer_domain,
+        .source_path = "src/ieee.zig",
+        .artifact = "test/corpus/campaigns/286-scaleB-h-bounded_h_integer_domain.zcdr",
+        .deterministic_seed = 0x71b0d3e95c284af6,
+        .tuple_count = 129,
+        .integer_index = 2,
+        .integer_type = .i32,
+        .bounds = .{ .signed = .{ .lower = -64, .upper = 64 } },
+    }),
+    // ulpDistance takes two encodings of the same format. The generator spans
+    // the full Cartesian product of the two edge pools, which is what the class
+    // name says, but 65536 squared tuples is not a campaign anyone runs and the
+    // row never claims the full product. The selected pools do contain a
+    // signalling NaN, so the unordered-pair answer is reached.
+    makeCampaignRule(.{
+        .operation = "ulpDistance",
+        .provenance = .zmath,
+        .shape_code = 0x2110a,
+        .format = .h,
+        .campaign_class = .selected_cartesian,
+        .source_path = "src/scalar.zig",
+        .artifact = "test/corpus/campaigns/287-ulpDistance-h-source_pinned_binary_ternary_hard_tuples.zcdr",
+        .deterministic_seed = 0x2f8e6a04d7b135c9,
+        .tuple_count = 32,
+    }),
+    makeCampaignRule(.{
+        .operation = "ulpDistance",
+        .provenance = .zmath,
+        .shape_code = 0x2220b,
+        .format = .f,
+        .campaign_class = .selected_cartesian,
+        .source_path = "src/scalar.zig",
+        .artifact = "test/corpus/campaigns/288-ulpDistance-f-source_pinned_binary_ternary_hard_tuples.zcdr",
+        .deterministic_seed = 0xa4c17b5e0932fd68,
+        .tuple_count = 32,
+    }),
+    makeCampaignRule(.{
+        .operation = "ulpDistance",
+        .provenance = .zmath,
+        .shape_code = 0x2330c,
+        .format = .d,
+        .campaign_class = .selected_cartesian,
+        .source_path = "src/scalar.zig",
+        .artifact = "test/corpus/campaigns/289-ulpDistance-d-source_pinned_binary_ternary_hard_tuples.zcdr",
+        .deterministic_seed = 0x58d9f26a0b7c431e,
+        .tuple_count = 32,
     }),
     makeCampaignRule(.{
         .operation = "getPayload",
@@ -3949,7 +4071,7 @@ pub const campaign_table = [_]CampaignRule{
         .tuple_count = 32,
     }),
 };
-pub const manifest_campaign_count: usize = 315;
+pub const manifest_campaign_count: usize = 323;
 pub const unavailable_artifact = "test/corpus/unavailable/source-metadata-unavailable.zcdr";
 
 pub const CampaignMatrixError = error{
@@ -4359,6 +4481,10 @@ fn argumentShapeCode(argument: corpus.InputDescriptor) u64 {
         .integer => |integer_type| 4 + @as(u64, @intFromEnum(integer_type)),
         .tag => 13,
         .fromfp_round => 14,
+        // round_mode is a distinct argument kind from fromfp_round: four IEEE
+        // 754 directions against five fromfp directions. The codes are
+        // separate so a value of one can never be read as a value of the other.
+        .round_mode => 15,
     };
 }
 
@@ -4367,6 +4493,9 @@ fn resultShapeCode(result: corpus.ResultDescriptor) u64 {
         .float => |format| formatShapeCode(format),
         .integer => |integer_type| 4 + @as(u64, @intFromEnum(integer_type)),
         .boolean => 13,
+        // A six-value class enumeration, not an integer. Code 14 is unused in
+        // the result space and 16 upward is the structure block.
+        .classification => 15,
         .structure => |structure| 16 + structureShapeCode(structure.kind) * 4 +
             formatShapeCode(structure.format),
     };
@@ -4510,6 +4639,7 @@ fn baseArgumentsFor(function: corpus.Function) InputTuple {
             },
             .tag => .{ .tag = "" },
             .fromfp_round => .{ .rounding = .nearest_even },
+            .round_mode => .{ .round_mode = .nearest_even },
         };
     }
     return InputTuple.init(fields[0..function.arguments().len]) catch unreachable;
@@ -4712,6 +4842,7 @@ fn fieldPoolValue(function: corpus.Function, argument: corpus.InputDescriptor, i
         },
         .tag => special_tag_values[@intCast(index)],
         .fromfp_round => .{ .rounding = @enumFromInt(index) },
+        .round_mode => .{ .round_mode = @enumFromInt(index) },
     };
 }
 
@@ -4721,6 +4852,7 @@ fn finitePoolLength(function: corpus.Function, argument: corpus.InputDescriptor)
         .integer => |integer_type| integer_pools[@intFromEnum(integer_type)].count,
         .tag => special_tag_values.len,
         .fromfp_round => std.meta.fields(corpus.FromFpRound).len,
+        .round_mode => std.meta.fields(corpus.RoundMode).len,
     };
 }
 
@@ -4999,6 +5131,10 @@ fn validateArgumentField(
             .rounding => {},
             else => return error.TupleFieldMismatch,
         },
+        .round_mode => switch (field) {
+            .round_mode => {},
+            else => return error.TupleFieldMismatch,
+        },
     }
 }
 
@@ -5032,6 +5168,10 @@ fn validateResultField(
         },
         .boolean => switch (field) {
             .boolean => {},
+            else => return error.ResultFieldMismatch,
+        },
+        .classification => switch (field) {
+            .classification => {},
             else => return error.ResultFieldMismatch,
         },
         else => return error.ResultFieldMismatch,

@@ -6,7 +6,7 @@ The normative contract is in `../../../zmath/spec/core-math-2026-08-22.md`.
 
 ## Manifest
 
-`manifest.toml` uses schema version 3.
+`manifest.toml` uses schema version 4.
 It pins CORE-MATH revision
 `3bafed75e3c22399531857d63a3fa0e24bfb42fa`, MPFR precision at 512 bits, and
 Arb precision at 512 bits. Numerical evaluation does not adapt beyond those
@@ -32,9 +32,16 @@ binary64. The manifest rejects `q`, `f128`, `bfloat16`, aliases, and unknown
 format identifiers. Standard H/F/D rows use an unsuffixed C23 operation base.
 Their typed descriptors select the format. Encoded narrowing names remain exact.
 
+The `inputs` and `result` columns use typed tokens. An `inputs` entry is
+`float:h`, `float:f`, `float:d`, `integer:<type>`, `tag`, `fromfp_round`, or
+`round_mode`. A `result` entry is `float:<format>`, `integer:<type>`, `bool`,
+`classification`, or `struct:<kind>:<format>`. The vocabulary is closed: an
+unknown token is rejected rather than ignored. `round_mode` is accepted only
+as an input and `classification` only as a result.
+
 ## Ownership and provenance
 
-The manifest has 315 sorted typed rows. Provenance records ownership, not
+The manifest has 323 sorted typed rows. Provenance records ownership, not
 acceptance. Use only these ordered arrays:
 
 - `["zmath"]` for zmath-owned operations.
@@ -48,7 +55,15 @@ order. The operation spelling declaration is exactly
 
 The authoritative C operation table maps every manifest operation-format key
 exactly once. It assigns 150 descriptors to `exact_bits`, 126 to `mpfr_arb`,
-and 39 to `algebraic`.
+39 to `algebraic`, and 8 to `definitional`.
+
+`definitional` is a fourth evaluator category, not a near-miss oracle. It
+names the eight descriptors whose correct result is fixed by the IEEE 754
+definition rather than computed by MPFR or Arb: `classify` in H, F, and D,
+`ulpDistance` in H, F, and D, `scaleB` in H, and `roundIntegral` in H. Their
+stored values are compared against the definition, so `definitional` is never
+reported as numerical oracle evidence. No descriptor is assigned to two
+categories, and the four counts sum to the 323 manifest rows.
 
 ## Status and evidence
 
@@ -56,8 +71,8 @@ The status values are `unsupported`, `correct`, and `bounded`.
 An unsupported row requires `oracle = "none"` and `max_ulp = 0`.
 A correct row requires a non-`none` oracle and `max_ulp = 0`.
 A bounded row requires a non-`none` oracle and a non-negative `max_ulp`.
-The accepted oracle values are `none`, `exact_bits`, `algebraic`, and
-`mpfr_arb`.
+The accepted oracle values are `none`, `exact_bits`, `algebraic`,
+`mpfr_arb`, and `definitional`.
 
 Implementation, manifest acceptance, corpus evidence, and whole-domain proof
 are separate facts. Source exports establish implementation only. A `correct`
@@ -65,9 +80,14 @@ or `bounded` row establishes manifest acceptance only. Corpus evidence covers
 stored tuples. Whole-domain proof requires exhaustive inputs or a separate
 proof for the complete operation-format domain.
 
-The checked-in manifest accepts all 315 descriptors as `correct` with
-`max_ulp = 0`. Full publication and replay verified 63,160,084 records.
-The benchmark exercised every descriptor.
+The checked-in manifest accepts all 323 descriptors as `correct` with
+`max_ulp = 0`. The checked-in publication is the 2026-09-09 full run: it
+covers 315 of those descriptors, and full publication and replay verified
+63,160,084 records over them. The benchmark exercised those same 315. The
+eight `definitional` descriptors have no published records yet; they need a
+regeneration run before any record count, replay total, or benchmark row is
+claimed for them. A descriptor without a published record has manifest
+acceptance only, never corpus evidence.
 
 ## Typed publication
 
@@ -78,12 +98,25 @@ result descriptor, typed result fields, and `max_ulp`.
 Floating fields store exact format, bits, and IEEE class. Integer, Boolean,
 tag, rounding, and status-container fields use explicit typed encodings.
 
+Two field kinds exist for rounding, and they are not interchangeable.
+`rounding` carries `FromFpRound`, whose five modes are coded 0-4. `round_mode`
+carries `RoundMode`, whose four modes are coded 0-3. A stored field only
+satisfies a descriptor of its own kind, so a `rounding` value can never be
+read as a `round_mode` and vice versa. `round_mode` is an input kind only.
+`classification` is a result kind only: it carries the six IEEE 754 classes
+`zero`, `subnormal`, `normal`, `infinity`, `quiet_nan`, and `signaling_nan`,
+in a three-bit payload. It never appears as an argument.
+
 The generator compares the zmath result with the evaluator selected by the
 authoritative C table before writing a record. `exact_bits` uses direct IEEE
 bit and integer models. `algebraic` uses exact GMP rational arithmetic for
 finite dyadic operations and certified 512-bit MPFR/Arb enclosures for
 irrational algebraic roots. `mpfr_arb` uses a fixed 512-bit MPFR candidate and a
 Arb proof.
+
+`definitional` derives the expected value from the IEEE 754 definition
+instead of from a numerical evaluator, and a disagreement there fails the
+record the same way an evaluator disagreement does.
 
 Exact dyadic relations are used for target rounding boundaries. Fixed
 1,024-bit MPFR boundary containers may hold exact binary boundary values; this
@@ -111,8 +144,27 @@ Campaign classes are explicit:
 
 Only `exhaustive_h_unary` claims exhaustive coverage of its one-argument
 binary16 domain. Every other campaign claims only its declared tuples.
-The publication includes 61 exhaustive binary16 unary campaigns.
+The campaign table defines 62 exhaustive binary16 unary campaigns.
 The remaining campaigns do not prove whole IEEE operation-format domains.
+
+Of the eight `definitional` descriptors, exactly one carries an exhaustive
+claim. `classify` in binary16 is `exhaustive_h_unary`: the class of a value is
+a function of its encoding alone, and the campaign enumerates all 65,536
+binary16 encodings, so the claim is exhaustive over its single operand.
+`classify` in binary32 and binary64 use the selected edge pools, which already
+reach a zero, a subnormal, a normal, an infinity, a quiet NaN, and a signalling
+NaN in each format; that is all six classes, but it is a selection, not the
+whole format. `ulpDistance` in H, F, and D spans the full Cartesian product of
+two selected edge pools and claims `selected_cartesian`; 65,536 squared tuples
+is not a campaign anyone runs, so the claim is never exhaustive. `scaleB` in
+binary16 is `bounded_h_integer_domain`, because the i32 exponent is the axis
+that has to be walked: the campaign spans a declared inclusive integer domain
+against an exhaustively enumerated binary16 value, with the round mode held
+at its base value. Its claim is bounded, not exhaustive, because the round
+mode axis is not covered. `roundIntegral` in binary16 is `selected_cartesian`:
+it is neither unary nor integer-parameterised, and the round-mode pool holds
+all four directions, so every IEEE 754 rounding direction is exercised against
+the selected binary16 edges.
 
 Generated raw records are multi-gigabyte artifacts.
 Keep `generated/records/` and `generated/probes/` local and ignored.
@@ -135,6 +187,18 @@ file as a historical publication record. It has no checked-in producer, so it
 is deliberately left byte-identical rather than hand-edited; regenerate it only
 with the external publication tool. The harness style lint still reports
 diagnostics and is not recorded as passing.
+
+The schema-4 change makes more of it stale, and none of it is repaired by
+hand. `accepted_descriptors` still says 315 against a 323-row manifest.
+`evaluator_descriptors` has no `definitional` key at all, so the file does not
+account for all 323 rows. `exhaustive_binary16_unary_campaigns` and the
+`coverage_limit` sentence both name the 315-row campaign count.
+`records` and `record_bytes` measure the 315-descriptor publication, which
+contains none of the eight `definitional` descriptors. `harness_tests`
+predates the schema-4 harness changes and says nothing about them until a
+rerun. Only `metadata_sha256` is still correct: the checked-in `metadata.txt`
+is byte-identical to the one that run produced, so its digest still matches.
+A regenerated file replaces all of it at once.
 
 The `replay-vector` and `run-bench-vector` lanes are additional evidence
 recorded by their own build steps, not by that file. They are not counters in
@@ -246,7 +310,7 @@ measures it exactly as it exists.
 ## Historical TSV fixtures
 
 Six historical TSV fixtures remain tracked for compatibility and regression
-context. They are not the schema-3 typed publication format and do not claim
+context. They are not the schema-4 typed publication format and do not claim
 full coverage:
 
 - `exp_h.tsv`: 65,536 data rows covering every unsigned binary16 encoding in
@@ -279,7 +343,7 @@ manifest status/evaluator relation.
 
 The following table records the old six-target native runs. It is historical
 benchmark evidence for the TSV fixtures, not a performance bound or a
-schema-3 full-publication result:
+schema-4 full-publication result:
 
 | Target | Corpus rows | Timed operations | Observed elapsed ns | Result checksum |
 | --- | ---: | ---: | ---: | ---: |

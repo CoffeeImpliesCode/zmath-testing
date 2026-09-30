@@ -595,7 +595,15 @@ fn decodeInput(
         .unsigned_integer => |value| .{ .integer = value.integer_type },
         .tag => .tag,
         .rounding => .fromfp_round,
+        // `round_mode` is not `rounding`. `FromFpRound` codes its five modes
+        // 0-4 and `RoundMode` codes four 0-3, so a single shared arm would
+        // accept a `rounding` field as a `round_mode` and reinterpret its
+        // numeric value. The stored field kind must match the descriptor kind.
+        .round_mode => .round_mode,
         .boolean => return error.InvalidInputDescriptor,
+        // `classification` is a result-only shape. No `InputDescriptor` can
+        // name it, so an argument that carries one is a corrupt record.
+        .classification => return error.InvalidInputDescriptor,
     };
     if (!std.meta.eql(descriptor, expected)) return error.CorpusSignatureMismatch;
     const bits: u64 = switch (field) {
@@ -606,12 +614,14 @@ fn decodeInput(
         ),
         .unsigned_integer => |value| value.value,
         .rounding => |value| @intFromEnum(value),
+        .round_mode => |value| @intFromEnum(value),
         .tag => |value| {
             if (value.len > tag_buffer.len) return error.TagTooLong;
             @memcpy(tag_buffer[0..value.len], value);
             return corpus.oracleTagInput(tag_buffer[0..value.len]);
         },
         .boolean => return error.InvalidInputDescriptor,
+        .classification => return error.InvalidInputDescriptor,
     };
     return corpus.oracleLiteralInput(descriptor, bits);
 }

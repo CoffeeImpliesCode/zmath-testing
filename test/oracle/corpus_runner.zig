@@ -40,6 +40,7 @@ pub const UnsupportedReason = enum {
     integer_result,
     boolean_result,
     structure_result,
+    classification_result,
 };
 
 pub const Support = union(enum) {
@@ -223,7 +224,14 @@ pub fn supportFor(function: Function) Support {
     if (function.status != .correct) {
         return .{ .unsupported = .manifest_status };
     }
-    if (function.oracle != .mpfr_arb and function.oracle != .exact_bits and function.oracle != .algebraic) {
+    // A definitional row is a first-class oracle category. Its correct answer
+    // is fixed by the IEEE 754 encoding rather than decided by an
+    // arbitrary-precision evaluation, and the C bridge reports it under its own
+    // category. Refusing it here would leave the four bit-level operations
+    // permanently unrunnable.
+    if (function.oracle != .mpfr_arb and function.oracle != .exact_bits and
+        function.oracle != .algebraic and function.oracle != .definitional)
+    {
         return .{ .unsupported = .oracle_capability };
     }
     return shapeSupport(function);
@@ -252,6 +260,7 @@ fn unsupportedShapeReason(function: Function) Support {
         .integer => .{ .unsupported = .integer_result },
         .boolean => .{ .unsupported = .boolean_result },
         .structure => .{ .unsupported = .structure_result },
+        .classification => .{ .unsupported = .classification_result },
     };
 }
 
@@ -358,7 +367,17 @@ pub fn verifyExpectedResults(
                     return error.RuntimeMismatch;
                 }
             },
-            .tag, .rounding => return error.InvalidResultDescriptor,
+            .classification => |value| {
+                // A class carries no float classification code, so requiring
+                // .none also rejects a class arriving through a float field.
+                if (descriptor.kind != .classification or
+                    actual.value_bits != corpusClassificationCode(value) or
+                    actual.class_code != .none)
+                {
+                    return error.RuntimeMismatch;
+                }
+            },
+            .tag, .rounding, .round_mode => return error.InvalidResultDescriptor,
         }
     }
 }
@@ -440,7 +459,14 @@ pub fn materializeResultFields(
                 .value = actual.value_bits & lowMask(descriptor.value_bits),
             } },
             .boolean => .{ .boolean = actual.value_bits != 0 },
-            .tag, .rounding => return error.InvalidResultDescriptor,
+            .classification => .{
+                .classification = parseClassificationCode(actual.value_bits) orelse
+                    return error.RuntimeMismatch,
+            },
+            // A round mode, a rounding field and a tag are input shapes. None of
+            // them is ever a result, so a descriptor claiming one is a shape
+            // error rather than a value this code should decode.
+            .tag, .rounding, .round_mode => return error.InvalidResultDescriptor,
             _ => return error.InvalidResultDescriptor,
         };
     }
@@ -1037,6 +1063,176 @@ fn makeBooleanInvoker(
     return &Adapter.invoke;
 }
 
+// zmath.ieee.Class and corpus.Classification are declared in two different
+// modules and nothing in the type system ties their members together. They
+// name the same six IEEE 754 classes today, but a positional @intFromEnum
+// would keep compiling after either enum was reordered and would then report a
+// different class for the same encoding, so every pair is named here. Neither
+// switch carries an `else`: a new member on either side is a compile error
+// rather than a silently accepted seventh class.
+fn corpusClassificationCode(classification: corpus.Classification) u64 {
+    return switch (classification) {
+        .zero => 0,
+        .subnormal => 1,
+        .normal => 2,
+        .infinity => 3,
+        .quiet_nan => 4,
+        .signaling_nan => 5,
+    };
+}
+
+fn parseClassificationCode(bits: u64) ?corpus.Classification {
+    return switch (bits) {
+        0 => .zero,
+        1 => .subnormal,
+        2 => .normal,
+        3 => .infinity,
+        4 => .quiet_nan,
+        5 => .signaling_nan,
+        else => null,
+    };
+}
+
+fn classificationCode(class: zmath.ieee.Class) u64 {
+    return corpusClassificationCode(switch (class) {
+        .zero => .zero,
+        .subnormal => .subnormal,
+        .normal => .normal,
+        .infinity => .infinity,
+        .quiet_nan => .quiet_nan,
+        .signaling_nan => .signaling_nan,
+    });
+}
+
+fn makeClassificationInvoker(
+    comptime operation: []const u8,
+    comptime format: corpus.Format,
+) RuntimeInvoker {
+    const Adapter = struct {
+        fn invoke(inputs: *const [max_oracle_fields]OracleInputField) RawRuntimeResult {
+            const input = decodeFloat(format, inputs[0].value_bits);
+            const class = @call(.auto, @field(zmath.ieee, operation), .{input});
+            var result = emptyRawRuntimeResult();
+            result.values[0] = classificationCode(class);
+            result.field_count = 1;
+            return result;
+        }
+    };
+    return &Adapter.invoke;
+}
+
+// The distance is reported in an unsigned integer as wide as the format, so a
+// binary16 span of 0..0xffff is never truncated by a narrower result field.
+// The width is stated per format rather than derived from the format's bit
+// count, so widening one is a deliberate edit and not a silent consequence.
+fn ulpDistanceIntegerType(comptime format: corpus.Format) corpus.IntegerType {
+    return switch (format) {
+        .h => .u16,
+        .f => .u32,
+        .d => .u64,
+    };
+}
+
+fn makeUlpDistanceInvoker(
+    comptime operation: []const u8,
+    comptime format: corpus.Format,
+    comptime output_type: corpus.IntegerType,
+) RuntimeInvoker {
+    const Adapter = struct {
+        fn invoke(inputs: *const [max_oracle_fields]OracleInputField) RawRuntimeResult {
+            const first = decodeFloat(format, inputs[0].value_bits);
+            const second = decodeFloat(format, inputs[1].value_bits);
+            const distance = @call(
+                .auto,
+                @field(zmath.scalar, operation),
+                .{ first, second },
+            );
+            var result = emptyRawRuntimeResult();
+            // A NaN operand reports the widest distance the format can name.
+            // encodeInteger masks to the result width, so the all-ones answer
+            // survives a binary16 result unchanged.
+            result.values[0] = encodeInteger(output_type, distance);
+            result.field_count = 1;
+            return result;
+        }
+    };
+    return &Adapter.invoke;
+}
+
+// The four IEEE 754 directions are an input value, not a descriptor, so the
+// field kind alone does not prove the payload is one of them: the descriptor
+// carries three value bits and codes 4 through 7 name no direction. The
+// mapping is spelled out so an unrecognised code is refused here rather than
+// handed to @enumFromInt, which is undefined behaviour in a fast build.
+fn decodeRoundMode(bits: u64) ?zmath.ieee.RoundMode {
+    return switch (bits) {
+        0 => .nearest_even,
+        1 => .toward_zero,
+        2 => .toward_positive,
+        3 => .toward_negative,
+        else => null,
+    };
+}
+
+// A refused direction yields a zero-field result. Both callers, dispatchRuntime
+// and materializeRawRuntimeFields, reject a field count that disagrees with the
+// entry's result count, so the refusal is an error and never a silent pass.
+//
+// scaleB takes the rounding direction FIRST, where fromfp takes its own
+// direction in the middle. Each argument is therefore read from the slot named
+// in the body below, and the entry's own input descriptors pin that same
+// order, so a value can neither be read from the wrong slot nor reach the
+// function through a mismatched descriptor.
+fn makeScaleBInvoker(
+    comptime operation: []const u8,
+    comptime format: corpus.Format,
+    comptime exponent_type: corpus.IntegerType,
+) RuntimeInvoker {
+    const Exponent = switch (exponent_type) {
+        .i32 => i32,
+        .i64 => i64,
+        else => @compileError("scaleB invoker requires an i32 or i64 exponent descriptor"),
+    };
+    const Adapter = struct {
+        fn invoke(inputs: *const [max_oracle_fields]OracleInputField) RawRuntimeResult {
+            const mode = decodeRoundMode(inputs[0].value_bits) orelse
+                return emptyRawRuntimeResult();
+            const value = decodeFloat(format, inputs[1].value_bits);
+            const exponent: Exponent = @intCast(decodeSignedInteger(
+                exponent_type,
+                inputs[2].value_bits,
+            ));
+            const output: FloatType(format) = @call(
+                .auto,
+                @field(zmath.ieee, operation),
+                .{ mode, value, exponent },
+            );
+            return makeFloatResult(format, output);
+        }
+    };
+    return &Adapter.invoke;
+}
+
+fn makeRoundIntegralInvoker(
+    comptime operation: []const u8,
+    comptime format: corpus.Format,
+) RuntimeInvoker {
+    const Adapter = struct {
+        fn invoke(inputs: *const [max_oracle_fields]OracleInputField) RawRuntimeResult {
+            const mode = decodeRoundMode(inputs[0].value_bits) orelse
+                return emptyRawRuntimeResult();
+            const value = decodeFloat(format, inputs[1].value_bits);
+            const output: FloatType(format) = @call(
+                .auto,
+                @field(zmath.ieee, operation),
+                .{ mode, value },
+            );
+            return makeFloatResult(format, output);
+        }
+    };
+    return &Adapter.invoke;
+}
+
 const NarrowSpec = struct {
     operation: []const u8,
     input_format: corpus.Format,
@@ -1360,7 +1556,49 @@ fn buildRuntimeTable() RuntimeTable {
             .{ .float = format },
             makeTagInvoker(suffixedOperation("nan", format), format),
         ));
+        // classify is a total function of one operand, so its binary16 campaign
+        // is genuinely exhaustive over all 65536 encodings. Its result is the
+        // six-value class enumeration, not a float.
+        append(&table, makeEntry(
+            "classify",
+            .{floatArgument(format)},
+            .classification,
+            makeClassificationInvoker(suffixedOperation("classify", format), format),
+        ));
+        // Two operands, so no campaign here may claim the full Cartesian
+        // product. Both arguments are encodings of the one format the result
+        // width is chosen for, which the entry's descriptors pin.
+        append(&table, makeEntry(
+            "ulpDistance",
+            .{ floatArgument(format), floatArgument(format) },
+            .{ .integer = ulpDistanceIntegerType(format) },
+            makeUlpDistanceInvoker(
+                suffixedOperation("ulpDistance", format),
+                format,
+                ulpDistanceIntegerType(format),
+            ),
+        ));
     }
+    // zmath.ieee exposes scaleB and roundIntegral for binary16 only, so there is
+    // one row each and no format loop. The rounding direction is an input
+    // value rather than a descriptor, which is why the arity is three and two
+    // and why the manifest key (provenance, op, format) still yields one row.
+    append(&table, makeEntry(
+        "scaleB",
+        .{
+            @as(corpus.InputDescriptor, .round_mode),
+            floatArgument(.h),
+            integerArgument(.i32),
+        },
+        .{ .float = .h },
+        makeScaleBInvoker("scaleBh", .h, .i32),
+    ));
+    append(&table, makeEntry(
+        "roundIntegral",
+        .{ @as(corpus.InputDescriptor, .round_mode), floatArgument(.h) },
+        .{ .float = .h },
+        makeRoundIntegralInvoker("roundIntegralh", .h),
+    ));
 
     inline for (narrow_unary_operations) |spec| {
         append(&table, makeEntry(
@@ -1412,7 +1650,7 @@ fn buildRuntimeTable() RuntimeTable {
             ),
         ));
     }
-    if (table.count != 315) @compileError("runtime table does not cover the descriptor corpus");
+    if (table.count != 323) @compileError("runtime table does not cover the 323-row descriptor corpus");
     return table;
 }
 
@@ -1761,6 +1999,14 @@ fn bitsFitDescriptor(descriptor: OracleFieldDescriptor, bits: u64) bool {
         .boolean => return bits <= 1,
         .tag => return bits == 0,
         .rounding => return bits <= 4,
+        // round_mode is a different field kind from rounding on purpose: it
+        // numbers four directions, not five, and the descriptor reserves three
+        // value bits for them.
+        .round_mode => return bits <= 3,
+        // A class is a result, never an operand, so a descriptor that claims
+        // one on the input side is refused. The named prong is required: a `_`
+        // prong only covers the values the enum leaves undeclared.
+        .classification => return false,
         _ => return false,
     }
 }
@@ -1769,6 +2015,7 @@ fn valueBitsFitDescriptor(descriptor: OracleFieldDescriptor, bits: u64) bool {
     return switch (descriptor.kind) {
         .float => bits <= lowMask(descriptor.value_bits),
         .signed_integer, .unsigned_integer => bits <= lowMask(descriptor.value_bits),
+        .classification => bits <= lowMask(descriptor.value_bits),
         .boolean => bits <= 1,
         else => false,
     };
@@ -1990,7 +2237,7 @@ fn runExpDirect(format: corpus.Format, input_bits: u64) RunError!void {
     if (proof.field_count != 1 or proof.fields[0].class_code != candidate_class) return error.ProofShapeMismatch;
 }
 
-// This path is intentionally Exp-only. It avoids the full 315-entry dispatch table.
+// This path is intentionally Exp-only. It avoids the full 323-entry dispatch table.
 pub fn runExp(format: corpus.Format, input_bits: u64) RunError!void {
     return runExpDirect(format, input_bits);
 }

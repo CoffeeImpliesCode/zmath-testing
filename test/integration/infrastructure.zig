@@ -4,7 +4,7 @@ const corpus = @import("corpus_support");
 const tsv_header = "op\tformat\tinput_bits\toutput_bits\toutput_class\tmax_ulp\n";
 
 const fixture_root =
-    "schema_version = 3\n" ++
+    "schema_version = 4\n" ++
     "core_math_repository = \"https://gitlab.inria.fr/core-math/core-math.git\"\n" ++
     "core_math_revision = \"3bafed75e3c22399531857d63a3fa0e24bfb42fa\"\n" ++
     "mpfr_precision_bits = 512\n" ++
@@ -75,7 +75,7 @@ fn replaceText(
 
 test "portable infrastructure accepts the complete typed manifest" {
     const manifest = try corpus.parseEmbeddedManifest();
-    try std.testing.expectEqual(@as(usize, 315), manifest.functionCount());
+    try std.testing.expectEqual(@as(usize, 323), manifest.functionCount());
     try corpus.validateEmbeddedManifest();
 }
 
@@ -116,12 +116,16 @@ test "portable infrastructure rejects a malformed standard-operation signature" 
     try std.testing.expectError(error.InvalidDescriptor, corpus.validateManifest(malformed));
 }
 
+// The pinned version is 4. This must rewrite it to the immediately previous
+// schema, 3, so the test keeps proving that one version step back is refused.
+// Rewriting to 2 would also fail, but for the wrong reason: it would stop
+// discriminating the immediate boundary.
 test "portable infrastructure rejects the previous manifest schema" {
     var source: [fixture_manifest.len + 64]u8 = undefined;
     const malformed = replaceText(
         fixture_manifest,
+        "schema_version = 4",
         "schema_version = 3",
-        "schema_version = 2",
         &source,
     );
     try std.testing.expectError(error.InvalidPinnedValue, corpus.validateManifest(malformed));

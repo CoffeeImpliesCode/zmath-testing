@@ -446,6 +446,22 @@ fn encodeInput(
                 return error.InputBitsOutOfRange;
             return .{ .word = word, .tag = "" };
         },
+        // Deliberately a separate arm from `.fromfp_round`, and deliberately
+        // keyed on the stored field kind rather than on a numeric range.
+        // `FromFpRound` numbers its modes 0-4 and `RoundMode` numbers them 0-3,
+        // so a record that stored a `rounding` field where the manifest asks
+        // for a `round_mode` would be silently reinterpreted: `rounding`'s
+        // `nearest_from_zero` (1) means `RoundMode`'s `toward_zero` (1). Only
+        // a `.round_mode` field can satisfy a `.round_mode` descriptor.
+        .round_mode => {
+            const value = switch (field) {
+                .round_mode => |mode| mode,
+                else => return error.CorpusSignatureMismatch,
+            };
+            const word = std.math.cast(u32, @intFromEnum(value)) orelse
+                return error.InputBitsOutOfRange;
+            return .{ .word = word, .tag = "" };
+        },
     }
 }
 
@@ -525,6 +541,12 @@ fn logInputField(field: corpus.CorpusField) void {
             std.debug.print("tag:len={}:preview={any}", .{ value.len, preview });
         },
         .rounding => |value| std.debug.print("rounding:{s}", .{@tagName(value)}),
+        // `round_mode` and `classification` are distinct record field kinds.
+        // They print under their own names so a log line never reads as if a
+        // `FromFpRound` value had been recorded, and so a `classification`
+        // result field is legible if one is ever logged.
+        .round_mode => |value| std.debug.print("round_mode:{s}", .{@tagName(value)}),
+        .classification => |value| std.debug.print("classification:{s}", .{@tagName(value)}),
     }
 }
 

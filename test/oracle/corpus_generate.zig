@@ -569,6 +569,21 @@ fn encodeInputs(
                 if (descriptor.kind != .rounding) return error.InputEncoding;
                 input_bits[index] = @intFromEnum(value);
             },
+            // Deliberately a separate arm from `.rounding`, and deliberately
+            // keyed on the stored field kind rather than on a numeric range.
+            // `FromFpRound` numbers its modes 0-4 and `RoundMode` numbers them
+            // 0-3, so accepting either field here would silently reinterpret the
+            // value 1: `rounding`'s `nearest_from_zero` would become
+            // `round_mode`'s `toward_zero`. Only a `.round_mode` field can
+            // satisfy a `.round_mode` descriptor.
+            .round_mode => |value| {
+                if (descriptor.kind != .round_mode) return error.InputEncoding;
+                input_bits[index] = @intFromEnum(value);
+            },
+            // A classification is a result-only shape. No `InputDescriptor`
+            // names it, so a stored classification in an argument position is a
+            // corrupt record, not a value this code should encode.
+            .classification => return error.InputEncoding,
         }
     }
 }

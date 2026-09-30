@@ -37,6 +37,15 @@ enum zmath_testing_oracle_field_kind {
     ZMATH_TESTING_ORACLE_FIELD_BOOLEAN = 4,
     ZMATH_TESTING_ORACLE_FIELD_TAG = 5,
     ZMATH_TESTING_ORACLE_FIELD_ROUNDING = 6,
+    /*
+     * ROUND_MODE is deliberately distinct from ROUNDING. ROUNDING carries the
+     * five fromfp directions, ROUND_MODE the four IEEE 754 directions, and the
+     * two vocabularies number them differently. One field kind must never be
+     * reinterpretable as the other.
+     */
+    ZMATH_TESTING_ORACLE_FIELD_ROUND_MODE = 7,
+    /* A six-value class enumeration. It is not an integer result. */
+    ZMATH_TESTING_ORACLE_FIELD_CLASSIFICATION = 8,
 };
 
 enum zmath_testing_oracle_result_layout {
@@ -236,6 +245,18 @@ void zmath_testing_oracle_evaluate_algebraic(
 );
 
 void zmath_testing_oracle_evaluate_mpfr_arb(
+    const struct zmath_testing_oracle_operation_signature *signature,
+    const zmath_testing_oracle_request *request,
+    zmath_testing_oracle_result *result
+);
+
+/*
+ * The definitional entry point evaluates the IEEE 754 definition directly. It
+ * shares the bit-level machinery with the exact-bits evaluator but is a
+ * separate entry point, and it accepts only the definitional category, so the
+ * two categories can never satisfy each other.
+ */
+void zmath_testing_oracle_evaluate_definitional(
     const struct zmath_testing_oracle_operation_signature *signature,
     const zmath_testing_oracle_request *request,
     zmath_testing_oracle_result *result

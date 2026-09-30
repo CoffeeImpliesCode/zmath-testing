@@ -1,4 +1,4 @@
-schema_version = 3
+schema_version = 4
 core_math_repository = "https://gitlab.inria.fr/core-math/core-math.git"
 core_math_revision = "3bafed75e3c22399531857d63a3fa0e24bfb42fa"
 mpfr_precision_bits = 512
@@ -340,6 +340,39 @@ arity = 1
 inputs = ["float:d"]
 result = "float:d"
 oracle = "exact_bits"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "classify"
+provenance = ["zmath"]
+status = "correct"
+arity = 1
+inputs = ["float:h"]
+result = "classification"
+oracle = "definitional"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "classify"
+provenance = ["zmath"]
+status = "correct"
+arity = 1
+inputs = ["float:f"]
+result = "classification"
+oracle = "definitional"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "classify"
+provenance = ["zmath"]
+status = "correct"
+arity = 1
+inputs = ["float:d"]
+result = "classification"
+oracle = "definitional"
 special_policy = "zmath_c23_v1"
 max_ulp = 0
 
@@ -2489,6 +2522,17 @@ special_policy = "zmath_c23_v1"
 max_ulp = 0
 
 [[function]]
+op = "roundIntegral"
+provenance = ["zmath"]
+status = "correct"
+arity = 2
+inputs = ["round_mode", "float:h"]
+result = "float:h"
+oracle = "definitional"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
 op = "roundeven"
 provenance = ["zmath"]
 status = "correct"
@@ -2621,6 +2665,17 @@ special_policy = "zmath_c23_v1"
 max_ulp = 0
 
 [[function]]
+op = "scaleB"
+provenance = ["zmath"]
+status = "correct"
+arity = 3
+inputs = ["round_mode", "float:h", "integer:i32"]
+result = "float:h"
+oracle = "definitional"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
 op = "setPayload"
 provenance = ["zmath"]
 status = "correct"
@@ -3079,6 +3134,39 @@ arity = 3
 inputs = ["float:d", "fromfp_round", "integer:u32"]
 result = "float:d"
 oracle = "exact_bits"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "ulpDistance"
+provenance = ["zmath"]
+status = "correct"
+arity = 2
+inputs = ["float:h", "float:h"]
+result = "integer:u16"
+oracle = "definitional"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "ulpDistance"
+provenance = ["zmath"]
+status = "correct"
+arity = 2
+inputs = ["float:f", "float:f"]
+result = "integer:u32"
+oracle = "definitional"
+special_policy = "zmath_c23_v1"
+max_ulp = 0
+
+[[function]]
+op = "ulpDistance"
+provenance = ["zmath"]
+status = "correct"
+arity = 2
+inputs = ["float:d", "float:d"]
+result = "integer:u64"
+oracle = "definitional"
 special_policy = "zmath_c23_v1"
 max_ulp = 0
 

@@ -177,6 +177,15 @@ pub fn evaluatorCategory(signature: *const oracle_signature) !corpus.Oracle {
         @as(u32, @intCast(oracle_abi.ZMATH_TESTING_ORACLE_EVALUATOR_EXACT_BITS)) => .exact_bits,
         @as(u32, @intCast(oracle_abi.ZMATH_TESTING_ORACLE_EVALUATOR_MPFR_ARB)) => .mpfr_arb,
         @as(u32, @intCast(oracle_abi.ZMATH_TESTING_ORACLE_EVALUATOR_ALGEBRAIC)) => .algebraic,
+        // A definitional row is decided by the IEEE 754 definition rather than
+        // by an arbitrary-precision evaluation, and the C side reports it under
+        // a category of its own. It must map to its own value here: folding it
+        // into exact_bits would let a metadata row claim a numerical
+        // verification that never happened, and folding it into .none would
+        // make the row unloadable. The category is read from the signature
+        // itself, so a row whose C category disagrees with its manifest oracle
+        // still fails the evaluator check in validateMetadataRow.
+        @as(u32, @intCast(oracle_abi.ZMATH_TESTING_ORACLE_EVALUATOR_DEFINITIONAL)) => .definitional,
         else => error.UnknownEvaluatorCategory,
     };
 }

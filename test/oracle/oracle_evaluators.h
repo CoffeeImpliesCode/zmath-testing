@@ -11,7 +11,7 @@ extern "C" {
 #endif
 
 #define ZMATH_TESTING_ORACLE_EVALUATOR_ABI_VERSION UINT32_C(1)
-#define ZMATH_TESTING_ORACLE_OPERATION_COUNT UINT32_C(315)
+#define ZMATH_TESTING_ORACLE_OPERATION_COUNT UINT32_C(323)
 #define ZMATH_TESTING_ORACLE_MAX_SIGNATURE_FIELDS \
     ZMATH_TESTING_ORACLE_MAX_FIELDS
 
@@ -26,6 +26,14 @@ enum zmath_testing_oracle_evaluator_category {
     ZMATH_TESTING_ORACLE_EVALUATOR_EXACT_BITS = 1,
     ZMATH_TESTING_ORACLE_EVALUATOR_MPFR_ARB = 2,
     ZMATH_TESTING_ORACLE_EVALUATOR_ALGEBRAIC = 3,
+    /*
+     * DEFINITIONAL marks a bit-level operation whose correct result is fixed
+     * by the IEEE 754 definition itself. No arbitrary-precision oracle can
+     * decide it, so the evaluation is definitional, not numerical. The class
+     * exists so a reader can never mistake one of these rows for an
+     * oracle-verified row.
+     */
+    ZMATH_TESTING_ORACLE_EVALUATOR_DEFINITIONAL = 4,
 };
 /*
  * A category selects an evaluator implementation. It does not grant manifest
