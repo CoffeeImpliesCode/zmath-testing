@@ -83,23 +83,21 @@ or `bounded` row establishes manifest acceptance only. Corpus evidence covers
 stored tuples. Whole-domain proof requires exhaustive inputs or a separate
 proof for the complete operation-format domain.
 
-The checked-in manifest accepts all 337 descriptors as `correct` with
-`max_ulp = 0`. That is manifest acceptance, and it is all the checked-in tree
-holds today: no descriptor currently has published records behind it, so no
-record count, replay total, or benchmark row is claimed for any of them. A
-descriptor without a published record has manifest acceptance only, never
-corpus evidence.
+The checked-in manifest accepts all 337 descriptors as `correct` with `max_ulp = 0`.
+The current publication contains 337 descriptor artifacts, 72,035,318 records, and 5,164,903,241 record bytes.
+Full replay verified every descriptor, and the benchmark exercised every descriptor.
+These figures describe the stored tuples, not wider IEEE domains.
+The 62 `exhaustive_h_unary` campaigns cover their one-argument binary16 domains.
 
-**Pending regeneration.** The committed `metadata.txt` is a pre-promotion
-snapshot. It carries 315 descriptor rows against a 337-descriptor manifest, so
-the two row counts disagree and the checked-in publication cannot be loaded
-against the current manifest: `corpus_set.load` takes its expected row count
-from the manifest and fails with `error.IncompleteSelection` when the metadata
-does not supply it. Nothing derived from that snapshot is current — not its
-accepted descriptor count, its record total, its record bytes, nor its
-benchmark row count — and none of those figures is claimed anywhere in this
-document. A regeneration and republication is in progress, and its numbers
-replace this passage when it lands, not the other way round.
+The evaluator split is 150 `exact_bits`, 126 `mpfr_arb`, 39 `algebraic`, and 22 `definitional` descriptors.
+The ten non-scalar rows cover four Cl(3) involutions and quaternion multiplication in two formats.
+They check 176 stored convention cases.
+Complex, matrix, linalg, and geometry have no manifest rows.
+
+Before republication, `metadata.txt` had 315 descriptors against the 337-descriptor manifest.
+The loader rejected that snapshot with `error.IncompleteSelection`.
+The current metadata and `COMPLETE` now match the regenerated publication.
+Record files remain gitignored, so a new checkout must regenerate them before replay.
 
 ## Typed publication
 
@@ -156,12 +154,9 @@ Campaign classes are explicit:
 
 Only `exhaustive_h_unary` claims exhaustive coverage of its one-argument
 binary16 domain. Every other campaign claims only its declared tuples.
-The campaign table defines 62 exhaustive binary16 unary campaigns. The
-campaign table is the authority for that number, not the committed
-publication: the 2026-09-09 snapshot predates it and covers 61 of them, the
-difference being the binary16 `classify` campaign added with the
-`definitional` class. The remaining campaigns do not prove whole IEEE
-operation-format domains.
+The campaign table and current publication both contain 62 exhaustive binary16 unary campaigns.
+The additional campaign is binary16 `classify` under the `definitional` evaluator class.
+The remaining campaigns do not prove whole IEEE operation-format domains.
 
 Of the 22 `definitional` descriptors, exactly one carries an exhaustive
 claim. `classify` in binary16 is `exhaustive_h_unary`: the class of a value is
@@ -194,8 +189,8 @@ Commit publication metadata, `COMPLETE`, `replay.txt`, and `benchmark.txt`.
 Regenerate raw records with `generate-corpus` in a new checkout.
 
 The metadata SHA-256 is
-`f7e624e2be25c43935da9afa179cb20149fce4a0326dbfa310056c5761a017ab`.
-Its status-oracle snapshots record the candidate state before acceptance.
+`c5ad22d8e987af219619f17222c16d044197a130586fad90048a39dc3be371ab`.
+The status-oracle snapshots record the generation-time state.
 Status promotion does not change numerical descriptor identity or record hashes.
 The loader checks both historical snapshots and the current manifest.
 
@@ -208,6 +203,15 @@ with no producer is a number nobody can reproduce, and a hand-kept snapshot of
 one only ever goes stale. If machine-readable counters are wanted later, the
 producer belongs in `test/oracle/corpus_generate.zig`, beside the code that
 already writes `metadata.txt` and `COMPLETE`, not in an external tool.
+
+The half-table generator pins this metadata digest and the immutable `asin` and `tanh` binary16 artifacts.
+Their current signatures are 17 and 277.
+The artifact digests did not change when republication moved their descriptor positions.
+Check the retained runtime tables without a new corpus campaign:
+
+```text
+python3 bench/generate_half_tables.py --check --runtime-output ../zmath/src/scalar_half_tables.zig
+```
 
 The `replay-vector` and `run-bench-vector` lanes are additional evidence
 recorded by their own build steps. They publish their own result lines and are
@@ -243,9 +247,11 @@ zig-out/bin/zmath-vector-matrix
 
 Each executable accepts an optional first positional corpus root. The default
 root is `test/corpus`. Each accepts `--operation=<manifest-op>` and
-`--format=h|f|d`; the filters can be used independently or together. The
-vector benchmark also accepts `--repetitions=1..100`; no other executable
-does:
+`--format=h|f|d`. The filters can be used independently or together.
+A filtered command reads its own `generated/probes/<op>-<fmt>` publication.
+An omitted filter uses `all` in that path.
+Generate that probe before filtered replay or measurement.
+The scalar and vector benchmarks also accept `--repetitions=1..100`:
 
 ```text
 zig-out/bin/zmath-testing-corpus-producer test/corpus --operation=atan2 --format=d
