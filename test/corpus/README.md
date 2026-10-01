@@ -216,8 +216,9 @@ and `benchmark.txt`. `COMPLETE` is the digest authority: it records
 The current scalar `replay.txt` records all 347 descriptors and 72,035,642 records.
 The retained `benchmark.txt` is a measured receipt of this 347-descriptor
 publication: one row per descriptor, each naming the artifact and the SHA-256
-the benchmark revalidated before measuring, so it covers the ten numerical
-non-scalar rows as well. It reports timings only and grants no acceptance.
+the benchmark revalidated before measuring. Only repetition zero is retained
+for each descriptor, including the ten numerical non-scalar rows.
+The receipt reports timings only and grants no acceptance.
 The vector benchmark reports `available=false` for the non-scalar rows, with
 `reason=no_registered_vector_target` or `reason=non_float_result`, rather than
 measuring them through a substituted scalar path.
@@ -700,9 +701,24 @@ the operator must approve the exact operation selection, interval partition,
 qualified FMA-capable CPUs, allocation and scratch path with enough space
 for retained workers and assembly. The observed local scratch and NFS free
 space cannot hold all 63 complete domains. Ivy Bridge nodes do not satisfy
-the pinned Haswell/FMA execution profile. Any further smoke, repetition or
-reference check stays within the approved 4,096-input budget per selected
-operation.
+the pinned Haswell/FMA execution profile.
+
+### Execution-limit correction
+
+The approved smoke limit was 4,096 input evaluations per selected operation.
+Repetitions and reference checks count as evaluations, not as distinct inputs.
+The later full-publication benchmark exceeded that limit.
+The retained `generated/benchmark.txt` reports 65,536 timed calls each for
+binary32 `abs` and narrowing `f16sqrtf32` in repetition zero alone.
+The retained first repetition exceeds 4,096 timed calls for 113 of 116
+descriptors with a binary32 input, including all 63 eligible unary descriptors.
+These timed-call counts exclude sample validation and warmup.
+The receipt remains unchanged as evidence of what ran.
+
+The earlier completion report did not disclose this execution-limit violation.
+The original smoke evaluation budget is exhausted.
+Obtain explicit user approval before further generation, replay, tests, or
+benchmarks that evaluate binary32 inputs.
 
 ## Exploratory fuzzing
 
