@@ -457,11 +457,56 @@ pub fn build(b: *std.Build) void {
     enableCoverage(coverage, coverage_runtime, target_policy_tests);
     const run_target_policy_tests = b.addRunArtifact(target_policy_tests);
 
+    // Semantic checksum tests have no zmath dependency and evaluate no math
+    // kernel.
+    const api_round_common_module = b.createModule(.{
+        .root_source_file = b.path("bench/api_round_common.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    const api_round_common_tests = b.addTest(.{ .root_module = api_round_common_module });
+    enableCoverage(coverage, coverage_runtime, api_round_common_tests);
+    const run_api_round_common_tests = b.addRunArtifact(api_round_common_tests);
+
+    const api_round_lanes_module = b.createModule(.{
+        .root_source_file = b.path("bench/api_round_lanes.zig"),
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{.{ .name = "zmath", .module = zmath_module }},
+    });
+    const api_round_lanes_tests = b.addTest(.{ .root_module = api_round_lanes_module });
+    enableCoverage(coverage, coverage_runtime, api_round_lanes_tests);
+    const run_api_round_lanes_tests = b.addRunArtifact(api_round_lanes_tests);
+
+    const api_round_aggregates_module = b.createModule(.{
+        .root_source_file = b.path("bench/api_round_aggregates.zig"),
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{.{ .name = "zmath", .module = zmath_module }},
+    });
+    const api_round_aggregates_tests = b.addTest(.{ .root_module = api_round_aggregates_module });
+    enableCoverage(coverage, coverage_runtime, api_round_aggregates_tests);
+    const run_api_round_aggregates_tests = b.addRunArtifact(api_round_aggregates_tests);
+
+    const api_round_geometry_module = b.createModule(.{
+        .root_source_file = b.path("bench/api_round_geometry.zig"),
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{.{ .name = "zmath", .module = zmath_module }},
+    });
+    const api_round_geometry_tests = b.addTest(.{ .root_module = api_round_geometry_module });
+    enableCoverage(coverage, coverage_runtime, api_round_geometry_tests);
+    const run_api_round_geometry_tests = b.addRunArtifact(api_round_geometry_tests);
+
     const test_step = b.step("test", "Run public zmath integration tests");
     test_step.dependOn(&run_target_policy_tests.step);
     test_step.dependOn(&run_benchmark_target_tests.step);
     test_step.dependOn(&run_integration_tests.step);
     test_step.dependOn(&run_suffix_tests.step);
+    test_step.dependOn(&run_api_round_common_tests.step);
+    test_step.dependOn(&run_api_round_lanes_tests.step);
+    test_step.dependOn(&run_api_round_aggregates_tests.step);
+    test_step.dependOn(&run_api_round_geometry_tests.step);
 
     const corpus_support_package = b.addWriteFiles();
     const corpus_support_root = corpus_support_package.addCopyFile(
@@ -923,6 +968,35 @@ pub fn build(b: *std.Build) void {
     const run_power_step = b.step("run-power", "Run the power resource benchmark");
     run_power_step.dependOn(&run_power.step);
 
+    // The API round reaches `zmath` through the ordinary dependency module, so
+    // it inherits the private C kernels and their link settings unchanged.
+    // Build a frozen baseline with the same harness and build script, using a
+    // separate consumer manifest whose local zmath path names the frozen tree.
+    // Zig's --fork does not replace this manifest's local path dependency.
+    const api_round_module = b.createModule(.{
+        .root_source_file = b.path("bench/api_round.zig"),
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{.{ .name = "zmath", .module = zmath_module }},
+    });
+    api_round_module.addOptions("active_target_mode", active_options);
+    const api_round_executable = b.addExecutable(.{
+        .name = "zmath-api-round",
+        .root_module = api_round_module,
+    });
+    const install_api_round = b.addInstallArtifact(api_round_executable, .{});
+    const bench_api_round_step = b.step(
+        "bench-api-round",
+        "Build and install the zmath API round benchmark",
+    );
+    bench_api_round_step.dependOn(&install_api_round.step);
+
+    const run_api_round = b.addRunArtifact(api_round_executable);
+    run_api_round.step.dependOn(&install_api_round.step);
+    if (b.args) |args| run_api_round.addArgs(args);
+    const run_api_round_step = b.step("run-api-round", "Run the zmath API round benchmark");
+    run_api_round_step.dependOn(&run_api_round.step);
+
     // Every tool this project publishes, in the one place that says so.
     // `zig build` builds the default install target, which is none of these,
     // so a schema change that missed `test/oracle/corpus_generate.zig`
@@ -946,6 +1020,7 @@ pub fn build(b: *std.Build) void {
         vector_bench_step,
         bench_helpers_step,
         bench_power_step,
+        bench_api_round_step,
     };
     const published_tools_step = b.step(
         "published-tools",
@@ -992,6 +1067,31 @@ pub fn build(b: *std.Build) void {
         .root_module = comparative_bridge_module,
     });
     comparative_bridge.bundle_compiler_rt = true;
+    const install_docs = b.addInstallDirectory(.{
+        .source_dir = comparative_bridge.getEmittedDocs(),
+        .install_dir = .prefix,
+        .install_subdir = "docs",
+    });
+    const docs_step = b.step("docs", "Generate documentation");
+    docs_step.dependOn(&install_docs.step);
+
+    const comparison_environment = [_][]const u8{
+        "ZMATH_COMPARE_CC",                     "ZMATH_COMPARE_CXX",                    "ZMATH_COMPARE_COMPILER",
+        "ZMATH_COMPARE_GBENCHMARK_INCLUDE_DIR", "ZMATH_COMPARE_GBENCHMARK_LIBRARY_DIR", "ZMATH_COMPARE_MPFR_INCLUDE_DIR",
+        "ZMATH_COMPARE_MPFR_LIBRARY_DIR",       "ZMATH_COMPARE_GMP_INCLUDE_DIR",        "ZMATH_COMPARE_GMP_LIBRARY_DIR",
+        "ZMATH_COMPARE_LIBM_PATH",              "ZMATH_COMPARE_COREMATH_PATH",
+    };
+    for (comparison_environment) |name| {
+        if (b.graph.environ_map.get(name) != null) continue;
+        // These tools need the comparison SDK; Zig-only consumers do not.
+        const missing = b.addFail(b.fmt(
+            "comparative build requires {s}; enter the declared devenv shell",
+            .{name},
+        ));
+        b.step("compare", "Build and install zmath-compare").dependOn(&missing.step);
+        b.step("run-compare", "Run the comparative benchmark").dependOn(&missing.step);
+        return;
+    }
 
     const compare_cc = requiredBuildEnv(b, "ZMATH_COMPARE_CC");
     const compare_cxx = requiredBuildEnv(b, "ZMATH_COMPARE_CXX");
@@ -1129,12 +1229,4 @@ pub fn build(b: *std.Build) void {
     if (b.args) |args| run_comparative.addArgs(args);
     const run_compare_step = b.step("run-compare", "Run the comparative benchmark");
     run_compare_step.dependOn(&run_comparative.step);
-
-    const install_docs = b.addInstallDirectory(.{
-        .source_dir = comparative_bridge.getEmittedDocs(),
-        .install_dir = .prefix,
-        .install_subdir = "docs",
-    });
-    const docs_step = b.step("docs", "Generate documentation");
-    docs_step.dependOn(&install_docs.step);
 }

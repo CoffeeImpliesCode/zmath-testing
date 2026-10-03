@@ -1,0 +1,32 @@
+
+cases=21 pairs=9 practical_threshold=2% direction_quorum=8/9
+
+case                                                           cohort           base ns      cand ns    change  fast verdict
+lanes.rootnhv.f16.w2.boundary                                  lanes            1503201      1964833  -30.71%  5/9 undecided
+lanes.rootnhvLanes.f16.w4.boundary                             lanes            3318369      4333070  -30.58%  5/9 undecided
+lanes.rootnhv.f16.w4.boundary                                  lanes            4392976      3061076  +30.32%  7/9 undecided
+leaf.scalar.rootn.h.boundary                                   leaf             2600073      2105965  +19.00%  5/9 undecided
+lanes.rootnhv.f16.w2.normal                                    lanes            6028293      7044897  -16.86%  4/9 undecided
+lanes.rootnhv.f16.w8.boundary                                  lanes            9706751      8130782  +16.24%  5/9 undecided
+lanes.rootnhv.f16.w2.skewed                                    lanes            5983374      6774201  -13.22%  4/9 undecided
+leaf.scalar.rootn.h.skewed                                     leaf             2324746      2048598  +11.88%  5/9 undecided
+lanes.rootnhvLanes.f16.w8.skewed                               lanes           22579510     25204380  -11.63%  2/9 undecided
+lanes.rootnhv.f16.w4.normal                                    lanes           13960125     15573051  -11.55%  5/9 undecided
+leaf.scalar.rootn.h.normal                                     leaf             4259604      3782913  +11.19%  4/9 undecided
+lanes.rootnhvLanes.f16.w4.normal                               lanes           13884632     12833787   +7.57%  4/9 undecided
+lanes.rootnhvLanes.f16.w2.boundary                             lanes            2280438      2131208   +6.54%  4/9 undecided
+lanes.rootnhv.f16.w8.skewed                                    lanes           24808737     26070282   -5.09%  2/9 undecided
+lanes.rootnhv.f16.w4.skewed                                    lanes           10680211     11199076   -4.86%  5/9 undecided
+lanes.rootnhvLanes.f16.w2.normal                               lanes            7553778      7320616   +3.09%  5/9 undecided
+lanes.rootnhvLanes.f16.w8.boundary                             lanes            7489112      7308506   +2.41%  4/9 undecided
+lanes.rootnhvLanes.f16.w4.skewed                               lanes           12421022     12153564   +2.15%  8/9 faster
+lanes.rootnhvLanes.f16.w8.normal                               lanes           28508956     28774593   -0.93%  5/9 undecided
+lanes.rootnhvLanes.f16.w2.skewed                               lanes            6961087      7022794   -0.89%  6/9 undecided
+lanes.rootnhv.f16.w8.normal                                    lanes           27870144     27796359   +0.26%  5/9 undecided
+
+cohort lanes        cases=18    faster=1     slower=0     undecided=17
+cohort leaf         cases=3     faster=0     slower=0     undecided=3
+module scalar       cases=3     faster=0     slower=0     undecided=3
+module vector       cases=18    faster=1     slower=0     undecided=17
+
+regressions meeting the criterion: 0

@@ -1,0 +1,33 @@
+
+cases=24 pairs=9 practical_threshold=2% direction_quorum=8/9
+
+case                                                           cohort           base ns      cand ns    change  fast verdict
+geometry.Point4(f32).orientation.policy.adaptive_exact.ordinary geometry       127061396     52461113  +58.71%  9/9 faster
+geometry.Point4(f32).orientation.policy.adaptive_exact.near_degenerate geometry        72675671     33775162  +53.53%  9/9 faster
+geometry.Point4(f64).orientation.policy.adaptive_exact.perturbed_ulp geometry        74203510     34858133  +53.02%  9/9 faster
+geometry.Point4(f32).orientation.policy.adaptive_exact.exponent_extreme geometry        81251844     38202853  +52.98%  9/9 faster
+geometry.Point4(f32).orientation.policy.adaptive_exact.perturbed_ulp geometry        75808431     37145688  +51.00%  9/9 faster
+geometry.Point4(f32).orientation.policy.adaptive_exact.near_dependent geometry       118682622     61751989  +47.97%  9/9 faster
+geometry.Point3(f64).orientation.policy.adaptive_exact.ordinary geometry        55589834     29996912  +46.04%  9/9 faster
+geometry.Point4(f64).orientation.policy.adaptive_exact.near_degenerate geometry        71699371     39894840  +44.36%  9/9 faster
+geometry.Point2(f32).orientation.policy.adaptive_exact.ordinary geometry        22511323     13020925  +42.16%  9/9 faster
+geometry.Point2(f32).orientation.policy.adaptive_exact.exponent_extreme geometry        20119953     11779883  +41.45%  9/9 faster
+geometry.Point3(f32).orientation.policy.adaptive_exact.ordinary geometry        55349434     32602013  +41.10%  9/9 faster
+geometry.Point4(f64).orientation.policy.adaptive_exact.near_dependent geometry       117106658     69101007  +40.99%  9/9 faster
+geometry.Point3(f64).orientation.policy.adaptive_exact.exponent_extreme geometry        47416944     28775832  +39.31%  9/9 faster
+geometry.Point3(f32).orientation.policy.adaptive_exact.perturbed_ulp geometry        36394216     22369969  +38.53%  9/9 faster
+geometry.Point3(f32).orientation.policy.adaptive_exact.near_degenerate geometry        37772251     23437719  +37.95%  8/9 faster
+geometry.Point4(f64).orientation.policy.adaptive_exact.ordinary geometry       119521869     74305163  +37.83%  9/9 faster
+geometry.Point4(f64).orientation.policy.adaptive_exact.exponent_extreme geometry        89517796     56480360  +36.91%  9/9 faster
+geometry.Point3(f64).orientation.policy.adaptive_exact.near_degenerate geometry        33918868     22461900  +33.78%  9/9 faster
+geometry.Point3(f32).orientation.policy.adaptive_exact.exponent_extreme geometry        41260858     28164248  +31.74%  9/9 faster
+geometry.Point2(f64).orientation.policy.adaptive_exact.ordinary geometry        21053325     14780277  +29.80%  7/9 undecided
+geometry.Point2(f64).orientation.policy.adaptive_exact.exponent_extreme geometry        21512607     15581479  +27.57%  7/9 undecided
+geometry.Point3(f64).orientation.policy.adaptive_exact.perturbed_ulp geometry        33242075     28942062  +12.94%  9/9 faster
+geometry.Point2(f32).orientation.policy.adaptive_exact.near_degenerate geometry        15396023     13968428   +9.27%  6/9 undecided
+geometry.Point2(f64).orientation.policy.adaptive_exact.near_degenerate geometry        15015577     13718044   +8.64%  6/9 undecided
+
+cohort geometry     cases=24    faster=20    slower=0     undecided=4
+module geometry     cases=24    faster=20    slower=0     undecided=4
+
+regressions meeting the criterion: 0

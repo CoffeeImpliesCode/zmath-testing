@@ -1,0 +1,20 @@
+# To display the perf.data header info, please use --header/--header-only options.
+#
+#
+# Total Lost Samples: 0
+#
+# Samples: 474  of event 'cycles:Pu'
+# Event count (approx.): 398161692
+#
+# Overhead  Symbol                                                IPC   [IPC Coverage]
+# ........  ....................................................  ....................
+#
+    93.36%  [.] compiler_rt.memset                                -      -            
+     3.77%  [.] api_round.main                                    -      -            
+     0.87%  [.] scalar_power_exact.Arithmetic(2048).Big.multiply  -      -            
+     0.67%  [.] compiler_rt.stack_probe.zig_probe_stack           -      -            
+
+
+#
+# (Cannot load tips.txt file, please install perf!)
+#

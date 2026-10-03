@@ -1,0 +1,47 @@
+{
+  "final_v4": {
+    "files": 247,
+    "identity_tree_matches": true,
+    "identity_tree_sha256": "d18dbfa5367f019badd2c679d131fffd95634534a49648011821a95427dd8370",
+    "identity_tree_sha256_expected": "d18dbfa5367f019badd2c679d131fffd95634534a49648011821a95427dd8370",
+    "runner_tree_matches": true,
+    "runner_tree_sha256": "4f0461fe588b63b0ba322a7433048a5ea432a1eeef0782ded985d3992261837a",
+    "runner_tree_sha256_expected": "4f0461fe588b63b0ba322a7433048a5ea432a1eeef0782ded985d3992261837a"
+  },
+  "frozen": {
+    "files": 247,
+    "identity_tree_sha256": "449917fdd55f3e3045fe0ad865194d2cd55487df0717f23481e8f849f5d90aaa",
+    "runner_tree_matches": true,
+    "runner_tree_sha256": "3fb1f666f503cc250ba57fedb252028a3dd6761e3d40c131bf825445d75b67d6",
+    "runner_tree_sha256_expected": "3fb1f666f503cc250ba57fedb252028a3dd6761e3d40c131bf825445d75b67d6"
+  },
+  "frozen_vs_final_v4_changed_files": [
+    "src/geometry.zig",
+    "src/geometry_test.zig",
+    "src/scalar_power_exact.zig",
+    "src/vector_core.zig",
+    "src/vector_surface_test.zig",
+    "src/vector_value.zig",
+    "src/vector_value_test.zig"
+  ],
+  "method": "members are hashed in memory from the packaged gzip archives; no build, test or math execution",
+  "original_archive_sha256": {
+    "baseline.tar": "d9b622b9052ca2555e3fd8b7ae3db29838222d51ec6182ab443f7834ecbb6661",
+    "final-v4-source.tar": "70aa365f06f4f09d85a653912a4af1d8474a5a05634c1f958a4f0f856da5da5f"
+  },
+  "raw_samples": {
+    "files": 252,
+    "jsonl": 126,
+    "perf_data_members": 0,
+    "rounds": [
+      "round-19-final-v4-roots",
+      "round-20-final-v4-portable-lanes",
+      "round-21-final-v4-value-geometry",
+      "round-22-final-v4-orientation",
+      "round-23-final-v4-half-controls",
+      "round-24-final-v4-lane-flags-long",
+      "round-25-final-v4-lane-identical-control"
+    ],
+    "stderr": 126
+  }
+}

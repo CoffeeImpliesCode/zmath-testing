@@ -1,0 +1,310 @@
+[
+  {
+    "compiler_backend": "LLVM",
+    "runtime_tree_sha256": "d18dbfa5367f019badd2c679d131fffd95634534a49648011821a95427dd8370",
+    "build_source_sha256": "c57e9a9ea03c84370a41e377bd71795bc2dc7d905a34a8564668ec1186d930c9",
+    "target": "x86_64-linux-gnu.2.38",
+    "mode": "Debug",
+    "build_command": [
+      "/tmp/cache/zig/p/N-V-__8AAFFSVRWqblwBIcA-Yqv-u7sbjsJoww8K0mWaHbmJ/zig",
+      "build",
+      "-Dtarget=x86_64-linux-gnu.2.38",
+      "-Dcpu=haswell",
+      "-Doptimize=Debug",
+      "--cache-dir",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/real-api-onehot-cache",
+      "--prefix",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/final-v4-strict-onehot/x86_64-linux-gnu.2.38/Debug",
+      "--summary",
+      "all"
+    ],
+    "build_cwd": "/tmp/tmp/zmath-perf-round.Dz4uxZhl/real-api-onehot",
+    "build_exit": 0,
+    "build_output": "Build Summary: 4/4 steps succeeded\ninstall success\n+- install api-round-consumer success\n   +- compile exe api-round-consumer Debug x86_64-linux-gnu.2.38 success 18s MaxRSS:768M\n      +- WriteFile c_kernel_abi_guard.c cached\n\n",
+    "run_command": [
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/final-v4-strict-onehot/x86_64-linux-gnu.2.38/Debug/bin/api-round-consumer"
+    ],
+    "run_exit": 0,
+    "run_output": "PASS real API all one-hot lanes at width 1\nPASS real API all one-hot lanes at width 2\nPASS real API all one-hot lanes at width 3\nPASS real API all one-hot lanes at width 4\nPASS real API all one-hot lanes at width 5\nPASS real API all one-hot lanes at width 6\nPASS real API all one-hot lanes at width 7\nPASS real API all one-hot lanes at width 8\nPASS real API all one-hot lanes at width 9\nPASS real API all one-hot lanes at width 10\nPASS real API all one-hot lanes at width 11\nPASS real API all one-hot lanes at width 12\nPASS real API all one-hot lanes at width 13\nPASS real API all one-hot lanes at width 14\nPASS real API all one-hot lanes at width 15\nPASS real API all one-hot lanes at width 16\nPASS real API all one-hot lanes at width 17\nPASS real API all one-hot lanes at width 18\nPASS real API all one-hot lanes at width 19\nPASS real API all one-hot lanes at width 20\nPASS real API all one-hot lanes at width 21\nPASS real API all one-hot lanes at width 22\nPASS real API all one-hot lanes at width 23\nPASS real API all one-hot lanes at width 24\nPASS real API all one-hot lanes at width 25\nPASS real API all one-hot lanes at width 26\nPASS real API all one-hot lanes at width 27\nPASS real API all one-hot lanes at width 28\nPASS real API all one-hot lanes at width 29\nPASS real API all one-hot lanes at width 30\nPASS real API all one-hot lanes at width 31\nPASS real API all one-hot lanes at width 32\nPASS real API all one-hot lanes at width 33\nPASS real API all one-hot lanes at width 64\nPASS real API all one-hot lanes at width 128\n",
+    "source_sha256": "7172899cd92039f27bc77eb61fcf9edcd47c6ee5c12b4b57c5024cbe51a013dc",
+    "executable_sha256": "12857bf7c0d2dd8482bf961ff3a5ccd3bf12a1fac297b63d059ac8d3f7fc7c79"
+  },
+  {
+    "compiler_backend": "LLVM",
+    "runtime_tree_sha256": "d18dbfa5367f019badd2c679d131fffd95634534a49648011821a95427dd8370",
+    "build_source_sha256": "c57e9a9ea03c84370a41e377bd71795bc2dc7d905a34a8564668ec1186d930c9",
+    "target": "x86_64-linux-gnu.2.38",
+    "mode": "ReleaseSafe",
+    "build_command": [
+      "/tmp/cache/zig/p/N-V-__8AAFFSVRWqblwBIcA-Yqv-u7sbjsJoww8K0mWaHbmJ/zig",
+      "build",
+      "-Dtarget=x86_64-linux-gnu.2.38",
+      "-Dcpu=haswell",
+      "-Doptimize=ReleaseSafe",
+      "--cache-dir",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/real-api-onehot-cache",
+      "--prefix",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/final-v4-strict-onehot/x86_64-linux-gnu.2.38/ReleaseSafe",
+      "--summary",
+      "all"
+    ],
+    "build_cwd": "/tmp/tmp/zmath-perf-round.Dz4uxZhl/real-api-onehot",
+    "build_exit": 0,
+    "build_output": "Build Summary: 4/4 steps succeeded\ninstall success\n+- install api-round-consumer success\n   +- compile exe api-round-consumer ReleaseSafe x86_64-linux-gnu.2.38 success 57s MaxRSS:1G\n      +- WriteFile c_kernel_abi_guard.c cached\n\n",
+    "run_command": [
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/final-v4-strict-onehot/x86_64-linux-gnu.2.38/ReleaseSafe/bin/api-round-consumer"
+    ],
+    "run_exit": 0,
+    "run_output": "PASS real API all one-hot lanes at width 1\nPASS real API all one-hot lanes at width 2\nPASS real API all one-hot lanes at width 3\nPASS real API all one-hot lanes at width 4\nPASS real API all one-hot lanes at width 5\nPASS real API all one-hot lanes at width 6\nPASS real API all one-hot lanes at width 7\nPASS real API all one-hot lanes at width 8\nPASS real API all one-hot lanes at width 9\nPASS real API all one-hot lanes at width 10\nPASS real API all one-hot lanes at width 11\nPASS real API all one-hot lanes at width 12\nPASS real API all one-hot lanes at width 13\nPASS real API all one-hot lanes at width 14\nPASS real API all one-hot lanes at width 15\nPASS real API all one-hot lanes at width 16\nPASS real API all one-hot lanes at width 17\nPASS real API all one-hot lanes at width 18\nPASS real API all one-hot lanes at width 19\nPASS real API all one-hot lanes at width 20\nPASS real API all one-hot lanes at width 21\nPASS real API all one-hot lanes at width 22\nPASS real API all one-hot lanes at width 23\nPASS real API all one-hot lanes at width 24\nPASS real API all one-hot lanes at width 25\nPASS real API all one-hot lanes at width 26\nPASS real API all one-hot lanes at width 27\nPASS real API all one-hot lanes at width 28\nPASS real API all one-hot lanes at width 29\nPASS real API all one-hot lanes at width 30\nPASS real API all one-hot lanes at width 31\nPASS real API all one-hot lanes at width 32\nPASS real API all one-hot lanes at width 33\nPASS real API all one-hot lanes at width 64\nPASS real API all one-hot lanes at width 128\n",
+    "source_sha256": "7172899cd92039f27bc77eb61fcf9edcd47c6ee5c12b4b57c5024cbe51a013dc",
+    "executable_sha256": "ad7d089360720786c2d17505b60035e92ada522d4537a8ba875f096c72af82b6"
+  },
+  {
+    "compiler_backend": "LLVM",
+    "runtime_tree_sha256": "d18dbfa5367f019badd2c679d131fffd95634534a49648011821a95427dd8370",
+    "build_source_sha256": "c57e9a9ea03c84370a41e377bd71795bc2dc7d905a34a8564668ec1186d930c9",
+    "target": "aarch64_be-linux",
+    "mode": "Debug",
+    "build_command": [
+      "/tmp/cache/zig/p/N-V-__8AAFFSVRWqblwBIcA-Yqv-u7sbjsJoww8K0mWaHbmJ/zig",
+      "build",
+      "-Dtarget=aarch64_be-linux",
+      "-Dcpu=baseline",
+      "-Doptimize=Debug",
+      "--cache-dir",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/real-api-onehot-cache",
+      "--prefix",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/final-v4-strict-onehot/aarch64_be-linux/Debug",
+      "--summary",
+      "all"
+    ],
+    "build_cwd": "/tmp/tmp/zmath-perf-round.Dz4uxZhl/real-api-onehot",
+    "build_exit": 0,
+    "build_output": "Build Summary: 4/4 steps succeeded\ninstall success\n+- install api-round-consumer success\n   +- compile exe api-round-consumer Debug aarch64_be-linux success 19s MaxRSS:785M\n      +- WriteFile c_kernel_abi_guard.c cached\n\n",
+    "run_command": [
+      "/bin/qemu-aarch64_be",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/final-v4-strict-onehot/aarch64_be-linux/Debug/bin/api-round-consumer"
+    ],
+    "run_exit": 0,
+    "run_output": "PASS real API all one-hot lanes at width 1\nPASS real API all one-hot lanes at width 2\nPASS real API all one-hot lanes at width 3\nPASS real API all one-hot lanes at width 4\nPASS real API all one-hot lanes at width 5\nPASS real API all one-hot lanes at width 6\nPASS real API all one-hot lanes at width 7\nPASS real API all one-hot lanes at width 8\nPASS real API all one-hot lanes at width 9\nPASS real API all one-hot lanes at width 10\nPASS real API all one-hot lanes at width 11\nPASS real API all one-hot lanes at width 12\nPASS real API all one-hot lanes at width 13\nPASS real API all one-hot lanes at width 14\nPASS real API all one-hot lanes at width 15\nPASS real API all one-hot lanes at width 16\nPASS real API all one-hot lanes at width 17\nPASS real API all one-hot lanes at width 18\nPASS real API all one-hot lanes at width 19\nPASS real API all one-hot lanes at width 20\nPASS real API all one-hot lanes at width 21\nPASS real API all one-hot lanes at width 22\nPASS real API all one-hot lanes at width 23\nPASS real API all one-hot lanes at width 24\nPASS real API all one-hot lanes at width 25\nPASS real API all one-hot lanes at width 26\nPASS real API all one-hot lanes at width 27\nPASS real API all one-hot lanes at width 28\nPASS real API all one-hot lanes at width 29\nPASS real API all one-hot lanes at width 30\nPASS real API all one-hot lanes at width 31\nPASS real API all one-hot lanes at width 32\nPASS real API all one-hot lanes at width 33\nPASS real API all one-hot lanes at width 64\nPASS real API all one-hot lanes at width 128\n",
+    "source_sha256": "7172899cd92039f27bc77eb61fcf9edcd47c6ee5c12b4b57c5024cbe51a013dc",
+    "executable_sha256": "71cc6d9f099a32030d4dd0a02e7989e02345662eaf1287d2d0c9ffea4fbab995"
+  },
+  {
+    "compiler_backend": "LLVM",
+    "runtime_tree_sha256": "d18dbfa5367f019badd2c679d131fffd95634534a49648011821a95427dd8370",
+    "build_source_sha256": "c57e9a9ea03c84370a41e377bd71795bc2dc7d905a34a8564668ec1186d930c9",
+    "target": "aarch64_be-linux",
+    "mode": "ReleaseSafe",
+    "build_command": [
+      "/tmp/cache/zig/p/N-V-__8AAFFSVRWqblwBIcA-Yqv-u7sbjsJoww8K0mWaHbmJ/zig",
+      "build",
+      "-Dtarget=aarch64_be-linux",
+      "-Dcpu=baseline",
+      "-Doptimize=ReleaseSafe",
+      "--cache-dir",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/real-api-onehot-cache",
+      "--prefix",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/final-v4-strict-onehot/aarch64_be-linux/ReleaseSafe",
+      "--summary",
+      "all"
+    ],
+    "build_cwd": "/tmp/tmp/zmath-perf-round.Dz4uxZhl/real-api-onehot",
+    "build_exit": 0,
+    "build_output": "Build Summary: 4/4 steps succeeded\ninstall success\n+- install api-round-consumer success\n   +- compile exe api-round-consumer ReleaseSafe aarch64_be-linux success 1m MaxRSS:1G\n      +- WriteFile c_kernel_abi_guard.c cached\n\n",
+    "run_command": [
+      "/bin/qemu-aarch64_be",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/final-v4-strict-onehot/aarch64_be-linux/ReleaseSafe/bin/api-round-consumer"
+    ],
+    "run_exit": 1,
+    "run_output": "PASS real API all one-hot lanes at width 1\nPASS real API all one-hot lanes at width 2\nPASS real API all one-hot lanes at width 3\nPASS real API all one-hot lanes at width 4\nPASS real API all one-hot lanes at width 5\nPASS real API all one-hot lanes at width 6\nPASS real API all one-hot lanes at width 7\nPASS real API all one-hot lanes at width 8\nPASS real API all one-hot lanes at width 9\nPASS real API all one-hot lanes at width 10\nPASS real API all one-hot lanes at width 11\nPASS real API all one-hot lanes at width 12\nPASS real API all one-hot lanes at width 13\nPASS real API all one-hot lanes at width 14\nPASS real API all one-hot lanes at width 15\nPASS real API all one-hot lanes at width 16\nPASS real API all one-hot lanes at width 17\nPASS real API all one-hot lanes at width 18\nPASS real API all one-hot lanes at width 19\nPASS real API all one-hot lanes at width 20\nPASS real API all one-hot lanes at width 21\nPASS real API all one-hot lanes at width 22\nPASS real API all one-hot lanes at width 23\nPASS real API all one-hot lanes at width 24\nPASS real API all one-hot lanes at width 25\nPASS real API all one-hot lanes at width 26\nPASS real API all one-hot lanes at width 27\nPASS real API all one-hot lanes at width 28\nPASS real API all one-hot lanes at width 29\nPASS real API all one-hot lanes at width 30\nPASS real API all one-hot lanes at width 31\nPASS real API all one-hot lanes at width 32\nPASS real API all one-hot lanes at width 33\nFAIL n=64 one_hot=0 lane=0 order=false expected=true mag=false expected_mag=true\nerror: LogicalLaneMismatch\n",
+    "source_sha256": "7172899cd92039f27bc77eb61fcf9edcd47c6ee5c12b4b57c5024cbe51a013dc",
+    "executable_sha256": "b69caf6ad3860d4d63e8f8cf59539ec57cd12d17bff04c8918a0c3f8dd35e998"
+  },
+  {
+    "compiler_backend": "LLVM",
+    "runtime_tree_sha256": "d18dbfa5367f019badd2c679d131fffd95634534a49648011821a95427dd8370",
+    "build_source_sha256": "c57e9a9ea03c84370a41e377bd71795bc2dc7d905a34a8564668ec1186d930c9",
+    "target": "armeb-linux",
+    "mode": "Debug",
+    "build_command": [
+      "/tmp/cache/zig/p/N-V-__8AAFFSVRWqblwBIcA-Yqv-u7sbjsJoww8K0mWaHbmJ/zig",
+      "build",
+      "-Dtarget=armeb-linux",
+      "-Dcpu=baseline",
+      "-Doptimize=Debug",
+      "--cache-dir",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/real-api-onehot-cache",
+      "--prefix",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/final-v4-strict-onehot/armeb-linux/Debug",
+      "--summary",
+      "all"
+    ],
+    "build_cwd": "/tmp/tmp/zmath-perf-round.Dz4uxZhl/real-api-onehot",
+    "build_exit": 0,
+    "build_output": "Build Summary: 4/4 steps succeeded\ninstall success\n+- install api-round-consumer success\n   +- compile exe api-round-consumer Debug armeb-linux success 19s MaxRSS:706M\n      +- WriteFile c_kernel_abi_guard.c cached\n\n",
+    "run_command": [
+      "/bin/qemu-armeb",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/final-v4-strict-onehot/armeb-linux/Debug/bin/api-round-consumer"
+    ],
+    "run_exit": 0,
+    "run_output": "PASS real API all one-hot lanes at width 1\nPASS real API all one-hot lanes at width 2\nPASS real API all one-hot lanes at width 3\nPASS real API all one-hot lanes at width 4\nPASS real API all one-hot lanes at width 5\nPASS real API all one-hot lanes at width 6\nPASS real API all one-hot lanes at width 7\nPASS real API all one-hot lanes at width 8\nPASS real API all one-hot lanes at width 9\nPASS real API all one-hot lanes at width 10\nPASS real API all one-hot lanes at width 11\nPASS real API all one-hot lanes at width 12\nPASS real API all one-hot lanes at width 13\nPASS real API all one-hot lanes at width 14\nPASS real API all one-hot lanes at width 15\nPASS real API all one-hot lanes at width 16\nPASS real API all one-hot lanes at width 17\nPASS real API all one-hot lanes at width 18\nPASS real API all one-hot lanes at width 19\nPASS real API all one-hot lanes at width 20\nPASS real API all one-hot lanes at width 21\nPASS real API all one-hot lanes at width 22\nPASS real API all one-hot lanes at width 23\nPASS real API all one-hot lanes at width 24\nPASS real API all one-hot lanes at width 25\nPASS real API all one-hot lanes at width 26\nPASS real API all one-hot lanes at width 27\nPASS real API all one-hot lanes at width 28\nPASS real API all one-hot lanes at width 29\nPASS real API all one-hot lanes at width 30\nPASS real API all one-hot lanes at width 31\nPASS real API all one-hot lanes at width 32\nPASS real API all one-hot lanes at width 33\nPASS real API all one-hot lanes at width 64\nPASS real API all one-hot lanes at width 128\n",
+    "source_sha256": "7172899cd92039f27bc77eb61fcf9edcd47c6ee5c12b4b57c5024cbe51a013dc",
+    "executable_sha256": "d6985c115ac80003fef8a7765947a56c944b83b4f11c9c439d4a86265fd76e58"
+  },
+  {
+    "compiler_backend": "LLVM",
+    "runtime_tree_sha256": "d18dbfa5367f019badd2c679d131fffd95634534a49648011821a95427dd8370",
+    "build_source_sha256": "c57e9a9ea03c84370a41e377bd71795bc2dc7d905a34a8564668ec1186d930c9",
+    "target": "armeb-linux",
+    "mode": "ReleaseSafe",
+    "build_command": [
+      "/tmp/cache/zig/p/N-V-__8AAFFSVRWqblwBIcA-Yqv-u7sbjsJoww8K0mWaHbmJ/zig",
+      "build",
+      "-Dtarget=armeb-linux",
+      "-Dcpu=baseline",
+      "-Doptimize=ReleaseSafe",
+      "--cache-dir",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/real-api-onehot-cache",
+      "--prefix",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/final-v4-strict-onehot/armeb-linux/ReleaseSafe",
+      "--summary",
+      "all"
+    ],
+    "build_cwd": "/tmp/tmp/zmath-perf-round.Dz4uxZhl/real-api-onehot",
+    "build_exit": 0,
+    "build_output": "Build Summary: 4/4 steps succeeded\ninstall success\n+- install api-round-consumer success\n   +- compile exe api-round-consumer ReleaseSafe armeb-linux success 1m MaxRSS:1G\n      +- WriteFile c_kernel_abi_guard.c cached\n\n",
+    "run_command": [
+      "/bin/qemu-armeb",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/final-v4-strict-onehot/armeb-linux/ReleaseSafe/bin/api-round-consumer"
+    ],
+    "run_exit": 0,
+    "run_output": "PASS real API all one-hot lanes at width 1\nPASS real API all one-hot lanes at width 2\nPASS real API all one-hot lanes at width 3\nPASS real API all one-hot lanes at width 4\nPASS real API all one-hot lanes at width 5\nPASS real API all one-hot lanes at width 6\nPASS real API all one-hot lanes at width 7\nPASS real API all one-hot lanes at width 8\nPASS real API all one-hot lanes at width 9\nPASS real API all one-hot lanes at width 10\nPASS real API all one-hot lanes at width 11\nPASS real API all one-hot lanes at width 12\nPASS real API all one-hot lanes at width 13\nPASS real API all one-hot lanes at width 14\nPASS real API all one-hot lanes at width 15\nPASS real API all one-hot lanes at width 16\nPASS real API all one-hot lanes at width 17\nPASS real API all one-hot lanes at width 18\nPASS real API all one-hot lanes at width 19\nPASS real API all one-hot lanes at width 20\nPASS real API all one-hot lanes at width 21\nPASS real API all one-hot lanes at width 22\nPASS real API all one-hot lanes at width 23\nPASS real API all one-hot lanes at width 24\nPASS real API all one-hot lanes at width 25\nPASS real API all one-hot lanes at width 26\nPASS real API all one-hot lanes at width 27\nPASS real API all one-hot lanes at width 28\nPASS real API all one-hot lanes at width 29\nPASS real API all one-hot lanes at width 30\nPASS real API all one-hot lanes at width 31\nPASS real API all one-hot lanes at width 32\nPASS real API all one-hot lanes at width 33\nPASS real API all one-hot lanes at width 64\nPASS real API all one-hot lanes at width 128\n",
+    "source_sha256": "7172899cd92039f27bc77eb61fcf9edcd47c6ee5c12b4b57c5024cbe51a013dc",
+    "executable_sha256": "c2773d5563805c5a0055252ac775c8d0c3dbed46972afa001bf982ada614e244"
+  },
+  {
+    "compiler_backend": "LLVM",
+    "runtime_tree_sha256": "d18dbfa5367f019badd2c679d131fffd95634534a49648011821a95427dd8370",
+    "build_source_sha256": "c57e9a9ea03c84370a41e377bd71795bc2dc7d905a34a8564668ec1186d930c9",
+    "target": "mips-linux",
+    "mode": "Debug",
+    "build_command": [
+      "/tmp/cache/zig/p/N-V-__8AAFFSVRWqblwBIcA-Yqv-u7sbjsJoww8K0mWaHbmJ/zig",
+      "build",
+      "-Dtarget=mips-linux",
+      "-Dcpu=baseline",
+      "-Doptimize=Debug",
+      "--cache-dir",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/real-api-onehot-cache",
+      "--prefix",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/final-v4-strict-onehot/mips-linux/Debug",
+      "--summary",
+      "all"
+    ],
+    "build_cwd": "/tmp/tmp/zmath-perf-round.Dz4uxZhl/real-api-onehot",
+    "build_exit": 0,
+    "build_output": "Build Summary: 4/4 steps succeeded\ninstall success\n+- install api-round-consumer success\n   +- compile exe api-round-consumer Debug mips-linux success 27s MaxRSS:657M\n      +- WriteFile c_kernel_abi_guard.c cached\n\n",
+    "run_command": [
+      "/bin/qemu-mips",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/final-v4-strict-onehot/mips-linux/Debug/bin/api-round-consumer"
+    ],
+    "run_exit": 0,
+    "run_output": "PASS real API all one-hot lanes at width 1\nPASS real API all one-hot lanes at width 2\nPASS real API all one-hot lanes at width 3\nPASS real API all one-hot lanes at width 4\nPASS real API all one-hot lanes at width 5\nPASS real API all one-hot lanes at width 6\nPASS real API all one-hot lanes at width 7\nPASS real API all one-hot lanes at width 8\nPASS real API all one-hot lanes at width 9\nPASS real API all one-hot lanes at width 10\nPASS real API all one-hot lanes at width 11\nPASS real API all one-hot lanes at width 12\nPASS real API all one-hot lanes at width 13\nPASS real API all one-hot lanes at width 14\nPASS real API all one-hot lanes at width 15\nPASS real API all one-hot lanes at width 16\nPASS real API all one-hot lanes at width 17\nPASS real API all one-hot lanes at width 18\nPASS real API all one-hot lanes at width 19\nPASS real API all one-hot lanes at width 20\nPASS real API all one-hot lanes at width 21\nPASS real API all one-hot lanes at width 22\nPASS real API all one-hot lanes at width 23\nPASS real API all one-hot lanes at width 24\nPASS real API all one-hot lanes at width 25\nPASS real API all one-hot lanes at width 26\nPASS real API all one-hot lanes at width 27\nPASS real API all one-hot lanes at width 28\nPASS real API all one-hot lanes at width 29\nPASS real API all one-hot lanes at width 30\nPASS real API all one-hot lanes at width 31\nPASS real API all one-hot lanes at width 32\nPASS real API all one-hot lanes at width 33\nPASS real API all one-hot lanes at width 64\nPASS real API all one-hot lanes at width 128\n",
+    "source_sha256": "7172899cd92039f27bc77eb61fcf9edcd47c6ee5c12b4b57c5024cbe51a013dc",
+    "executable_sha256": "e76dc0b3011f01102e660f66911dbbb06afb7eaec20cce2be577d705d2f963a0"
+  },
+  {
+    "compiler_backend": "LLVM",
+    "runtime_tree_sha256": "d18dbfa5367f019badd2c679d131fffd95634534a49648011821a95427dd8370",
+    "build_source_sha256": "c57e9a9ea03c84370a41e377bd71795bc2dc7d905a34a8564668ec1186d930c9",
+    "target": "mips-linux",
+    "mode": "ReleaseSafe",
+    "build_command": [
+      "/tmp/cache/zig/p/N-V-__8AAFFSVRWqblwBIcA-Yqv-u7sbjsJoww8K0mWaHbmJ/zig",
+      "build",
+      "-Dtarget=mips-linux",
+      "-Dcpu=baseline",
+      "-Doptimize=ReleaseSafe",
+      "--cache-dir",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/real-api-onehot-cache",
+      "--prefix",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/final-v4-strict-onehot/mips-linux/ReleaseSafe",
+      "--summary",
+      "all"
+    ],
+    "build_cwd": "/tmp/tmp/zmath-perf-round.Dz4uxZhl/real-api-onehot",
+    "build_exit": 0,
+    "build_output": "Build Summary: 4/4 steps succeeded\ninstall success\n+- install api-round-consumer success\n   +- compile exe api-round-consumer ReleaseSafe mips-linux success 1m MaxRSS:1G\n      +- WriteFile c_kernel_abi_guard.c cached\n\n",
+    "run_command": [
+      "/bin/qemu-mips",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/final-v4-strict-onehot/mips-linux/ReleaseSafe/bin/api-round-consumer"
+    ],
+    "run_exit": 0,
+    "run_output": "PASS real API all one-hot lanes at width 1\nPASS real API all one-hot lanes at width 2\nPASS real API all one-hot lanes at width 3\nPASS real API all one-hot lanes at width 4\nPASS real API all one-hot lanes at width 5\nPASS real API all one-hot lanes at width 6\nPASS real API all one-hot lanes at width 7\nPASS real API all one-hot lanes at width 8\nPASS real API all one-hot lanes at width 9\nPASS real API all one-hot lanes at width 10\nPASS real API all one-hot lanes at width 11\nPASS real API all one-hot lanes at width 12\nPASS real API all one-hot lanes at width 13\nPASS real API all one-hot lanes at width 14\nPASS real API all one-hot lanes at width 15\nPASS real API all one-hot lanes at width 16\nPASS real API all one-hot lanes at width 17\nPASS real API all one-hot lanes at width 18\nPASS real API all one-hot lanes at width 19\nPASS real API all one-hot lanes at width 20\nPASS real API all one-hot lanes at width 21\nPASS real API all one-hot lanes at width 22\nPASS real API all one-hot lanes at width 23\nPASS real API all one-hot lanes at width 24\nPASS real API all one-hot lanes at width 25\nPASS real API all one-hot lanes at width 26\nPASS real API all one-hot lanes at width 27\nPASS real API all one-hot lanes at width 28\nPASS real API all one-hot lanes at width 29\nPASS real API all one-hot lanes at width 30\nPASS real API all one-hot lanes at width 31\nPASS real API all one-hot lanes at width 32\nPASS real API all one-hot lanes at width 33\nPASS real API all one-hot lanes at width 64\nPASS real API all one-hot lanes at width 128\n",
+    "source_sha256": "7172899cd92039f27bc77eb61fcf9edcd47c6ee5c12b4b57c5024cbe51a013dc",
+    "executable_sha256": "3defd4e69dd184d8951c0c7d02bf542fa0cede9e87a5b0b5bade0af55c385a26"
+  },
+  {
+    "compiler_backend": "LLVM",
+    "runtime_tree_sha256": "d18dbfa5367f019badd2c679d131fffd95634534a49648011821a95427dd8370",
+    "build_source_sha256": "c57e9a9ea03c84370a41e377bd71795bc2dc7d905a34a8564668ec1186d930c9",
+    "target": "mipsel-linux",
+    "mode": "Debug",
+    "build_command": [
+      "/tmp/cache/zig/p/N-V-__8AAFFSVRWqblwBIcA-Yqv-u7sbjsJoww8K0mWaHbmJ/zig",
+      "build",
+      "-Dtarget=mipsel-linux",
+      "-Dcpu=baseline",
+      "-Doptimize=Debug",
+      "--cache-dir",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/real-api-onehot-cache",
+      "--prefix",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/final-v4-strict-onehot/mipsel-linux/Debug",
+      "--summary",
+      "all"
+    ],
+    "build_cwd": "/tmp/tmp/zmath-perf-round.Dz4uxZhl/real-api-onehot",
+    "build_exit": 0,
+    "build_output": "Build Summary: 4/4 steps succeeded\ninstall success\n+- install api-round-consumer success\n   +- compile exe api-round-consumer Debug mipsel-linux success 24s MaxRSS:643M\n      +- WriteFile c_kernel_abi_guard.c cached\n\n",
+    "run_command": [
+      "/bin/qemu-mipsel",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/final-v4-strict-onehot/mipsel-linux/Debug/bin/api-round-consumer"
+    ],
+    "run_exit": 0,
+    "run_output": "PASS real API all one-hot lanes at width 1\nPASS real API all one-hot lanes at width 2\nPASS real API all one-hot lanes at width 3\nPASS real API all one-hot lanes at width 4\nPASS real API all one-hot lanes at width 5\nPASS real API all one-hot lanes at width 6\nPASS real API all one-hot lanes at width 7\nPASS real API all one-hot lanes at width 8\nPASS real API all one-hot lanes at width 9\nPASS real API all one-hot lanes at width 10\nPASS real API all one-hot lanes at width 11\nPASS real API all one-hot lanes at width 12\nPASS real API all one-hot lanes at width 13\nPASS real API all one-hot lanes at width 14\nPASS real API all one-hot lanes at width 15\nPASS real API all one-hot lanes at width 16\nPASS real API all one-hot lanes at width 17\nPASS real API all one-hot lanes at width 18\nPASS real API all one-hot lanes at width 19\nPASS real API all one-hot lanes at width 20\nPASS real API all one-hot lanes at width 21\nPASS real API all one-hot lanes at width 22\nPASS real API all one-hot lanes at width 23\nPASS real API all one-hot lanes at width 24\nPASS real API all one-hot lanes at width 25\nPASS real API all one-hot lanes at width 26\nPASS real API all one-hot lanes at width 27\nPASS real API all one-hot lanes at width 28\nPASS real API all one-hot lanes at width 29\nPASS real API all one-hot lanes at width 30\nPASS real API all one-hot lanes at width 31\nPASS real API all one-hot lanes at width 32\nPASS real API all one-hot lanes at width 33\nPASS real API all one-hot lanes at width 64\nPASS real API all one-hot lanes at width 128\n",
+    "source_sha256": "7172899cd92039f27bc77eb61fcf9edcd47c6ee5c12b4b57c5024cbe51a013dc",
+    "executable_sha256": "17afd2c67c665318ff3fe87d10d45dc8b475551c954da778e76583b838f2ff96"
+  },
+  {
+    "compiler_backend": "LLVM",
+    "runtime_tree_sha256": "d18dbfa5367f019badd2c679d131fffd95634534a49648011821a95427dd8370",
+    "build_source_sha256": "c57e9a9ea03c84370a41e377bd71795bc2dc7d905a34a8564668ec1186d930c9",
+    "target": "mipsel-linux",
+    "mode": "ReleaseSafe",
+    "build_command": [
+      "/tmp/cache/zig/p/N-V-__8AAFFSVRWqblwBIcA-Yqv-u7sbjsJoww8K0mWaHbmJ/zig",
+      "build",
+      "-Dtarget=mipsel-linux",
+      "-Dcpu=baseline",
+      "-Doptimize=ReleaseSafe",
+      "--cache-dir",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/real-api-onehot-cache",
+      "--prefix",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/final-v4-strict-onehot/mipsel-linux/ReleaseSafe",
+      "--summary",
+      "all"
+    ],
+    "build_cwd": "/tmp/tmp/zmath-perf-round.Dz4uxZhl/real-api-onehot",
+    "build_exit": 0,
+    "build_output": "Build Summary: 4/4 steps succeeded\ninstall success\n+- install api-round-consumer success\n   +- compile exe api-round-consumer ReleaseSafe mipsel-linux success 1m MaxRSS:1G\n      +- WriteFile c_kernel_abi_guard.c cached\n\n",
+    "run_command": [
+      "/bin/qemu-mipsel",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/final-v4-strict-onehot/mipsel-linux/ReleaseSafe/bin/api-round-consumer"
+    ],
+    "run_exit": 0,
+    "run_output": "PASS real API all one-hot lanes at width 1\nPASS real API all one-hot lanes at width 2\nPASS real API all one-hot lanes at width 3\nPASS real API all one-hot lanes at width 4\nPASS real API all one-hot lanes at width 5\nPASS real API all one-hot lanes at width 6\nPASS real API all one-hot lanes at width 7\nPASS real API all one-hot lanes at width 8\nPASS real API all one-hot lanes at width 9\nPASS real API all one-hot lanes at width 10\nPASS real API all one-hot lanes at width 11\nPASS real API all one-hot lanes at width 12\nPASS real API all one-hot lanes at width 13\nPASS real API all one-hot lanes at width 14\nPASS real API all one-hot lanes at width 15\nPASS real API all one-hot lanes at width 16\nPASS real API all one-hot lanes at width 17\nPASS real API all one-hot lanes at width 18\nPASS real API all one-hot lanes at width 19\nPASS real API all one-hot lanes at width 20\nPASS real API all one-hot lanes at width 21\nPASS real API all one-hot lanes at width 22\nPASS real API all one-hot lanes at width 23\nPASS real API all one-hot lanes at width 24\nPASS real API all one-hot lanes at width 25\nPASS real API all one-hot lanes at width 26\nPASS real API all one-hot lanes at width 27\nPASS real API all one-hot lanes at width 28\nPASS real API all one-hot lanes at width 29\nPASS real API all one-hot lanes at width 30\nPASS real API all one-hot lanes at width 31\nPASS real API all one-hot lanes at width 32\nPASS real API all one-hot lanes at width 33\nPASS real API all one-hot lanes at width 64\nPASS real API all one-hot lanes at width 128\n",
+    "source_sha256": "7172899cd92039f27bc77eb61fcf9edcd47c6ee5c12b4b57c5024cbe51a013dc",
+    "executable_sha256": "f1633dbea507beace026946f058a7baa3db5be9be9b30ea93ef64901e2ff982f"
+  }
+]

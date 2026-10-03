@@ -1,0 +1,310 @@
+[
+  {
+    "compiler_backend": "LLVM",
+    "runtime_tree_sha256": "d18dbfa5367f019badd2c679d131fffd95634534a49648011821a95427dd8370",
+    "build_source_sha256": "c57e9a9ea03c84370a41e377bd71795bc2dc7d905a34a8564668ec1186d930c9",
+    "target": "x86_64-linux-gnu.2.38",
+    "mode": "Debug",
+    "build_command": [
+      "/tmp/cache/zig/p/N-V-__8AAFFSVRWqblwBIcA-Yqv-u7sbjsJoww8K0mWaHbmJ/zig",
+      "build",
+      "-Dtarget=x86_64-linux-gnu.2.38",
+      "-Dcpu=haswell",
+      "-Doptimize=Debug",
+      "--cache-dir",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/consumer-smoke-cache",
+      "--prefix",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/final-v4-consumers/x86_64-linux-gnu.2.38/Debug",
+      "--summary",
+      "all"
+    ],
+    "build_cwd": "/tmp/tmp/zmath-perf-round.Dz4uxZhl/consumer-smoke",
+    "build_exit": 0,
+    "build_output": "Build Summary: 4/4 steps succeeded\ninstall success\n+- install api-round-consumer success\n   +- compile exe api-round-consumer Debug x86_64-linux-gnu.2.38 success 7s MaxRSS:511M\n      +- WriteFile c_kernel_abi_guard.c cached\n\n",
+    "run_command": [
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/final-v4-consumers/x86_64-linux-gnu.2.38/Debug/bin/api-round-consumer"
+    ],
+    "run_exit": 0,
+    "run_output": "bridge vector_value.Vec2f: 2 logical lanes preserve component bits\nbridge vector_value.Vec3f: 3 logical lanes preserve component bits\nbridge vector_value.Vec4f: 4 logical lanes preserve component bits\nbridge vector_value.Vec2d: 2 logical lanes preserve component bits\nbridge vector_value.Vec3d: 3 logical lanes preserve component bits\nbridge vector_value.Vec4d: 4 logical lanes preserve component bits\nmask f16: order=T/F/F/T magnitude=T/T/F/T\nmask f32: order=T/F/F/T magnitude=T/T/F/T\nmask f64: order=T/F/F/T magnitude=T/T/F/T\nmask width 1: only logical lane zero is true\nmask width 2: only logical lane zero is true\nmask width 3: only logical lane zero is true\nmask width 4: only logical lane zero is true\nmask width 5: only logical lane zero is true\nmask width 6: only logical lane zero is true\nmask width 7: only logical lane zero is true\nmask width 8: only logical lane zero is true\nmask width 9: only logical lane zero is true\nmask width 10: only logical lane zero is true\nmask width 11: only logical lane zero is true\nmask width 12: only logical lane zero is true\nmask width 13: only logical lane zero is true\nmask width 16: only logical lane zero is true\nmask width 24: only logical lane zero is true\nmask width 32: only logical lane zero is true\nmask width 64: only logical lane zero is true\nmask width 128: only logical lane zero is true\ncenter geometry.Aabb2(f32): bits=1 on every axis; runtime primitive (tiny+tiny)/2=1\ncenter geometry.Aabb3(f32): bits=1 on every axis; runtime primitive (tiny+tiny)/2=1\ncenter geometry.Aabb4(f32): bits=1 on every axis; runtime primitive (tiny+tiny)/2=1\ncenter geometry.Aabb2(f64): bits=1 on every axis; runtime primitive (tiny+tiny)/2=1\ncenter geometry.Aabb3(f64): bits=1 on every axis; runtime primitive (tiny+tiny)/2=1\ncenter geometry.Aabb4(f64): bits=1 on every axis; runtime primitive (tiny+tiny)/2=1\nmixed-scale exact orientation=zero\nroot h/f/d bits=4000/40000000/4010000000000000, reciprocal=3fd0000000000000, lanes=2/3/4/5\norientation fast=zero exact=negative, e1*e2 coefficient[3]=3ff0000000000000\n",
+    "source_sha256": "57b248ce7c8723d4d9f024a0080bbdeb71aa9b7724119999ae345f3cbd1788f3",
+    "executable_sha256": "2800a4cd8e4337f39b17c5663ed75618f0fe828710083500fb53ea39c6511516"
+  },
+  {
+    "compiler_backend": "LLVM",
+    "runtime_tree_sha256": "d18dbfa5367f019badd2c679d131fffd95634534a49648011821a95427dd8370",
+    "build_source_sha256": "c57e9a9ea03c84370a41e377bd71795bc2dc7d905a34a8564668ec1186d930c9",
+    "target": "x86_64-linux-gnu.2.38",
+    "mode": "ReleaseSafe",
+    "build_command": [
+      "/tmp/cache/zig/p/N-V-__8AAFFSVRWqblwBIcA-Yqv-u7sbjsJoww8K0mWaHbmJ/zig",
+      "build",
+      "-Dtarget=x86_64-linux-gnu.2.38",
+      "-Dcpu=haswell",
+      "-Doptimize=ReleaseSafe",
+      "--cache-dir",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/consumer-smoke-cache",
+      "--prefix",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/final-v4-consumers/x86_64-linux-gnu.2.38/ReleaseSafe",
+      "--summary",
+      "all"
+    ],
+    "build_cwd": "/tmp/tmp/zmath-perf-round.Dz4uxZhl/consumer-smoke",
+    "build_exit": 0,
+    "build_output": "Build Summary: 4/4 steps succeeded\ninstall success\n+- install api-round-consumer success\n   +- compile exe api-round-consumer ReleaseSafe x86_64-linux-gnu.2.38 success 26s MaxRSS:673M\n      +- WriteFile c_kernel_abi_guard.c cached\n\n",
+    "run_command": [
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/final-v4-consumers/x86_64-linux-gnu.2.38/ReleaseSafe/bin/api-round-consumer"
+    ],
+    "run_exit": 0,
+    "run_output": "bridge vector_value.Vec2f: 2 logical lanes preserve component bits\nbridge vector_value.Vec3f: 3 logical lanes preserve component bits\nbridge vector_value.Vec4f: 4 logical lanes preserve component bits\nbridge vector_value.Vec2d: 2 logical lanes preserve component bits\nbridge vector_value.Vec3d: 3 logical lanes preserve component bits\nbridge vector_value.Vec4d: 4 logical lanes preserve component bits\nmask f16: order=T/F/F/T magnitude=T/T/F/T\nmask f32: order=T/F/F/T magnitude=T/T/F/T\nmask f64: order=T/F/F/T magnitude=T/T/F/T\nmask width 1: only logical lane zero is true\nmask width 2: only logical lane zero is true\nmask width 3: only logical lane zero is true\nmask width 4: only logical lane zero is true\nmask width 5: only logical lane zero is true\nmask width 6: only logical lane zero is true\nmask width 7: only logical lane zero is true\nmask width 8: only logical lane zero is true\nmask width 9: only logical lane zero is true\nmask width 10: only logical lane zero is true\nmask width 11: only logical lane zero is true\nmask width 12: only logical lane zero is true\nmask width 13: only logical lane zero is true\nmask width 16: only logical lane zero is true\nmask width 24: only logical lane zero is true\nmask width 32: only logical lane zero is true\nmask width 64: only logical lane zero is true\nmask width 128: only logical lane zero is true\ncenter geometry.Aabb2(f32): bits=1 on every axis; runtime primitive (tiny+tiny)/2=1\ncenter geometry.Aabb3(f32): bits=1 on every axis; runtime primitive (tiny+tiny)/2=1\ncenter geometry.Aabb4(f32): bits=1 on every axis; runtime primitive (tiny+tiny)/2=1\ncenter geometry.Aabb2(f64): bits=1 on every axis; runtime primitive (tiny+tiny)/2=1\ncenter geometry.Aabb3(f64): bits=1 on every axis; runtime primitive (tiny+tiny)/2=1\ncenter geometry.Aabb4(f64): bits=1 on every axis; runtime primitive (tiny+tiny)/2=1\nmixed-scale exact orientation=zero\nroot h/f/d bits=4000/40000000/4010000000000000, reciprocal=3fd0000000000000, lanes=2/3/4/5\norientation fast=zero exact=negative, e1*e2 coefficient[3]=3ff0000000000000\n",
+    "source_sha256": "57b248ce7c8723d4d9f024a0080bbdeb71aa9b7724119999ae345f3cbd1788f3",
+    "executable_sha256": "c523036b544a6bab9b94f76b4dd98b7f8ee32c8f720ecfcdd3d3d98a1afbd06c"
+  },
+  {
+    "compiler_backend": "LLVM",
+    "runtime_tree_sha256": "d18dbfa5367f019badd2c679d131fffd95634534a49648011821a95427dd8370",
+    "build_source_sha256": "c57e9a9ea03c84370a41e377bd71795bc2dc7d905a34a8564668ec1186d930c9",
+    "target": "aarch64_be-linux",
+    "mode": "Debug",
+    "build_command": [
+      "/tmp/cache/zig/p/N-V-__8AAFFSVRWqblwBIcA-Yqv-u7sbjsJoww8K0mWaHbmJ/zig",
+      "build",
+      "-Dtarget=aarch64_be-linux",
+      "-Dcpu=baseline",
+      "-Doptimize=Debug",
+      "--cache-dir",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/consumer-smoke-cache",
+      "--prefix",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/final-v4-consumers/aarch64_be-linux/Debug",
+      "--summary",
+      "all"
+    ],
+    "build_cwd": "/tmp/tmp/zmath-perf-round.Dz4uxZhl/consumer-smoke",
+    "build_exit": 0,
+    "build_output": "Build Summary: 4/4 steps succeeded\ninstall success\n+- install api-round-consumer success\n   +- compile exe api-round-consumer Debug aarch64_be-linux success 8s MaxRSS:529M\n      +- WriteFile c_kernel_abi_guard.c cached\n\n",
+    "run_command": [
+      "/bin/qemu-aarch64_be",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/final-v4-consumers/aarch64_be-linux/Debug/bin/api-round-consumer"
+    ],
+    "run_exit": 0,
+    "run_output": "bridge vector_value.Vec2f: 2 logical lanes preserve component bits\nbridge vector_value.Vec3f: 3 logical lanes preserve component bits\nbridge vector_value.Vec4f: 4 logical lanes preserve component bits\nbridge vector_value.Vec2d: 2 logical lanes preserve component bits\nbridge vector_value.Vec3d: 3 logical lanes preserve component bits\nbridge vector_value.Vec4d: 4 logical lanes preserve component bits\nmask f16: order=T/F/F/T magnitude=T/T/F/T\nmask f32: order=T/F/F/T magnitude=T/T/F/T\nmask f64: order=T/F/F/T magnitude=T/T/F/T\nmask width 1: only logical lane zero is true\nmask width 2: only logical lane zero is true\nmask width 3: only logical lane zero is true\nmask width 4: only logical lane zero is true\nmask width 5: only logical lane zero is true\nmask width 6: only logical lane zero is true\nmask width 7: only logical lane zero is true\nmask width 8: only logical lane zero is true\nmask width 9: only logical lane zero is true\nmask width 10: only logical lane zero is true\nmask width 11: only logical lane zero is true\nmask width 12: only logical lane zero is true\nmask width 13: only logical lane zero is true\nmask width 16: only logical lane zero is true\nmask width 24: only logical lane zero is true\nmask width 32: only logical lane zero is true\nmask width 64: only logical lane zero is true\nmask width 128: only logical lane zero is true\ncenter geometry.Aabb2(f32): bits=1 on every axis; runtime primitive (tiny+tiny)/2=1\ncenter geometry.Aabb3(f32): bits=1 on every axis; runtime primitive (tiny+tiny)/2=1\ncenter geometry.Aabb4(f32): bits=1 on every axis; runtime primitive (tiny+tiny)/2=1\ncenter geometry.Aabb2(f64): bits=1 on every axis; runtime primitive (tiny+tiny)/2=1\ncenter geometry.Aabb3(f64): bits=1 on every axis; runtime primitive (tiny+tiny)/2=1\ncenter geometry.Aabb4(f64): bits=1 on every axis; runtime primitive (tiny+tiny)/2=1\nmixed-scale exact orientation=zero\nroot h/f/d bits=4000/40000000/4010000000000000, reciprocal=3fd0000000000000, lanes=2/3/4/5\norientation fast=zero exact=negative, e1*e2 coefficient[3]=3ff0000000000000\n",
+    "source_sha256": "57b248ce7c8723d4d9f024a0080bbdeb71aa9b7724119999ae345f3cbd1788f3",
+    "executable_sha256": "8bdb1353ac84bf7741f9dce504443809f599f52befd1a46af8029a79c46d0457"
+  },
+  {
+    "compiler_backend": "LLVM",
+    "runtime_tree_sha256": "d18dbfa5367f019badd2c679d131fffd95634534a49648011821a95427dd8370",
+    "build_source_sha256": "c57e9a9ea03c84370a41e377bd71795bc2dc7d905a34a8564668ec1186d930c9",
+    "target": "aarch64_be-linux",
+    "mode": "ReleaseSafe",
+    "build_command": [
+      "/tmp/cache/zig/p/N-V-__8AAFFSVRWqblwBIcA-Yqv-u7sbjsJoww8K0mWaHbmJ/zig",
+      "build",
+      "-Dtarget=aarch64_be-linux",
+      "-Dcpu=baseline",
+      "-Doptimize=ReleaseSafe",
+      "--cache-dir",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/consumer-smoke-cache",
+      "--prefix",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/final-v4-consumers/aarch64_be-linux/ReleaseSafe",
+      "--summary",
+      "all"
+    ],
+    "build_cwd": "/tmp/tmp/zmath-perf-round.Dz4uxZhl/consumer-smoke",
+    "build_exit": 0,
+    "build_output": "Build Summary: 4/4 steps succeeded\ninstall success\n+- install api-round-consumer success\n   +- compile exe api-round-consumer ReleaseSafe aarch64_be-linux success 28s MaxRSS:706M\n      +- WriteFile c_kernel_abi_guard.c cached\n\n",
+    "run_command": [
+      "/bin/qemu-aarch64_be",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/final-v4-consumers/aarch64_be-linux/ReleaseSafe/bin/api-round-consumer"
+    ],
+    "run_exit": 0,
+    "run_output": "bridge vector_value.Vec2f: 2 logical lanes preserve component bits\nbridge vector_value.Vec3f: 3 logical lanes preserve component bits\nbridge vector_value.Vec4f: 4 logical lanes preserve component bits\nbridge vector_value.Vec2d: 2 logical lanes preserve component bits\nbridge vector_value.Vec3d: 3 logical lanes preserve component bits\nbridge vector_value.Vec4d: 4 logical lanes preserve component bits\nmask f16: order=T/F/F/T magnitude=T/T/F/T\nmask f32: order=T/F/F/T magnitude=T/T/F/T\nmask f64: order=T/F/F/T magnitude=T/T/F/T\nmask width 1: only logical lane zero is true\nmask width 2: only logical lane zero is true\nmask width 3: only logical lane zero is true\nmask width 4: only logical lane zero is true\nmask width 5: only logical lane zero is true\nmask width 6: only logical lane zero is true\nmask width 7: only logical lane zero is true\nmask width 8: only logical lane zero is true\nmask width 9: only logical lane zero is true\nmask width 10: only logical lane zero is true\nmask width 11: only logical lane zero is true\nmask width 12: only logical lane zero is true\nmask width 13: only logical lane zero is true\nmask width 16: only logical lane zero is true\nmask width 24: only logical lane zero is true\nmask width 32: only logical lane zero is true\nmask width 64: only logical lane zero is true\nmask width 128: only logical lane zero is true\ncenter geometry.Aabb2(f32): bits=1 on every axis; runtime primitive (tiny+tiny)/2=1\ncenter geometry.Aabb3(f32): bits=1 on every axis; runtime primitive (tiny+tiny)/2=1\ncenter geometry.Aabb4(f32): bits=1 on every axis; runtime primitive (tiny+tiny)/2=1\ncenter geometry.Aabb2(f64): bits=1 on every axis; runtime primitive (tiny+tiny)/2=1\ncenter geometry.Aabb3(f64): bits=1 on every axis; runtime primitive (tiny+tiny)/2=1\ncenter geometry.Aabb4(f64): bits=1 on every axis; runtime primitive (tiny+tiny)/2=1\nmixed-scale exact orientation=zero\nroot h/f/d bits=4000/40000000/4010000000000000, reciprocal=3fd0000000000000, lanes=2/3/4/5\norientation fast=zero exact=negative, e1*e2 coefficient[3]=3ff0000000000000\n",
+    "source_sha256": "57b248ce7c8723d4d9f024a0080bbdeb71aa9b7724119999ae345f3cbd1788f3",
+    "executable_sha256": "15cffa4d2fe68928ca332733346782f1705250b1f54458abfde18b2c4d8d4317"
+  },
+  {
+    "compiler_backend": "LLVM",
+    "runtime_tree_sha256": "d18dbfa5367f019badd2c679d131fffd95634534a49648011821a95427dd8370",
+    "build_source_sha256": "c57e9a9ea03c84370a41e377bd71795bc2dc7d905a34a8564668ec1186d930c9",
+    "target": "armeb-linux",
+    "mode": "Debug",
+    "build_command": [
+      "/tmp/cache/zig/p/N-V-__8AAFFSVRWqblwBIcA-Yqv-u7sbjsJoww8K0mWaHbmJ/zig",
+      "build",
+      "-Dtarget=armeb-linux",
+      "-Dcpu=baseline",
+      "-Doptimize=Debug",
+      "--cache-dir",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/consumer-smoke-cache",
+      "--prefix",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/final-v4-consumers/armeb-linux/Debug",
+      "--summary",
+      "all"
+    ],
+    "build_cwd": "/tmp/tmp/zmath-perf-round.Dz4uxZhl/consumer-smoke",
+    "build_exit": 0,
+    "build_output": "Build Summary: 4/4 steps succeeded\ninstall success\n+- install api-round-consumer success\n   +- compile exe api-round-consumer Debug armeb-linux success 10s MaxRSS:451M\n      +- WriteFile c_kernel_abi_guard.c cached\n\n",
+    "run_command": [
+      "/bin/qemu-armeb",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/final-v4-consumers/armeb-linux/Debug/bin/api-round-consumer"
+    ],
+    "run_exit": 0,
+    "run_output": "bridge vector_value.Vec2f: 2 logical lanes preserve component bits\nbridge vector_value.Vec3f: 3 logical lanes preserve component bits\nbridge vector_value.Vec4f: 4 logical lanes preserve component bits\nbridge vector_value.Vec2d: 2 logical lanes preserve component bits\nbridge vector_value.Vec3d: 3 logical lanes preserve component bits\nbridge vector_value.Vec4d: 4 logical lanes preserve component bits\nmask f16: order=T/F/F/T magnitude=T/T/F/T\nmask f32: order=T/F/F/T magnitude=T/T/F/T\nmask f64: order=T/F/F/T magnitude=T/T/F/T\nmask width 1: only logical lane zero is true\nmask width 2: only logical lane zero is true\nmask width 3: only logical lane zero is true\nmask width 4: only logical lane zero is true\nmask width 5: only logical lane zero is true\nmask width 6: only logical lane zero is true\nmask width 7: only logical lane zero is true\nmask width 8: only logical lane zero is true\nmask width 9: only logical lane zero is true\nmask width 10: only logical lane zero is true\nmask width 11: only logical lane zero is true\nmask width 12: only logical lane zero is true\nmask width 13: only logical lane zero is true\nmask width 16: only logical lane zero is true\nmask width 24: only logical lane zero is true\nmask width 32: only logical lane zero is true\nmask width 64: only logical lane zero is true\nmask width 128: only logical lane zero is true\ncenter geometry.Aabb2(f32): bits=1 on every axis; runtime primitive (tiny+tiny)/2=1\ncenter geometry.Aabb3(f32): bits=1 on every axis; runtime primitive (tiny+tiny)/2=1\ncenter geometry.Aabb4(f32): bits=1 on every axis; runtime primitive (tiny+tiny)/2=1\ncenter geometry.Aabb2(f64): bits=1 on every axis; runtime primitive (tiny+tiny)/2=1\ncenter geometry.Aabb3(f64): bits=1 on every axis; runtime primitive (tiny+tiny)/2=1\ncenter geometry.Aabb4(f64): bits=1 on every axis; runtime primitive (tiny+tiny)/2=1\nmixed-scale exact orientation=zero\nroot h/f/d bits=4000/40000000/4010000000000000, reciprocal=3fd0000000000000, lanes=2/3/4/5\norientation fast=zero exact=negative, e1*e2 coefficient[3]=3ff0000000000000\n",
+    "source_sha256": "57b248ce7c8723d4d9f024a0080bbdeb71aa9b7724119999ae345f3cbd1788f3",
+    "executable_sha256": "b5fdc573cca4b1fdea0c152a807c7ce20b3cc2ace9f711e684744ee283d3d4d2"
+  },
+  {
+    "compiler_backend": "LLVM",
+    "runtime_tree_sha256": "d18dbfa5367f019badd2c679d131fffd95634534a49648011821a95427dd8370",
+    "build_source_sha256": "c57e9a9ea03c84370a41e377bd71795bc2dc7d905a34a8564668ec1186d930c9",
+    "target": "armeb-linux",
+    "mode": "ReleaseSafe",
+    "build_command": [
+      "/tmp/cache/zig/p/N-V-__8AAFFSVRWqblwBIcA-Yqv-u7sbjsJoww8K0mWaHbmJ/zig",
+      "build",
+      "-Dtarget=armeb-linux",
+      "-Dcpu=baseline",
+      "-Doptimize=ReleaseSafe",
+      "--cache-dir",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/consumer-smoke-cache",
+      "--prefix",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/final-v4-consumers/armeb-linux/ReleaseSafe",
+      "--summary",
+      "all"
+    ],
+    "build_cwd": "/tmp/tmp/zmath-perf-round.Dz4uxZhl/consumer-smoke",
+    "build_exit": 0,
+    "build_output": "Build Summary: 4/4 steps succeeded\ninstall success\n+- install api-round-consumer success\n   +- compile exe api-round-consumer ReleaseSafe armeb-linux success 26s MaxRSS:740M\n      +- WriteFile c_kernel_abi_guard.c cached\n\n",
+    "run_command": [
+      "/bin/qemu-armeb",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/final-v4-consumers/armeb-linux/ReleaseSafe/bin/api-round-consumer"
+    ],
+    "run_exit": 0,
+    "run_output": "bridge vector_value.Vec2f: 2 logical lanes preserve component bits\nbridge vector_value.Vec3f: 3 logical lanes preserve component bits\nbridge vector_value.Vec4f: 4 logical lanes preserve component bits\nbridge vector_value.Vec2d: 2 logical lanes preserve component bits\nbridge vector_value.Vec3d: 3 logical lanes preserve component bits\nbridge vector_value.Vec4d: 4 logical lanes preserve component bits\nmask f16: order=T/F/F/T magnitude=T/T/F/T\nmask f32: order=T/F/F/T magnitude=T/T/F/T\nmask f64: order=T/F/F/T magnitude=T/T/F/T\nmask width 1: only logical lane zero is true\nmask width 2: only logical lane zero is true\nmask width 3: only logical lane zero is true\nmask width 4: only logical lane zero is true\nmask width 5: only logical lane zero is true\nmask width 6: only logical lane zero is true\nmask width 7: only logical lane zero is true\nmask width 8: only logical lane zero is true\nmask width 9: only logical lane zero is true\nmask width 10: only logical lane zero is true\nmask width 11: only logical lane zero is true\nmask width 12: only logical lane zero is true\nmask width 13: only logical lane zero is true\nmask width 16: only logical lane zero is true\nmask width 24: only logical lane zero is true\nmask width 32: only logical lane zero is true\nmask width 64: only logical lane zero is true\nmask width 128: only logical lane zero is true\ncenter geometry.Aabb2(f32): bits=1 on every axis; runtime primitive (tiny+tiny)/2=1\ncenter geometry.Aabb3(f32): bits=1 on every axis; runtime primitive (tiny+tiny)/2=1\ncenter geometry.Aabb4(f32): bits=1 on every axis; runtime primitive (tiny+tiny)/2=1\ncenter geometry.Aabb2(f64): bits=1 on every axis; runtime primitive (tiny+tiny)/2=1\ncenter geometry.Aabb3(f64): bits=1 on every axis; runtime primitive (tiny+tiny)/2=1\ncenter geometry.Aabb4(f64): bits=1 on every axis; runtime primitive (tiny+tiny)/2=1\nmixed-scale exact orientation=zero\nroot h/f/d bits=4000/40000000/4010000000000000, reciprocal=3fd0000000000000, lanes=2/3/4/5\norientation fast=zero exact=negative, e1*e2 coefficient[3]=3ff0000000000000\n",
+    "source_sha256": "57b248ce7c8723d4d9f024a0080bbdeb71aa9b7724119999ae345f3cbd1788f3",
+    "executable_sha256": "8966b6ffd3f7d8125106497e9602c0dad618c0f79110bf011dd5c5a34884cb45"
+  },
+  {
+    "compiler_backend": "LLVM",
+    "runtime_tree_sha256": "d18dbfa5367f019badd2c679d131fffd95634534a49648011821a95427dd8370",
+    "build_source_sha256": "c57e9a9ea03c84370a41e377bd71795bc2dc7d905a34a8564668ec1186d930c9",
+    "target": "mips-linux",
+    "mode": "Debug",
+    "build_command": [
+      "/tmp/cache/zig/p/N-V-__8AAFFSVRWqblwBIcA-Yqv-u7sbjsJoww8K0mWaHbmJ/zig",
+      "build",
+      "-Dtarget=mips-linux",
+      "-Dcpu=baseline",
+      "-Doptimize=Debug",
+      "--cache-dir",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/consumer-smoke-cache",
+      "--prefix",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/final-v4-consumers/mips-linux/Debug",
+      "--summary",
+      "all"
+    ],
+    "build_cwd": "/tmp/tmp/zmath-perf-round.Dz4uxZhl/consumer-smoke",
+    "build_exit": 0,
+    "build_output": "Build Summary: 4/4 steps succeeded\ninstall success\n+- install api-round-consumer success\n   +- compile exe api-round-consumer Debug mips-linux success 11s MaxRSS:498M\n      +- WriteFile c_kernel_abi_guard.c cached\n\n",
+    "run_command": [
+      "/bin/qemu-mips",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/final-v4-consumers/mips-linux/Debug/bin/api-round-consumer"
+    ],
+    "run_exit": 0,
+    "run_output": "bridge vector_value.Vec2f: 2 logical lanes preserve component bits\nbridge vector_value.Vec3f: 3 logical lanes preserve component bits\nbridge vector_value.Vec4f: 4 logical lanes preserve component bits\nbridge vector_value.Vec2d: 2 logical lanes preserve component bits\nbridge vector_value.Vec3d: 3 logical lanes preserve component bits\nbridge vector_value.Vec4d: 4 logical lanes preserve component bits\nmask f16: order=T/F/F/T magnitude=T/T/F/T\nmask f32: order=T/F/F/T magnitude=T/T/F/T\nmask f64: order=T/F/F/T magnitude=T/T/F/T\nmask width 1: only logical lane zero is true\nmask width 2: only logical lane zero is true\nmask width 3: only logical lane zero is true\nmask width 4: only logical lane zero is true\nmask width 5: only logical lane zero is true\nmask width 6: only logical lane zero is true\nmask width 7: only logical lane zero is true\nmask width 8: only logical lane zero is true\nmask width 9: only logical lane zero is true\nmask width 10: only logical lane zero is true\nmask width 11: only logical lane zero is true\nmask width 12: only logical lane zero is true\nmask width 13: only logical lane zero is true\nmask width 16: only logical lane zero is true\nmask width 24: only logical lane zero is true\nmask width 32: only logical lane zero is true\nmask width 64: only logical lane zero is true\nmask width 128: only logical lane zero is true\ncenter geometry.Aabb2(f32): bits=1 on every axis; runtime primitive (tiny+tiny)/2=0\ncenter geometry.Aabb3(f32): bits=1 on every axis; runtime primitive (tiny+tiny)/2=0\ncenter geometry.Aabb4(f32): bits=1 on every axis; runtime primitive (tiny+tiny)/2=0\ncenter geometry.Aabb2(f64): bits=1 on every axis; runtime primitive (tiny+tiny)/2=0\ncenter geometry.Aabb3(f64): bits=1 on every axis; runtime primitive (tiny+tiny)/2=0\ncenter geometry.Aabb4(f64): bits=1 on every axis; runtime primitive (tiny+tiny)/2=0\nmixed-scale exact orientation=zero\nroot h/f/d bits=4000/40000000/4010000000000000, reciprocal=3fd0000000000000, lanes=2/3/4/5\norientation fast=zero exact=negative, e1*e2 coefficient[3]=3ff0000000000000\n",
+    "source_sha256": "57b248ce7c8723d4d9f024a0080bbdeb71aa9b7724119999ae345f3cbd1788f3",
+    "executable_sha256": "be22c261237804f312fbaf27df968a604d95f66a92703dd8734be8fada5cfca0"
+  },
+  {
+    "compiler_backend": "LLVM",
+    "runtime_tree_sha256": "d18dbfa5367f019badd2c679d131fffd95634534a49648011821a95427dd8370",
+    "build_source_sha256": "c57e9a9ea03c84370a41e377bd71795bc2dc7d905a34a8564668ec1186d930c9",
+    "target": "mips-linux",
+    "mode": "ReleaseSafe",
+    "build_command": [
+      "/tmp/cache/zig/p/N-V-__8AAFFSVRWqblwBIcA-Yqv-u7sbjsJoww8K0mWaHbmJ/zig",
+      "build",
+      "-Dtarget=mips-linux",
+      "-Dcpu=baseline",
+      "-Doptimize=ReleaseSafe",
+      "--cache-dir",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/consumer-smoke-cache",
+      "--prefix",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/final-v4-consumers/mips-linux/ReleaseSafe",
+      "--summary",
+      "all"
+    ],
+    "build_cwd": "/tmp/tmp/zmath-perf-round.Dz4uxZhl/consumer-smoke",
+    "build_exit": 0,
+    "build_output": "Build Summary: 4/4 steps succeeded\ninstall success\n+- install api-round-consumer success\n   +- compile exe api-round-consumer ReleaseSafe mips-linux success 25s MaxRSS:581M\n      +- WriteFile c_kernel_abi_guard.c cached\n\n",
+    "run_command": [
+      "/bin/qemu-mips",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/final-v4-consumers/mips-linux/ReleaseSafe/bin/api-round-consumer"
+    ],
+    "run_exit": 0,
+    "run_output": "bridge vector_value.Vec2f: 2 logical lanes preserve component bits\nbridge vector_value.Vec3f: 3 logical lanes preserve component bits\nbridge vector_value.Vec4f: 4 logical lanes preserve component bits\nbridge vector_value.Vec2d: 2 logical lanes preserve component bits\nbridge vector_value.Vec3d: 3 logical lanes preserve component bits\nbridge vector_value.Vec4d: 4 logical lanes preserve component bits\nmask f16: order=T/F/F/T magnitude=T/T/F/T\nmask f32: order=T/F/F/T magnitude=T/T/F/T\nmask f64: order=T/F/F/T magnitude=T/T/F/T\nmask width 1: only logical lane zero is true\nmask width 2: only logical lane zero is true\nmask width 3: only logical lane zero is true\nmask width 4: only logical lane zero is true\nmask width 5: only logical lane zero is true\nmask width 6: only logical lane zero is true\nmask width 7: only logical lane zero is true\nmask width 8: only logical lane zero is true\nmask width 9: only logical lane zero is true\nmask width 10: only logical lane zero is true\nmask width 11: only logical lane zero is true\nmask width 12: only logical lane zero is true\nmask width 13: only logical lane zero is true\nmask width 16: only logical lane zero is true\nmask width 24: only logical lane zero is true\nmask width 32: only logical lane zero is true\nmask width 64: only logical lane zero is true\nmask width 128: only logical lane zero is true\ncenter geometry.Aabb2(f32): bits=1 on every axis; runtime primitive (tiny+tiny)/2=0\ncenter geometry.Aabb3(f32): bits=1 on every axis; runtime primitive (tiny+tiny)/2=0\ncenter geometry.Aabb4(f32): bits=1 on every axis; runtime primitive (tiny+tiny)/2=0\ncenter geometry.Aabb2(f64): bits=1 on every axis; runtime primitive (tiny+tiny)/2=0\ncenter geometry.Aabb3(f64): bits=1 on every axis; runtime primitive (tiny+tiny)/2=0\ncenter geometry.Aabb4(f64): bits=1 on every axis; runtime primitive (tiny+tiny)/2=0\nmixed-scale exact orientation=zero\nroot h/f/d bits=4000/40000000/4010000000000000, reciprocal=3fd0000000000000, lanes=2/3/4/5\norientation fast=zero exact=negative, e1*e2 coefficient[3]=3ff0000000000000\n",
+    "source_sha256": "57b248ce7c8723d4d9f024a0080bbdeb71aa9b7724119999ae345f3cbd1788f3",
+    "executable_sha256": "94c0c0356109efd024835af3ac01afe10232018d27164b3c7c3ef36d2a54527a"
+  },
+  {
+    "compiler_backend": "LLVM",
+    "runtime_tree_sha256": "d18dbfa5367f019badd2c679d131fffd95634534a49648011821a95427dd8370",
+    "build_source_sha256": "c57e9a9ea03c84370a41e377bd71795bc2dc7d905a34a8564668ec1186d930c9",
+    "target": "mipsel-linux",
+    "mode": "Debug",
+    "build_command": [
+      "/tmp/cache/zig/p/N-V-__8AAFFSVRWqblwBIcA-Yqv-u7sbjsJoww8K0mWaHbmJ/zig",
+      "build",
+      "-Dtarget=mipsel-linux",
+      "-Dcpu=baseline",
+      "-Doptimize=Debug",
+      "--cache-dir",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/consumer-smoke-cache",
+      "--prefix",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/final-v4-consumers/mipsel-linux/Debug",
+      "--summary",
+      "all"
+    ],
+    "build_cwd": "/tmp/tmp/zmath-perf-round.Dz4uxZhl/consumer-smoke",
+    "build_exit": 0,
+    "build_output": "Build Summary: 4/4 steps succeeded\ninstall success\n+- install api-round-consumer success\n   +- compile exe api-round-consumer Debug mipsel-linux success 11s MaxRSS:446M\n      +- WriteFile c_kernel_abi_guard.c cached\n\n",
+    "run_command": [
+      "/bin/qemu-mipsel",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/final-v4-consumers/mipsel-linux/Debug/bin/api-round-consumer"
+    ],
+    "run_exit": 0,
+    "run_output": "bridge vector_value.Vec2f: 2 logical lanes preserve component bits\nbridge vector_value.Vec3f: 3 logical lanes preserve component bits\nbridge vector_value.Vec4f: 4 logical lanes preserve component bits\nbridge vector_value.Vec2d: 2 logical lanes preserve component bits\nbridge vector_value.Vec3d: 3 logical lanes preserve component bits\nbridge vector_value.Vec4d: 4 logical lanes preserve component bits\nmask f16: order=T/F/F/T magnitude=T/T/F/T\nmask f32: order=T/F/F/T magnitude=T/T/F/T\nmask f64: order=T/F/F/T magnitude=T/T/F/T\nmask width 1: only logical lane zero is true\nmask width 2: only logical lane zero is true\nmask width 3: only logical lane zero is true\nmask width 4: only logical lane zero is true\nmask width 5: only logical lane zero is true\nmask width 6: only logical lane zero is true\nmask width 7: only logical lane zero is true\nmask width 8: only logical lane zero is true\nmask width 9: only logical lane zero is true\nmask width 10: only logical lane zero is true\nmask width 11: only logical lane zero is true\nmask width 12: only logical lane zero is true\nmask width 13: only logical lane zero is true\nmask width 16: only logical lane zero is true\nmask width 24: only logical lane zero is true\nmask width 32: only logical lane zero is true\nmask width 64: only logical lane zero is true\nmask width 128: only logical lane zero is true\ncenter geometry.Aabb2(f32): bits=1 on every axis; runtime primitive (tiny+tiny)/2=0\ncenter geometry.Aabb3(f32): bits=1 on every axis; runtime primitive (tiny+tiny)/2=0\ncenter geometry.Aabb4(f32): bits=1 on every axis; runtime primitive (tiny+tiny)/2=0\ncenter geometry.Aabb2(f64): bits=1 on every axis; runtime primitive (tiny+tiny)/2=0\ncenter geometry.Aabb3(f64): bits=1 on every axis; runtime primitive (tiny+tiny)/2=0\ncenter geometry.Aabb4(f64): bits=1 on every axis; runtime primitive (tiny+tiny)/2=0\nmixed-scale exact orientation=zero\nroot h/f/d bits=4000/40000000/4010000000000000, reciprocal=3fd0000000000000, lanes=2/3/4/5\norientation fast=zero exact=negative, e1*e2 coefficient[3]=3ff0000000000000\n",
+    "source_sha256": "57b248ce7c8723d4d9f024a0080bbdeb71aa9b7724119999ae345f3cbd1788f3",
+    "executable_sha256": "84e29b5e7f4c1ef66f430b4c8ccd15ee7d9aead49ff4f65a63521ada6153124c"
+  },
+  {
+    "compiler_backend": "LLVM",
+    "runtime_tree_sha256": "d18dbfa5367f019badd2c679d131fffd95634534a49648011821a95427dd8370",
+    "build_source_sha256": "c57e9a9ea03c84370a41e377bd71795bc2dc7d905a34a8564668ec1186d930c9",
+    "target": "mipsel-linux",
+    "mode": "ReleaseSafe",
+    "build_command": [
+      "/tmp/cache/zig/p/N-V-__8AAFFSVRWqblwBIcA-Yqv-u7sbjsJoww8K0mWaHbmJ/zig",
+      "build",
+      "-Dtarget=mipsel-linux",
+      "-Dcpu=baseline",
+      "-Doptimize=ReleaseSafe",
+      "--cache-dir",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/consumer-smoke-cache",
+      "--prefix",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/final-v4-consumers/mipsel-linux/ReleaseSafe",
+      "--summary",
+      "all"
+    ],
+    "build_cwd": "/tmp/tmp/zmath-perf-round.Dz4uxZhl/consumer-smoke",
+    "build_exit": 0,
+    "build_output": "Build Summary: 4/4 steps succeeded\ninstall success\n+- install api-round-consumer success\n   +- compile exe api-round-consumer ReleaseSafe mipsel-linux success 25s MaxRSS:631M\n      +- WriteFile c_kernel_abi_guard.c cached\n\n",
+    "run_command": [
+      "/bin/qemu-mipsel",
+      "/tmp/tmp/zmath-perf-round.Dz4uxZhl/final-v4-consumers/mipsel-linux/ReleaseSafe/bin/api-round-consumer"
+    ],
+    "run_exit": 0,
+    "run_output": "bridge vector_value.Vec2f: 2 logical lanes preserve component bits\nbridge vector_value.Vec3f: 3 logical lanes preserve component bits\nbridge vector_value.Vec4f: 4 logical lanes preserve component bits\nbridge vector_value.Vec2d: 2 logical lanes preserve component bits\nbridge vector_value.Vec3d: 3 logical lanes preserve component bits\nbridge vector_value.Vec4d: 4 logical lanes preserve component bits\nmask f16: order=T/F/F/T magnitude=T/T/F/T\nmask f32: order=T/F/F/T magnitude=T/T/F/T\nmask f64: order=T/F/F/T magnitude=T/T/F/T\nmask width 1: only logical lane zero is true\nmask width 2: only logical lane zero is true\nmask width 3: only logical lane zero is true\nmask width 4: only logical lane zero is true\nmask width 5: only logical lane zero is true\nmask width 6: only logical lane zero is true\nmask width 7: only logical lane zero is true\nmask width 8: only logical lane zero is true\nmask width 9: only logical lane zero is true\nmask width 10: only logical lane zero is true\nmask width 11: only logical lane zero is true\nmask width 12: only logical lane zero is true\nmask width 13: only logical lane zero is true\nmask width 16: only logical lane zero is true\nmask width 24: only logical lane zero is true\nmask width 32: only logical lane zero is true\nmask width 64: only logical lane zero is true\nmask width 128: only logical lane zero is true\ncenter geometry.Aabb2(f32): bits=1 on every axis; runtime primitive (tiny+tiny)/2=0\ncenter geometry.Aabb3(f32): bits=1 on every axis; runtime primitive (tiny+tiny)/2=0\ncenter geometry.Aabb4(f32): bits=1 on every axis; runtime primitive (tiny+tiny)/2=0\ncenter geometry.Aabb2(f64): bits=1 on every axis; runtime primitive (tiny+tiny)/2=0\ncenter geometry.Aabb3(f64): bits=1 on every axis; runtime primitive (tiny+tiny)/2=0\ncenter geometry.Aabb4(f64): bits=1 on every axis; runtime primitive (tiny+tiny)/2=0\nmixed-scale exact orientation=zero\nroot h/f/d bits=4000/40000000/4010000000000000, reciprocal=3fd0000000000000, lanes=2/3/4/5\norientation fast=zero exact=negative, e1*e2 coefficient[3]=3ff0000000000000\n",
+    "source_sha256": "57b248ce7c8723d4d9f024a0080bbdeb71aa9b7724119999ae345f3cbd1788f3",
+    "executable_sha256": "3fb266f30bddf43e00f0f94cbbeb752062b45db45461e329e346cd779c99b13a"
+  }
+]

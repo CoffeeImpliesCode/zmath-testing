@@ -253,12 +253,13 @@ server-side copy is under
 `~/zmath-bench-20260927-f16only/compare/`.
 
 That directory is **required provenance, not leftover scratch, and must not be deleted.**
-It is the only copy: this repository has no `bench/results/` of its own, so the two archives
-cited above, the unpacked `nix-store`, and the run outputs behind the matrix in this document exist
-nowhere else. The working command further down binds `$bundle/nix-store`, `$bundle/bin` and
-`bundle/results` directly, so the analysis cannot be reproduced without it. It occupies about
-887 MB, of which roughly 871 MB is the unpacked `nix-store`; that is the price of being able to
-re-run the comparison rather than only read about it.
+It is the only copy of this campaign's material. Nothing from the 2026-09-26 and 2026-09-27 campaigns was
+ever committed under `bench/results/`: the three paths tracked there belong to the later 2026-10-03
+round and cover none of it. The two archives cited above, the unpacked `nix-store`, and the run outputs
+behind the matrix in this document therefore exist nowhere else. The working command further down binds
+`$bundle/nix-store`, `$bundle/bin` and `bundle/results` directly, so the analysis cannot be reproduced
+without it. It occupies about 887 MB, of which roughly 871 MB is the unpacked `nix-store`; that is the
+price of being able to re-run the comparison rather than only read about it.
 
 The working smoke command below uses the unpacked remote directory. Replace
 `/binaries/retained` with `/binaries/baseline` for the frozen run. The full
@@ -1683,3 +1684,590 @@ See [the comparison procedure](../test/corpus/README.md#comparative-google-bench
 
 Primary upstream repositories: [CORE-MATH](https://gitlab.inria.fr/core-math/core-math) and [glibc](https://sourceware.org/glibc/).
 The local pinned trees, not moving upstream branches, define this analysis.
+
+## API-surface round 2026-10-03
+
+This round compares a frozen zmath source tree with measured optimization trees.
+Both sides use the same SDK-independent `bench-api-round` harness and the same runner.
+The portability checks and final-tree repeats are separate from the first measurement image.
+It is not a new CORE-MATH/glibc comparison or numerical acceptance publication.
+The earlier 1.5x reference criterion does not apply to this internal optimization round.
+
+Three measured images appear below, and every number carries its image.
+The final-v4 image is the primary one; the earlier cohorts are kept, not replaced.
+
+| Image | Role | Runtime source digest | Benchmark executable SHA256 |
+| --- | --- | --- | --- |
+| Frozen | reference side of every cohort | `3fb1f666f503cc250` | `8dec706c3766ed553` |
+| Optimization | 7,428-case coverage run and cohorts 06-18 | `c333efd356d3ca80` | `0979d723c02108db` |
+| Final-v4 | primary measured image, cohorts 19-25 | `4f0461fe588b63b0` | `e01622851dd86b0b` |
+
+### Environment and measurement rule
+
+- Zig 0.16.0, target `x86_64-linux-gnu.2.38`, CPU `haswell`, `ReleaseSafe`.
+- Linux x86-64 host: Intel Xeon Gold 6354, 72 logical CPUs.
+- Measurements pinned to allowed CPU 0 with `taskset`. The shared host and clock frequency were not isolated.
+- Retention rule: at least 2% lower median time and the same direction in at least eight of nine paired runs.
+- Runs alternate AB/BA order. The percentage is `1 - candidate_median / baseline_median`, not the median paired ratio.
+- Semantic checksums must match across versions, repetitions, and profile invocations.
+- Failed attempts retain their full reserved binary32 charge. No refunds or independent per-agent budgets.
+The retention rule is a practical heuristic, not a confidence interval.
+It estimates no probability, no error bar and no significance for any row below.
+Identical-image controls produced false faster and slower flags on this host.
+
+Timed calls include input generation and result hashing.
+For trivial methods, these costs can exceed the API cost.
+LU/Cholesky solve and reconstruction use prepared factors outside their timed method loops.
+Process profiles still include setup, dispatch, hashing, JSON output, and dynamic-loader work.
+`perf record` used its default `cycles:Pu` event, without call graphs.
+The runner's `--perf-events` flag selects `perf stat` events only.
+
+### Complete selected surface
+
+The complete timed coverage run has 7,428 named cases, four calls each, and one baseline/candidate pair.
+It ran against the optimization image and is explicitly scoped `coverage_only`.
+All sampled semantic checksums match.
+That run establishes bounded coverage, not stable speed comparisons.
+
+| Namespace | Named cases |
+| --- | ---: |
+| `ieee` | 141 |
+| `scalar` | 828 |
+| root umbrella | 117 |
+| `vector` | 3,247 |
+| `quaternion` | 137 |
+| `complex` | 154 |
+| `matrix` | 412 |
+| `linalg` | 282 |
+| `geometry` | 1,110 |
+| `algebra` | 1,000 |
+| **Total** | **7,428** |
+
+The six bundles contain leaf 1,086, lanes 2,889, values 495, aggregates 848, geometry 1,110, and algebra 1,000 cases.
+The portable-layer inventory covers 417 exports with direct, identical-canonical, or compile-only routes.
+Lane measurements use widths 2, 4, and 8 with normal, boundary, and skewed inputs.
+The three compile-only mapping helpers have explicit inventory entries.
+All twelve concrete geometric algebras are included.
+Generic matrix shapes are sampled classes, not every possible `Mat` instantiation.
+
+The initial whole-surface run used four calls and one pair.
+Larger profiling runs used geometry 24 calls, leaf/values/aggregates/algebra 64 calls, and lanes 32 calls.
+These baseline/profile rounds also matched all sampled semantic checksums.
+
+The final-v4 image was never re-run over all 7,428 cases, because that would spend the shared ledger again.
+Instead an untimed replay of the final-v4 runtime tree reproduced the frozen baseline receipts of the
+final coverage run: 7,428 cases, four calls each, zero clock reads, and zero mismatches, zero missing and
+zero extra cases, exit 0. The replay executable is `459cbf31a3975bab`, its output digest is `b57dd9dd57d847a7`,
+and it is bound to the final-v4 runtime tree digest.
+This is a semantic equivalence check over the same surface, not a timing result for final-v4.
+
+### Source and executable identity
+
+The runner folds relative paths and file contents into one digest per tree.
+Both source snapshots are packaged with this report and reconstruct their recorded digests exactly.
+
+| Artifact | Files | Bytes | SHA256 |
+| --- | ---: | ---: | --- |
+| Frozen benchmark executable | - | 41,373,856 | `8dec706c3766ed55397bb3cf0c77c898175dbeb76d1061640d7fccc8668c19ea` |
+| Frozen runtime source tree | 247 | - | `3fb1f666f503cc250ba57fedb252028a3dd6761e3d40c131bf825445d75b67d6` |
+| Optimization benchmark executable | - | 41,403,544 | `0979d723c02108db2dce7d8dbe216dffaf617cc1720a2f125cdcb76e62edbaa2` |
+| Optimization runtime source tree | 247 | - | `c333efd356d3ca80572850a9b37c50b2e94eaf37c9b81f72f0f9583837a40a48` |
+| Final-v4 benchmark executable | - | 41,420,728 | `e01622851dd86b0b8c7dfba09bc29e06571667aad6bc69994b3b68242f92bd03` |
+| Final-v4 runtime source tree | 247 | - | `4f0461fe588b63b0ba322a7433048a5ea432a1eeef0782ded985d3992261837a` |
+| Runner `bench/run_api_round.py` | - | - | `16d95359ab487c89bfa410504acca938ce3cdeb760bcbf5f91989772a6bdc750` |
+| Harness tree at the coverage run | 32 | - | `8974f9cc27d78cae0d8ed8a7b2bc0cf83779c6e79efb65f9d762122ca70f4080` |
+| Harness tree at the final-v4 run | 34 | - | `b2648a58f0aa247b3760c0576355081f294be4a5c348d204502016a7bdd55c74` |
+
+The per-file identity map of the final-v4 tree, hashed as a sorted path-to-digest JSON document,
+is `d18dbfa5367f019badd2c679d131fffd95634534a49648011821a95427dd8370` over the same 247 files.
+That is a different construction from the runner digest and the two must not be compared with each other.
+
+Exactly seven files differ between the frozen tree and the final-v4 tree:
+
+| File | Role |
+| --- | --- |
+| `src/scalar_power_exact.zig` | retained binary32/binary64 root scratch narrowing |
+| `src/geometry.zig` | retained exact-predicate output buffers and scratch reuse |
+| `src/geometry_test.zig` | added exact-orientation, containment and tangency references |
+| `src/vector_value.zig` | `Vec` bridges publish named components by logical lane index |
+| `src/vector_core.zig` | scoped boolean-mask publication workaround |
+| `src/vector_value_test.zig` | added lane-order and mask-width regression tests |
+| `src/vector_surface_test.zig` | added one-hot lane coverage tests |
+
+`src/algebra.zig` is unchanged, byte for byte, between the two trees.
+
+Every measurement receipt in this section belongs to the final-v4 image and to nothing later. The edits to
+`src/vector_core.zig` and `src/vector_surface_test.zig` postdate that image and are covered by the
+whole-tree correctness receipts under
+[Runtime verification status](#runtime-verification-status), which contain no timing. The measured source
+tree, the benchmark executable and every number here stay bound to the final-v4 digests above; nothing is
+re-baselined onto later source.
+
+### Profiles and retained changes
+
+The pre-optimization candidate profiles identified two integer-scratch costs:
+
+| Bundle | Observed self-time |
+| --- | --- |
+| Leaf | `compiler_rt.memset` 89.79% |
+| Lanes | `compiler_rt.memset` 95.44% |
+| Geometry | `compiler_rt.memset` 67.17%; `memcpyFast` 16.54% |
+| Values | Harness `main` 75.18%, from only 47 samples |
+| Aggregates | Harness `main` 38.96%; matrix multiplication 3.38% |
+| Algebra | Harness `main` 13.31%; Cga4d geometric product 6.87% |
+
+**Retain binary32/binary64 exact-root scratch narrowing.**
+Root storage falls from 256 to 53 limbs for binary32 and from 2,048 to 111 limbs for binary64.
+Virtual alignment compares shifted integer views instead of materializing alignment buffers.
+The conservative bound is derived from precision and maximum degree; it is not a minimum limb count.
+Power search, seed, and rounding decisions remain unchanged.
+`pown` and `compoundn` retain their original storage limits.
+Binary16 retains its original 32-limb multiplication path.
+No dynamic allocation, runtime dispatch, or vector polynomial was added.
+
+The final-v4 root cohort used 64 calls and nine pairs over 64 cases.
+All 43 binary32 and binary64 cases met the rule, 89.84% to 96.57% lower measured time,
+with nine faster pairs in every one of them.
+The 21 binary16 cases in that cohort are unchanged controls, not additional retained optimizations.
+
+| Final-v4 root case | Calls | Baseline median, ns | Candidate median, ns | Lower time | Faster pairs |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Scalar binary32, normal | 64 | 4,162,924 | 216,394 | 94.80% | 9 |
+| Scalar binary32, boundary | 64 | 2,260,546 | 126,145 | 94.42% | 9 |
+| Scalar binary64, normal | 64 | 33,734,217 | 1,909,302 | 94.34% | 9 |
+| Scalar binary64, boundary | 64 | 26,218,253 | 1,601,902 | 93.89% | 9 |
+| Root umbrella dispatch | 64 | 17,040,572 | 977,662 | 94.26% | 9 |
+| Binary32 lanes, width 4, boundary | 64 | 3,960,926 | 196,196 | 95.05% | 9 |
+| Binary32 lanes, width 8, boundary | 64 | 12,610,134 | 431,978 | 96.57% | 9 |
+| Binary32 lane-typed root, width 2, normal | 64 | 5,232,819 | 420,026 | 91.97% | 9 |
+| Binary32 lane-typed root, width 8, normal | 64 | 23,703,601 | 1,582,914 | 93.32% | 9 |
+| Binary64 lanes, width 4, normal | 64 | 97,602,936 | 6,772,375 | 93.06% | 9 |
+| Binary64 lane-typed root, width 4, boundary | 64 | 53,894,469 | 2,293,792 | 95.74% | 9 |
+| Binary64 lane-typed root, width 8, boundary | 64 | 110,005,516 | 4,468,609 | 95.94% | 9 |
+
+The assembly explains the cost.
+ReleaseSafe emits `0xaa` poison for undefined `Big` temporaries.
+The old binary64 power path repeatedly clears 16,392 bytes; the narrowed path clears 896 bytes.
+Safety checks remain enabled.
+In the matched final-v4 root profiles, `compiler_rt.memset` self-time fell from 93.36% to 40.44% for leaf
+and from 96.71% to 64.08% for lanes.
+Those four profiles reported 474, 74, 8,000 and 602 samples respectively, with zero lost samples each.
+The candidate profiles split the remaining time across the narrowed 53-limb and 111-limb multiply and
+power specializations, which the frozen profiles could not name because they did not exist.
+Shares with 74 samples are indicative, not a stable attribution.
+Portable result-array wrappers gain through the scalar kernel; this is not new SIMD throughput.
+
+**Retain exact-predicate output buffers and scratch reuse.**
+Geometry keeps its fixed 132-limb integer bound.
+Private arithmetic now writes into caller-owned outputs, clears active prefixes, and skips zero left limbs in multiplication.
+Predicates reuse scratch buffers instead of copying complete limb arrays.
+
+The final-v4 orientation cohort ran 24 cases at 4,096 calls and nine pairs:
+20 faster, four undecided, no slower case.
+The faster cases fall between 12.94% and 58.71% lower time.
+The four undecided cases are Point2(f64) ordinary at +29.80% over seven faster pairs,
+Point2(f64) exponent-extreme at +27.57% over seven, and the two Point2 near-degenerate cases at
++8.64% and +9.27% over six each. They did not reach the eight-of-nine quorum and are not retained as gains.
+
+| Final-v4 orientation case | Calls | Baseline median, ns | Candidate median, ns | Lower time | Faster pairs |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Point2(f32), ordinary | 4,096 | 22,511,323 | 13,020,925 | 42.16% | 9 |
+| Point3(f32), ordinary | 4,096 | 55,349,434 | 32,602,013 | 41.10% | 9 |
+| Point4(f32), ordinary | 4,096 | 127,061,396 | 52,461,113 | 58.71% | 9 |
+| Point4(f32), perturbed ULP | 4,096 | 75,808,431 | 37,145,688 | 51.00% | 9 |
+| Point3(f64), ordinary | 4,096 | 55,589,834 | 29,996,912 | 46.04% | 9 |
+| Point3(f64), perturbed ULP | 4,096 | 33,242,075 | 28,942,062 | 12.94% | 9 |
+| Point4(f64), ordinary | 4,096 | 119,521,869 | 74,305,163 | 37.83% | 9 |
+
+The earlier 320-case `adaptive_exact` sweep and its longer 24-case orientation and 15-case binary64-line
+repeats reached the same direction from shorter schedules, and the final-v4 cohort reproduces the
+24-case orientation result on the final image.
+
+The first output-buffer candidate left a float's low limb prefix uninitialized.
+Existing tests and independent integer-reference tests failed.
+Clearing that prefix restored the required mixed normal/subnormal collinearity.
+The 24 sampled orientation checksums did not expose this defect before the repair.
+They are not substitutes for numerical regression tests.
+The new reference also needed alias, normal-power-of-two decoding, and mixed-precision scale repairs.
+The first integration result, 936 passed / ten failed / one crashed, therefore includes both production and reference defects.
+After repair and candidate rejection the earlier image passed all 947 native ReleaseSafe tests.
+The final-v4 gate's native `zig build test` section reports ok, and the same suite in the cross-test
+Debug build passes all 954 tests on native x86_64 Linux; the seven extra cases are the added
+lane-order and mask-width regressions.
+
+**Retain logical-lane vector publication and the scoped mask workaround.**
+This is a correctness change on big-endian targets, not a speed result.
+The `Vec` bridges previously used the language array-to-`@Vector` coercion, and indexed boolean result
+stores lost earlier true lanes on LLVM AArch64 big-endian.
+The bridges now assign and read named components by logical lane index.
+`mapBinary` and the per-lane helpers publish boolean results through byte lanes on that one target and
+mode, with a Debug-only lane reversal at power-of-two widths; every other target and result type keeps
+direct vector storage.
+
+The final-v4 bridge and Aabb cohort ran 24 cases at 4,096 calls and nine pairs:
+one faster case, `values/Vec4f.fromVector/ordinary` at +6.10% over eight faster pairs, and 23 undecided
+cases spanning -3.04% to +14.08%. No lane-order regression appeared in those 24 cases.
+The evidence for this change is the correctness material below, not the timing row.
+
+### Rejected candidates and timing controls
+
+The 27-limb binary16 root candidate failed retention.
+Its width-4 skewed per-lane-degree case was 14.96% slower in eight of nine pairs.
+The final tree restores the original 32-limb path.
+A final 21-case binary16 repeat on the earlier image used 4,096 calls and nine pairs, with no slower verdicts.
+
+Destination-major algebra products also failed retention.
+The 34-case dense/sparse/motor cohort used 1,024 calls and nine pairs.
+It yielded zero faster, 14 slower, and 20 undecided cases.
+Cl3f dense products took 3.78x baseline time; Cl3d took 2.54x.
+Cga4f and Cga4d dense products were 5.91% and 9.97% slower.
+The product implementation and its candidate-only tests were removed.
+`src/algebra.zig` is restored byte-for-byte to the frozen source.
+
+Restored algebra repeats each flagged one different row, despite the unchanged product source.
+Identical-image controls demonstrate the limit of the practical rule:
+the frozen-image control flagged one faster and one slower row;
+the final-image control flagged two slower rows and no faster row.
+Each control used the same executable SHA256 on both sides, 34 cases, 4,096 calls, and nine pairs.
+
+The final-v4 lane control repeats the same test at lane scale.
+The final-v4 identical-image control used the final-v4 executable on both sides, three cases,
+1,024 calls and nine pairs, and produced no faster and no slower verdict at all
+(-0.93%, +0.15% and +0.10%).
+
+| Identical-image control | Cases | Calls | Pairs | Faster | Slower | Undecided |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Frozen image, both sides | 34 | 4,096 | 9 | 1 | 1 | 32 |
+| Optimization image, both sides | 34 | 4,096 | 9 | 0 | 2 | 32 |
+| Final-v4 lanes, both sides | 3 | 1,024 | 9 | 0 | 0 | 3 |
+
+Thus small verdicts on this shared host are not a general performance guarantee.
+No algebra gain or whole-surface no-regression claim is made.
+No new value, complex, matrix, or factorization candidate was retained.
+
+### Retained slower flags
+
+Every row that met the slower criterion is listed here and kept in the focused CSV.
+None was discarded, and none was resolved by rerunning until it disappeared.
+
+| Cohort | Case | Calls | Baseline median, ns | Candidate median, ns | Slower by | Slower pairs |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| 06 root retention | `lanes.rootnhvLanes.f16.w4.skewed` | 64 | 232,485 | 267,270 | 14.96% | 8 |
+| 07 algebra retention | `algebra.Multivector(3,f32,.clifford,.{ 1, 1, 1 },3).geometricProduct` | 1,024 | 271,674 | 1,025,850 | 277.60% | 9 |
+| 07 algebra retention | `algebra.Multivector(3,f32,.clifford,.{ 1, 1, 1 },3).geometricProduct.sparse` | 1,024 | 112,538 | 149,505 | 32.85% | 8 |
+| 07 algebra retention | `algebra.Multivector(3,f64,.clifford,.{ 1, 1, 1 },3).geometricProduct` | 1,024 | 324,310 | 824,163 | 154.13% | 9 |
+| 07 algebra retention | `algebra.Multivector(3,f64,.clifford,.{ 1, 1, 1 },3).geometricProduct.sparse` | 1,024 | 104,024 | 154,093 | 48.13% | 8 |
+| 07 algebra retention | `algebra.Multivector(4,f64,.clifford,.{ 1, 1, 1, 1 },4).geometricProduct.sparse` | 1,024 | 230,416 | 293,277 | 27.28% | 8 |
+| 07 algebra retention | `algebra.Multivector(4,f32,.projective,.{ 0, 1, 1, 1 },3).geometricProduct` | 1,024 | 2,032,773 | 2,506,704 | 23.31% | 8 |
+| 07 algebra retention | `algebra.Multivector(4,f32,.projective,.{ 0, 1, 1, 1 },3).geometricProduct.motor` | 1,024 | 212,622 | 270,441 | 27.19% | 8 |
+| 07 algebra retention | `algebra.Multivector(4,f64,.projective,.{ 0, 1, 1, 1 },3).geometricProduct` | 1,024 | 1,927,341 | 2,547,546 | 32.18% | 9 |
+| 07 algebra retention | `algebra.Multivector(4,f64,.projective,.{ 0, 1, 1, 1 },3).geometricProduct.sparse` | 1,024 | 233,951 | 282,784 | 20.87% | 8 |
+| 07 algebra retention | `algebra.Multivector(5,f32,.projective,.{ 0, 1, 1, 1, 1 },4).geometricProduct` | 1,024 | 7,729,712 | 9,114,537 | 17.92% | 8 |
+| 07 algebra retention | `algebra.Multivector(5,f32,.conformal,.{ 1, 1, 1, 1, -1 },3).geometricProduct` | 1,024 | 10,020,290 | 11,510,004 | 14.87% | 8 |
+| 07 algebra retention | `algebra.Multivector(6,f32,.conformal,.{ 1, 1, 1, 1, 1, -1 },4).geometricProduct` | 1,024 | 38,990,971 | 41,294,533 | 5.91% | 9 |
+| 07 algebra retention | `algebra.Multivector(6,f32,.conformal,.{ 1, 1, 1, 1, 1, -1 },4).geometricProduct.motor` | 1,024 | 2,169,004 | 3,428,509 | 58.07% | 8 |
+| 07 algebra retention | `algebra.Multivector(6,f64,.conformal,.{ 1, 1, 1, 1, 1, -1 },4).geometricProduct` | 1,024 | 38,733,377 | 42,596,453 | 9.97% | 8 |
+| 10 algebra rollback | `algebra.Multivector(4,f32,.clifford,.{ 1, 1, 1, 1 },4).geometricProduct.motor` | 1,024 | 143,785 | 218,884 | 52.23% | 8 |
+| 12 adaptive sweep | `geometry.Point2(f64).orientation.policy.adaptive_exact.ordinary` | 2 | 8,239 | 14,684 | 78.23% | 9 |
+| 12 adaptive sweep | `geometry.LineOf(2,f64).intersect.policy.adaptive_exact.coincident.normalized_operands` | 2 | 14,838 | 25,897 | 74.53% | 8 |
+| 16 algebra rollback repeat | `algebra.Multivector(5,f64,.conformal,.{ 1, 1, 1, 1, -1 },3).geometricProduct.motor` | 4,096 | 1,606,583 | 1,854,461 | 15.43% | 8 |
+| 17 frozen identical-image control | `algebra.Multivector(6,f64,.conformal,.{ 1, 1, 1, 1, 1, -1 },4).geometricProduct.motor` | 4,096 | 8,097,641 | 10,236,807 | 26.42% | 8 |
+| 18 optimization identical-image control | `algebra.Multivector(4,f32,.projective,.{ 0, 1, 1, 1 },3).geometricProduct.motor` | 4,096 | 693,910 | 873,465 | 25.88% | 8 |
+| 18 optimization identical-image control | `algebra.Multivector(5,f64,.projective,.{ 0, 1, 1, 1, 1 },4).geometricProduct.motor` | 4,096 | 1,828,572 | 2,433,869 | 33.10% | 8 |
+| 19 final-v4 roots | `lanes.rootnhvLanes.f16.w8.normal` | 64 | 294,488 | 347,911 | 18.14% | 8 |
+| 20 final-v4 portable lanes | `lanes.totalOrderdv.f64.w4.skewed` | 1,024 | 132,613 | 138,321 | 4.30% | 8 |
+| 20 final-v4 portable lanes | `lanes.totalOrderdv.f64.w4.boundary` | 1,024 | 149,815 | 156,058 | 4.17% | 8 |
+| 20 final-v4 portable lanes | `lanes.totalOrderfv.f32.w4.boundary` | 1,024 | 150,265 | 156,252 | 3.98% | 9 |
+| 23 final-v4 binary16 controls | `lanes.rootnhvLanes.f16.w4.boundary` | 4,096 | 3,501,633 | 4,079,301 | 16.50% | 8 |
+| 24 final-v4 lane flags, longer schedule | `lanes.totalOrderfv.f32.w4.boundary` | 2,048 | 376,530 | 440,225 | 16.92% | 8 |
+
+The final-v4 lane flags were re-measured on a longer 2,048-call schedule.
+Two of the three did not meet the criterion there either (-22.43% over three faster pairs and -18.29% over three),
+and `lanes.totalOrderfv.f32.w4.boundary` stayed slower at 16.92% with eight of nine pairs slower.
+Its binary32 charge is the `totalOrderf` canonical key and is recorded below.
+
+The 21 binary16 control cases in the final-v4 binary16 cohort are unchanged code on both sides.
+Their verdicts are 0 faster, 1 slower and 20 undecided over -16.50% to +37.07%.
+That spread on unchanged code is the size of the host's practical noise floor for these cohorts,
+and it bounds how much any single small row above can be believed.
+
+All 28 rows above remain unresolved measured observations.
+No later repeat, control or rerun dismisses a real-image flag, and none of them is treated as a pass.
+The identical-image controls show only that the practical rule also fires on unchanged code;
+they neither explain nor cancel the real-image rows, which still stand as measured regressions
+against the frozen image on this host.
+
+### Global binary32 measurement ledger
+
+The shared cap is 1,048,576 reserved evaluations per canonical binary32 kernel.
+Aliases, lanes, transitive half wrappers, profiles, both versions, diagnostics, and failed measurements share the ledger.
+Correctness suites and untimed consumer smoke checks are separate.
+The ledger has 109 canonical keys and 5,747,842 total reservations across those keys.
+Every key remains below its cap.
+
+| Canonical key | Reserved evaluations | Remaining |
+| --- | ---: | ---: |
+| `hypotf` | 1,044,802 | 3,774 |
+| `totalOrderf` | 1,009,304 | 39,272 |
+| `totalOrderMagf` | 781,694 | 266,882 |
+| `fmaf` | 580,825 | 467,751 |
+| `absf` | 477,034 | 571,542 |
+| `fmaxf` | 423,638 | 624,938 |
+| `rootnf` | 351,896 | 696,680 |
+| `fminf` | 100,992 | 947,584 |
+| `sqrtf` | 88,561 | 960,015 |
+| `scalbnf` | 44,324 | 1,004,252 |
+
+Two whole-surface coverage-shaped reservation windows, at 19:56Z and 20:13Z, retained 189,616 evaluations each.
+The first of them is the failed initial fixture campaign; the second is the retried coverage run.
+The one-call whole-surface failure scan retained another 23,702.
+The final-v4 cohorts retained 1,882,112 more, attributed per round by the runner's own receipts:
+cohort 19 took 112,640 on `rootnf`, cohort 20 took 774,144 each on `totalOrderf` and `totalOrderMagf`,
+cohort 24 took 147,456 on `totalOrderf`, and the identical-image control in cohort 25 took 73,728 on
+`totalOrderf`. Cohorts 21, 22 and 23 reserved nothing, because geometry and value cases reach no binary32 kernel.
+The remaining 3,865,730 predates the final-v4 cohorts.
+The longer orientation, line and algebra cohorts reach no accepted binary32 kernel.
+Do not reset this ledger to extend the same campaign.
+
+### Runtime verification status
+
+Two different source states are described here and they must not be merged. The receipts in the first half
+below belong to the measured final-v4 image. The current source tree carries its own whole-tree
+correctness receipts, recorded in the second half of this section; they postdate the final-v4 measurement
+and are not bound to its digests.
+
+| Gate section | Final-v4 outcome |
+| --- | --- |
+| `zig fmt --check` | ok |
+| `zig build` | ok |
+| `zig build test` | ok |
+| `zig ast-check` | ok |
+| `ziglint` | 263 findings, exit 1 |
+| `zlint` | 263 findings, exit 0 |
+| `zbc` | 144 errors, exit 1 |
+| `zwanzig` | 351 findings, exit 1 |
+| `cross-test` | fail: 19 pass, 1 fail, 33 build-only over 53 targets |
+
+Recorded tool output on the frozen tree shows 265 `ziglint` findings, 269 `zlint` findings,
+145 `zbc` findings and 375 `zwanzig` findings.
+The final-v4 counts are lower by 2, 6, 1 and 24 findings respectively.
+That is one total per tool, not a per-rule comparison, and it does not settle whether this campaign
+introduced findings. Comparing the frozen and final-v4 analyzer runs rule by rule names two rule families
+that rose while their tools' totals fell: `ziglint` rule Z006 went from 32 to 34, and `zwanzig`
+`identifier-style` went from 190 to 205. Both tools' totals still fell, so a falling total does not imply a
+finding-free campaign. Whether those findings come from the files this campaign touched is resolved by
+`campaign-provenance/linter-baseline.tar.gz` and the final-v4 analyzer output, and is not asserted here
+without that comparison being run and recorded.
+The three tools that exited non-zero stay on record as failing. The count decline does not clear them,
+and the rule-level rises are not dismissed as inherited.
+
+The final-v4 cross-test failure is `armeb-linux`: 948 of 954 tests passed and six failed.
+All six are `vector_value_test` cases that check `toVector` and `fromVector` lane order, and each
+reverses the two lanes it compares.
+Every other one of the 20 targets that had a local runner passed, including `aarch64_be-linux`,
+`s390x-linux`, `powerpc64-linux`, `powerpc-linux`, `mips-linux` and `mipsel-linux`.
+The remaining 33 targets built only, with no local runner.
+Earlier gates in the same campaign failed on more targets, and `armeb-linux` failed in all of them.
+
+The strict one-hot consumer that drives the real public API over 35 mask widths reports nine of ten
+target and mode combinations passing on the final-v4 image.
+It is a correctness driver, not a timing run.
+`aarch64_be-linux` in `ReleaseSafe` fails at width 64 with a logical-lane mismatch, while its `Debug`
+build passes.
+The separate 35-width array publication probe on `aarch64_be-linux` `ReleaseSafe` passes all 753
+one-hot positions.
+The bridge consumer matrix passes in all ten target and mode combinations, and the default-backend
+native consumer passes.
+
+#### Verification of the current source tree
+
+The current tree is the runtime source after the big-endian lane-publication work. These are whole-tree
+receipts, not focused probes. None of them is a measurement: this run reserved nothing and left the shared
+ledger at `8d1b385ec50acb23da73533f9cd50a9ea01142e30d5ebb5526f93e71dd401c1b`, 678 records.
+
+| Check | Extent | Result |
+| --- | --- | --- |
+| native `zig build test`, `x86_64-linux-gnu.2.38`, `Debug` | 956 tests | 956 pass |
+| native `zig build test`, `x86_64-linux-gnu.2.38`, `ReleaseSafe` | 956 tests | 956 pass |
+| `cross-test` `Debug`, all 53 Zig 0.16.0 Tier 1/2 targets | 53 targets | 19 pass, 1 fail, 33 build-only, 0 partial, 489.79 s |
+| `cross-test` `ReleaseSafe`, `armeb-linux` and `aarch64_be-linux` | 2 targets | 2 pass, 0 fail, 0 build-only |
+| `zig fmt --check` | both repositories | clean |
+| full `gate`, `direnv exec . gate` | whole tree, 568.38 s | exit 1, not green; sections below |
+
+The native run used `--cache-dir` under the campaign scratch, `--global-cache-dir
+/tmp/cache/zig` and `--summary all`. The `Debug` cross-test ran under the project profile
+with `--jobs 16 --build-jobs 3` in run `20261004-153923-46001-17397`. The `ReleaseSafe` cross-test ran
+`--targets armeb-linux,aarch64_be-linux --jobs 2 --build-jobs 28 -- -Doptimize=ReleaseSafe`.
+
+`loongarch64-linux`, `aarch64_be-linux`, `thumbeb-linux`, `x86_64-linux`, `mips-linux`, `s390x-linux` and
+`riscv64-linux` each report `All 956 tests passed.` The `ReleaseSafe` run matters twice: it is the first
+receipt for the integer boolean-publication route in `src/vector_core.zig`, which needs an `aarch64_be`
+target and a non-`Debug` mode at the same time, and it establishes that the `armeb-linux` register defect
+below is `Debug`-only. Missing OS runtimes stay build-only and are never counted as passes; no success is
+claimed for any of the 33 targets that only built, and none of this is corpus acceptance evidence.
+
+##### The six `armeb-linux` `Debug` failures
+
+`armeb-linux` in `Debug` reports `950 passed; 0 skipped; 6 failed`. The six are the pre-existing
+`toVector` and `fromVector` lane-order cases in `src/vector_value_test.zig`, and they fail identically at
+the parent commit, so they are not a regression from this work. They read the returned `@Vector` register:
+LLVM's ARM big-endian backend computes the returned vector's big-endian reversal into a scratch register it
+never reads, returns the unreversed register, and the caller then applies one extra reversal, so every
+forwarded result arrives with one lane swapped. Reading the published bytes instead of the returned
+register is correct, which is why the new `toVector publishes lane zero at the lowest address, on every
+target` test passes on that target while the register-read tests fail.
+
+Three source forms of `toVectorOf` were tried and all three leave those six failing: the original per-lane
+`@Vector` assignment, a private `inline` variant, and an array-plus-`@bitCast` variant. The array variant
+was reverted, so `src/vector_value.zig` carries no change and no `Vec`-bridge repair is claimed. The six
+tests stay in the suite; drop neither the failing cases nor the target to make a run green, and record the
+count instead.
+
+##### Boolean-mask widths excluded from the one-hot sweep
+
+Four widths are excluded, on two measured grounds.
+
+| Excluded width | Target and mode | Evidence |
+| --- | --- | --- |
+| 32, 64, 128 | `loongarch64-linux` `Debug` | publishes a spurious true lane 0, and reproduces identically against a `git archive HEAD src` export |
+| 14 | `aarch64_be-linux` `ReleaseSafe` | `cross-test --targets aarch64_be-linux -- -Doptimize=ReleaseSafe` reported 955 of 956 before the exclusion and 956 of 956 after it |
+
+Width 14 is clean in `Debug` and in isolated single-width programs, so it is program-shape sensitive rather
+than a stable width-specific defect. The excluded set is therefore not a stable boundary.
+
+Two standalone-probe results disagree with the repository test binary and stay open: width 16 on
+`loongarch64-linux` in `Debug`, and every power-of-two width on `aarch64_be-linux` in `Debug`. The first was
+re-run with operands built from a runtime loop index and still reproduced, so constant folding does not
+explain it. Both are recorded as unresolved reports about program-shape sensitivity, not as widths to
+exclude.
+
+##### The gate is not green
+
+`direnv exec . gate` ran the full gate on this tree with its internal cross-test parallelised through
+`CROSS_TEST_ARGS="--jobs 16 --build-jobs 3"`, run `20261004-155201-25886-32090`, in 568.38 s, exit 1.
+The gate is not green and is not reported as green.
+
+| Gate section | Current-tree outcome |
+| --- | --- |
+| `zig fmt --check` | ok |
+| `zig build` | ok |
+| `zig build test` | ok |
+| `zig ast-check` | ok |
+| `ziglint` | 263 issues, exit 1 |
+| `zlint` | 263 issues, exit 0 |
+| `zbc` | 146 `use-undefined` errors, exit 1 |
+| `zwanzig` | 353 findings across 8 rule classes, exit 1 |
+| `cross-test` | fail: 19 pass, 1 fail, 33 build-only, 0 partial, the one failure `armeb-linux` at 950 of 956 |
+
+The gate log truncates each analyzer section to its first lines, so these totals and exit codes are the only
+durable analyzer results in it, and no finding list is claimed from it.
+
+The baseline these four analyzer counts compare against is the campaign's frozen measured source snapshot,
+not the parent commit: 213 files with `ziglint` 265, `zlint` 269, `zbc` 145 and `zwanzig` 375. That is the
+same baseline tabulated for the final-v4 image earlier in this section, and these two sets of counts are
+not a comparison against the parent commit.
+
+`zbc` is the one count that rose, from 145 to 146. Comparing per file rather than by line number, because the
+whole change set shifted line numbers: `src/vector_core.zig` 13 to 6, `src/geometry.zig` 28 to 22 and
+`src/vector_test.zig` 2 to 0, against `src/vector_value_test.zig` 2 to 8, `src/linalg.zig` 19 to 23,
+`src/vector_value.zig` 24 to 28 and `src/geometry_test.zig` 0 to 2. The byte-staging change in
+`src/vector_core.zig` removed seven findings, and the net rise of one is spread across the wider uncommitted
+change set rather than concentrated in the four files of the lane-publication work. `src/vector_value.zig`
+carries no change from that work at all, because the experimental array variant was reverted.
+
+### Reproduction and evidence
+
+Run from `zmath-testing`, with both source versions built against the same harness:
+
+```sh
+source "$HOME/.local/lib/host-scratch.sh"
+export PERF_BUILDID_DIR="$XDG_CACHE_HOME/perf"
+zig build bench-api-round -Dtarget=x86_64-linux-gnu.2.38 -Dcpu=haswell -Doptimize=ReleaseSafe \
+  --cache-dir "$ZIG_LOCAL_CACHE_DIR" --prefix "$TMPDIR/zmath-api"
+python3 bench/run_api_round.py \
+  --baseline-exe "$BASELINE_EXE" --candidate-exe "$CANDIDATE_EXE" \
+  --out-dir "$TMPDIR/api-round-new" --ledger "$GLOBAL_LEDGER" \
+  --calls 4 --pairs 1 --cpu 0 --plan-only
+```
+
+Select an allowed CPU and use a new output directory.
+Remove `--plan-only` only when the selection fits the existing shared ledger.
+Use repeatable `--case` filters, at most 64 names, for focused cohorts.
+The receipts preserve the actual commands, source hashes, executable identities, inputs, checksums, and reservations.
+
+- [Complete selected coverage CSV](../bench/results/api-surface-20261003-coverage.csv): 7,428 rows, explicitly `coverage_only`, measured on the optimization image.
+- [Focused paired CSV](../bench/results/api-surface-20261003-focused.csv): 895 rows over 23 cohorts, including rejected candidates, unchanged binary16 controls, longer repeats and identical-image controls. It retains 291 faster, 28 slower and 576 undecided rows.
+- [Retained final-v4 evidence package](../bench/results/api-surface-20261003-final-v4/): 116 members, 10,614,487 bytes, no executables, caches or perf sample data. The 116 members are the ones `package-manifest.json` hashes; it does not hash itself, so the directory holds 117 files and 10,640,697 bytes.
+
+The evidence package holds both source snapshots, the per-round manifests, reports and results, the
+four profile reports, the shared ledger and its summary, the measurement input scripts, the
+verification receipts quoted above, and a `campaign-provenance/` subtree that archives the earlier
+cohorts behind the two committed CSVs.
+Its `archive-verification.json` recomputes both source tree digests from the packaged archives and
+reproduces the recorded values exactly, and its `package-manifest.json` re-checks all 193 final-v4
+report rows against the committed CSV with zero mismatches.
+
+The `campaign-provenance/` subtree exists because the 895-row focused CSV and the 7,428-row coverage CSV
+were published without the per-cohort receipts that back their rows. It holds loose `manifest.json`,
+`report.txt` and `results.json` for the sixteen pre-final-v4 focused cohorts, including both
+identical-image controls and every rejected candidate, plus nine archives covering the coverage rounds
+and their plan-only case listing, the five early profiling and first-integration cohorts behind the
+schedule and defect paragraphs, the raw per-pair streams of cohorts 06-18, the 107 per-target logs
+behind the cross-test summary, the four frozen-tree analyzer logs behind the linter counts, the
+untimed replay checksum stream, and the current-tree cross-test runs. Beside them it holds the six
+current-tree verification receipts themselves: the `gate` log of this tree, the `Debug` and
+`ReleaseSafe` cross-test summaries with the per-target logs of their runs, and the full 146-line `zbc`
+listing that the truncated gate log cannot supply, so the per-file `zbc` disposition above is
+recomputable from the package alone. Its `provenance-index.json` states which published artifact each
+member backs and transcribes the command behind each current-tree receipt with its `run_id`. All 1,008
+files were compared against the campaign working copies with zero size or SHA256 mismatch, and the
+archives are reproducible because member order, ownership and mtime are pinned.
+`perf .perf.data` streams are excluded here as they are elsewhere; they are regenerable from
+`profiles/perf-report-commands.json`.
+
+All three paths are the only entries under `bench/results/` that are tracked in this repository. The
+`package-manifest.json` totals are the manifest's own exclusion of itself, and every one of the 116
+listed members' recorded size and SHA256 was re-checked against the file on disk with no mismatch, no
+listed member missing and no unlisted file present. The packaged copies of both source snapshot
+archives, the shared ledger, all seven measurement input scripts and five of the seven `verification/`
+receipts are byte-identical to the campaign working files they were taken from. The two without a
+byte-identical working counterpart are the gate and cross-test summaries, which were reduced from
+`gate-final-v4.log` and from the per-target `runs/` logs of `gate-cross-final-v4`; both inputs are now
+archived in `campaign-provenance/`, so those two summaries are the only derived files in the package.
+
+Every round receipt in this campaign reports protocol 1 and harness digest `f3492d07de0e3b95`.
+
+Native checks exercised the real consumer module, not just test imports:
+binary16/32/64 roots, reciprocal and portable-lane roots, exact versus rounded orientation,
+mixed-scale collinearity, and the restored Cl3d basis product.
+Observed root bits were `4000/40000000/4010000000000000`, reciprocal `3fd0000000000000`;
+lanes returned 2/3/4/5, mixed-scale orientation was zero, and `e1*e2` had coefficient 1 at mask 3.
+The harness suite passed 65/65 tests and the Python runner suite passed 95/95 on the optimization image,
+before the final-v4 lane-order changes.
+
+A separate protocol check on the current tree, after the big-endian repairs and before any whole-tree
+gate, ran only the runner's own unit tests. It invoked no benchmark, no profiler and no corpus:
+
+```sh
+source "$HOME/.local/lib/host-scratch.sh"
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s bench -p test_api_round_runner.py
+```
+
+It exited 0 after `Ran 95 tests in 9.720s` and `OK`, spawning only test fixture subprocesses. The run
+fixes the current tree's `bench/run_api_round.py` at
+`16d95359ab487c89bfa410504acca938ce3cdeb760bcbf5f91989772a6bdc750` and its
+`bench/test_api_round_runner.py` at
+`11016080c077f6e396b0e9a71395bd6fbd735de908e3674d4c70911d78b3eacf`. The shared ledger file was
+unchanged by it: `8d1b385ec50acb23da73533f9cd50a9ea01142e30d5ebb5526f93e71dd401c1b`, 678 records, and
+no reservation was made.
+This is runner-harness protocol evidence for the current tree and nothing else. It exercises no zmath
+symbol, so it is not a gate, a correctness result or a measurement, and it is not one of the
+whole-tree receipts under [Runtime verification status](#runtime-verification-status). The 65/65 and
+95/95 figures above remain attributed to the optimization image.
+
+No oracle generation or corpus replay was run in this round.
+Checksums can collide and cover only their fixtures.
+Lane widths outside 2/4/8, other generic matrix shapes, and other hardware throughput remain unmeasured.
+The schema-5 corpus manifest remains the numerical acceptance authority.
+This section publishes bounded coverage and named measured cases.
+It is not a correctness acceptance result and it is not a whole-domain performance claim.

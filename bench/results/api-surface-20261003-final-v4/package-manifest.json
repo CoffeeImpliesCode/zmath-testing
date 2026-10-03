@@ -1,0 +1,676 @@
+{
+  "package": "api-surface-20261003-final-v4",
+  "purpose": "Retained evidence for the measured final-v4 image of the API-surface 2026-10-03 campaign and for the earlier cohorts behind its two committed CSVs. Reproducible measurement inputs, both source snapshots, the primary paired results, and archival backing for every published row and claim. No executables, build caches or perf sample data are stored.",
+  "owner": "zmath-testing docs/reference-performance-analysis.md, section \"API-surface round 2026-10-03\"",
+  "contains_no": [
+    "ELF or other executables",
+    "zig build caches",
+    "perf .perf.data sample streams",
+    "zmath build outputs and install prefixes"
+  ],
+  "commits_to": [
+    "identity/measurement-inputs.json",
+    "identity/final-v4-source-identity.json",
+    "identity/frozen-source-identity.json",
+    "archive-verification.json",
+    "ledger/summary.json",
+    "verification/final-v4-gate-summary.json",
+    "campaign-provenance/provenance-index.json",
+    "campaign-provenance/coverage-rounds.tar.gz",
+    "campaign-provenance/raw-samples-rounds-06-18.tar.gz",
+    "campaign-provenance/coverage-plan-listings.tar.gz",
+    "campaign-provenance/cross-test-final-v4-runs.tar.gz",
+    "campaign-provenance/linter-baseline.tar.gz",
+    "campaign-provenance/untimed-replay-checksums.tar.gz",
+    "campaign-provenance/gate-final-v4.log",
+    "campaign-provenance/rounds/ (16 cohort directories, 48 files)",
+    "campaign-provenance/early-cohorts.tar.gz",
+    "campaign-provenance/gate-current-tree.log",
+    "campaign-provenance/zbc-current-tree-full.txt",
+    "campaign-provenance/cross-test-current-tree-summary.json",
+    "campaign-provenance/cross-test-current-tree-runs.tar.gz",
+    "campaign-provenance/cross-test-current-tree-releasesafe-summary.json",
+    "campaign-provenance/cross-test-current-tree-releasesafe-runs.tar.gz"
+  ],
+  "cross_file_results": {
+    "committed_coverage_csv": "../api-surface-20261003-coverage.csv",
+    "committed_focused_csv": "../api-surface-20261003-focused.csv",
+    "focused_csv_rows_total": 895,
+    "focused_csv_rounds": [
+      "round-06-root-retention",
+      "round-07-algebra-retention",
+      "round-08-final-roots",
+      "round-09-final-half-roots",
+      "round-10-final-gp-rollback",
+      "round-11-orientation-retention",
+      "round-12-adaptive-00",
+      "round-12-adaptive-01",
+      "round-12-adaptive-02",
+      "round-12-adaptive-03",
+      "round-12-adaptive-04",
+      "round-14-orientation-long",
+      "round-15-line-regression-repeat",
+      "round-16-gp-rollback-repeat",
+      "round-17-gp-baseline-control",
+      "round-18-gp-final-control",
+      "round-19-final-v4-roots",
+      "round-20-final-v4-portable-lanes",
+      "round-21-final-v4-value-geometry",
+      "round-22-final-v4-orientation",
+      "round-23-final-v4-half-controls",
+      "round-24-final-v4-lane-flags-long",
+      "round-25-final-v4-lane-identical-control"
+    ],
+    "focused_csv_verdicts": {
+      "undecided": 576,
+      "faster": 291,
+      "slower": 28
+    },
+    "final_v4_rows_in_focused_csv": 193,
+    "final_v4_report_rows_checked_against_csv": 193,
+    "final_v4_report_csv_mismatches": 0,
+    "slower_flag_rows_retained": 28
+  },
+  "totals": {
+    "members": 116,
+    "bytes": 10614487
+  },
+  "content_screen": {
+    "suspect_members": [],
+    "elf_members": []
+  },
+  "members": [
+    {
+      "path": "archive-verification.json",
+      "bytes": 1869,
+      "sha256": "d93e24b9cd7f5679f7a62b174a3294396fde825e6852688b7de67e1e1a8dd161"
+    },
+    {
+      "path": "campaign-provenance/coverage-plan-listings.tar.gz",
+      "bytes": 257868,
+      "sha256": "e26597eb81eba33d0679a1cc4557f68e23863820ed8b938abcdcce730e89b9ae"
+    },
+    {
+      "path": "campaign-provenance/coverage-rounds.tar.gz",
+      "bytes": 1952203,
+      "sha256": "044a2e4cb46653f99adc2708c781856e7959ad570435c4c6e3884d88ba1a8c56"
+    },
+    {
+      "path": "campaign-provenance/cross-test-current-tree-releasesafe-runs.tar.gz",
+      "bytes": 36471,
+      "sha256": "1fa894ef40f54a43075c244ad81b9c2cc46e9cdd522db574dc9214340cb0ce5b"
+    },
+    {
+      "path": "campaign-provenance/cross-test-current-tree-releasesafe-summary.json",
+      "bytes": 1374,
+      "sha256": "b15e35bae9f831a959ad209bdd5da837fa8f42ac74a312a5bfdfd75d6ea077e7"
+    },
+    {
+      "path": "campaign-provenance/cross-test-current-tree-runs.tar.gz",
+      "bytes": 714171,
+      "sha256": "d878019d84e2c777d19476bb0dfb84d84e1f6f1371f2a1553e6afea83e767d2c"
+    },
+    {
+      "path": "campaign-provenance/cross-test-current-tree-summary.json",
+      "bytes": 24105,
+      "sha256": "f1b0fda22d5ab9292b9997e953218abb8f20bf6d46ee9c9f39b405111406fbfe"
+    },
+    {
+      "path": "campaign-provenance/cross-test-final-v4-runs.tar.gz",
+      "bytes": 356025,
+      "sha256": "9f709b4ab44d1a54ae7271d8235d782075a46ad4e7894cfdbbe3e1a1ffc444e4"
+    },
+    {
+      "path": "campaign-provenance/early-cohorts.tar.gz",
+      "bytes": 1185914,
+      "sha256": "9cee8e4697dd29ebd4f9b9751f6d9b7d7e2aa37b9c28c081b864623bec79c62a"
+    },
+    {
+      "path": "campaign-provenance/gate-current-tree.log",
+      "bytes": 17592,
+      "sha256": "f9124c71b4aca7bc165524999596969e652756ac37022e23f77fb7d96f3021c6"
+    },
+    {
+      "path": "campaign-provenance/gate-final-v4.log",
+      "bytes": 21529,
+      "sha256": "aa63ee7cc8100f71e02792cb7a3594eeb459a1bb0e87fa42a40fd86195da1450"
+    },
+    {
+      "path": "campaign-provenance/linter-baseline.tar.gz",
+      "bytes": 18628,
+      "sha256": "4b3bf1deff51c44a9b3bba4473af06a0a2e1aa0465ddc2bdc59d737f0668c6b6"
+    },
+    {
+      "path": "campaign-provenance/provenance-index.json",
+      "bytes": 24970,
+      "sha256": "2faf92a28c5c84263ba3ead7783e57f7fdf854cf592ea257588476195dd5eee4"
+    },
+    {
+      "path": "campaign-provenance/raw-samples-rounds-06-18.tar.gz",
+      "bytes": 133135,
+      "sha256": "cb1b990a7a3b4497825e2fcd10b72af4f2d3454a75bded78ca27804486384cfb"
+    },
+    {
+      "path": "campaign-provenance/rounds/round-06-root-retention/manifest.json",
+      "bytes": 72156,
+      "sha256": "98326e3cb9d626b7447f66b13ada338d18c860cfb5a10d224ffdf47acc1946a0"
+    },
+    {
+      "path": "campaign-provenance/rounds/round-06-root-retention/report.txt",
+      "bytes": 8507,
+      "sha256": "7883ed66e9819b829e2fc11ca3032478b4be6b3056ccace76b728b0d7e5844bb"
+    },
+    {
+      "path": "campaign-provenance/rounds/round-06-root-retention/results.json",
+      "bytes": 56835,
+      "sha256": "61af7937f6bc0bac1e5bd0448d3f2a4756e5e72af4c9eb139e194b69594103aa"
+    },
+    {
+      "path": "campaign-provenance/rounds/round-07-algebra-retention/manifest.json",
+      "bytes": 74398,
+      "sha256": "2785e83d8e0c668b02ca023e7c34655f5f5e0dc77dbcd3979e4dbc9a7534552c"
+    },
+    {
+      "path": "campaign-provenance/rounds/round-07-algebra-retention/report.txt",
+      "bytes": 6592,
+      "sha256": "d60f7205796e262f7420bf8cee903fb167ccf7d8eb0fff3704e129afa6b61e21"
+    },
+    {
+      "path": "campaign-provenance/rounds/round-07-algebra-retention/results.json",
+      "bytes": 38295,
+      "sha256": "25c8b95fd6b449badb354a63c388f0eeab916a0f214230fbadf0d4093eb2126e"
+    },
+    {
+      "path": "campaign-provenance/rounds/round-08-final-roots/manifest.json",
+      "bytes": 72057,
+      "sha256": "745dd9e62695b1aa2e0d898c82013e78fdc7cfd5d118667b56d4f6115c197ffa"
+    },
+    {
+      "path": "campaign-provenance/rounds/round-08-final-roots/report.txt",
+      "bytes": 8441,
+      "sha256": "eea4d61d0cfb5e41c643c27712097820c44420c46f6b81f512bde9d75effe6ee"
+    },
+    {
+      "path": "campaign-provenance/rounds/round-08-final-roots/results.json",
+      "bytes": 56181,
+      "sha256": "93e9a5a67c5525b61e4757ae9435d16a4daa13e9d6a23e5d18cd568ceedd59bf"
+    },
+    {
+      "path": "campaign-provenance/rounds/round-09-final-half-roots/manifest.json",
+      "bytes": 24638,
+      "sha256": "aaec3c0012b0ca452012acf8ff70327b41637a3409c3b10587b27daf81304a7d"
+    },
+    {
+      "path": "campaign-provenance/rounds/round-09-final-half-roots/report.txt",
+      "bytes": 3131,
+      "sha256": "2bf824ebefc1144aeb643fa63cd41f57a16c8bba0ffac4a96c14156428405c2f"
+    },
+    {
+      "path": "campaign-provenance/rounds/round-09-final-half-roots/results.json",
+      "bytes": 19615,
+      "sha256": "7f2afd00be5adbe614714dc29e4dfc389e77c37721a10735fecb68c4efd7d855"
+    },
+    {
+      "path": "campaign-provenance/rounds/round-10-final-gp-rollback/manifest.json",
+      "bytes": 65805,
+      "sha256": "881f48a33cc9f0c522dab81370f06fd7aa92c151229b56cc861e6aaf8d868f5f"
+    },
+    {
+      "path": "campaign-provenance/rounds/round-10-final-gp-rollback/report.txt",
+      "bytes": 5279,
+      "sha256": "922306b1e5065dd1fb2b9deb437619b53a5a549a1307b10f22a2aebb5546d491"
+    },
+    {
+      "path": "campaign-provenance/rounds/round-10-final-gp-rollback/results.json",
+      "bytes": 29281,
+      "sha256": "a816e90da4f5d1fef4bff6faef878ced410c90c42cb29d651cc82fd164cbf216"
+    },
+    {
+      "path": "campaign-provenance/rounds/round-11-orientation-retention/manifest.json",
+      "bytes": 49962,
+      "sha256": "523df23989e48dbac50c0652be5e0119c8b3d7f4d0d6a69e6ed785ec544380f8"
+    },
+    {
+      "path": "campaign-provenance/rounds/round-11-orientation-retention/report.txt",
+      "bytes": 3479,
+      "sha256": "20f90367f6d806aea0b4046f28bba4dfb3fe09bdcb0bd56477dc17418d3210cb"
+    },
+    {
+      "path": "campaign-provenance/rounds/round-11-orientation-retention/results.json",
+      "bytes": 28417,
+      "sha256": "8a2a9817aac05fbe017374457ebcae767f67258335580830c4166b8a83ad240d"
+    },
+    {
+      "path": "campaign-provenance/rounds/round-12-adaptive-00/manifest.json",
+      "bytes": 119295,
+      "sha256": "fd4ee0862eaa6fa7150583aa2d074af40aa639c3a49be025d1d64ac5a5b449b4"
+    },
+    {
+      "path": "campaign-provenance/rounds/round-12-adaptive-00/report.txt",
+      "bytes": 9639,
+      "sha256": "40f7f1e7f2efc308e03542ec6aba9137089955a6128670e291ec3cb2340de2e3"
+    },
+    {
+      "path": "campaign-provenance/rounds/round-12-adaptive-00/results.json",
+      "bytes": 50782,
+      "sha256": "feed1a87c92c8a85a54e6f9d82bdc39d23b67feda9e9cff570048067c091d006"
+    },
+    {
+      "path": "campaign-provenance/rounds/round-12-adaptive-01/manifest.json",
+      "bytes": 124281,
+      "sha256": "0d4f04b0264a101d1b5664e00292abef99ab5113a776692e54e8801e345725ff"
+    },
+    {
+      "path": "campaign-provenance/rounds/round-12-adaptive-01/report.txt",
+      "bytes": 9667,
+      "sha256": "9231924412c4e10f09a52418107fcda2244cfd015885c32e32d44cc88373af0e"
+    },
+    {
+      "path": "campaign-provenance/rounds/round-12-adaptive-01/results.json",
+      "bytes": 51607,
+      "sha256": "f4f1bc6dbfacd6eda3679b4b57f7f7c58fadeb0376b586fe58a7f0660de422db"
+    },
+    {
+      "path": "campaign-provenance/rounds/round-12-adaptive-02/manifest.json",
+      "bytes": 115245,
+      "sha256": "81e264bb107ea8ed3de176fa73fae0bffb5d9ff00cef5114b37a8164ff1223bf"
+    },
+    {
+      "path": "campaign-provenance/rounds/round-12-adaptive-02/report.txt",
+      "bytes": 9241,
+      "sha256": "e8890db8696652822bc6f216ca08e2ad3c33e8e7180d73d3aa95dd5a592f8b52"
+    },
+    {
+      "path": "campaign-provenance/rounds/round-12-adaptive-02/results.json",
+      "bytes": 51446,
+      "sha256": "21bd7ed9baf0397ec02580e9d86e5feeb0fa3c634dc6ea419ced08c8f4533415"
+    },
+    {
+      "path": "campaign-provenance/rounds/round-12-adaptive-03/manifest.json",
+      "bytes": 103455,
+      "sha256": "eab780aa6e1c85626ffad936044f67e6efb532b53bca7a4e6f13ff8d47696f57"
+    },
+    {
+      "path": "campaign-provenance/rounds/round-12-adaptive-03/report.txt",
+      "bytes": 8573,
+      "sha256": "99b4c7fe6bf373634e7c7fa00c556984aa193c6bc2698994adef9f0cd63f40f7"
+    },
+    {
+      "path": "campaign-provenance/rounds/round-12-adaptive-03/results.json",
+      "bytes": 50007,
+      "sha256": "eb1704ee452f38aced105d38651d4b1df4c993aafac9916ee088be0a93344cc6"
+    },
+    {
+      "path": "campaign-provenance/rounds/round-12-adaptive-04/manifest.json",
+      "bytes": 108603,
+      "sha256": "985238e5b7fbf7fdb2e74c94000cf13c212888d9cd20724b04dcbba5523f6bcb"
+    },
+    {
+      "path": "campaign-provenance/rounds/round-12-adaptive-04/report.txt",
+      "bytes": 8766,
+      "sha256": "c53c0bd0de1eaf508550ef1f18cd06dfef7797a6445e348ce72097537b0ec426"
+    },
+    {
+      "path": "campaign-provenance/rounds/round-12-adaptive-04/results.json",
+      "bytes": 49850,
+      "sha256": "199f66f66068f61286cfded700ca78b4361053dd3a76821575444082ed0d5361"
+    },
+    {
+      "path": "campaign-provenance/rounds/round-14-orientation-long/manifest.json",
+      "bytes": 43826,
+      "sha256": "74c46cc9a450f0ebad434e43f010e85c97376677464f514befade783d394be3a"
+    },
+    {
+      "path": "campaign-provenance/rounds/round-14-orientation-long/report.txt",
+      "bytes": 3450,
+      "sha256": "e2d6ce28464c15ac15a96d664ab4402b7bc5ca78d872c66968f16350456a6a8d"
+    },
+    {
+      "path": "campaign-provenance/rounds/round-14-orientation-long/results.json",
+      "bytes": 22572,
+      "sha256": "285c7fef82a53c861636fe284853da14be555ff8dad397b0d52d5e0056af7234"
+    },
+    {
+      "path": "campaign-provenance/rounds/round-15-line-regression-repeat/manifest.json",
+      "bytes": 34778,
+      "sha256": "2be4e1f932755c7d737d5afc4462bd0e750ae349f6c08a1f99b7ec5571a3497d"
+    },
+    {
+      "path": "campaign-provenance/rounds/round-15-line-regression-repeat/report.txt",
+      "bytes": 2584,
+      "sha256": "24d158c0e0f816e06c82f1ce742d84c2b9a8f03d9c3ee9c058e07ed01165179e"
+    },
+    {
+      "path": "campaign-provenance/rounds/round-15-line-regression-repeat/results.json",
+      "bytes": 16872,
+      "sha256": "a0f53872bc55f92621b4ba97477343017db0c17a4a7bcfa34a5889306ba44a0d"
+    },
+    {
+      "path": "campaign-provenance/rounds/round-16-gp-rollback-repeat/manifest.json",
+      "bytes": 65806,
+      "sha256": "dc17207aeb7e1593cd36f2218ba1f404677f802d671f1efb8e80c4367929d42b"
+    },
+    {
+      "path": "campaign-provenance/rounds/round-16-gp-rollback-repeat/report.txt",
+      "bytes": 5284,
+      "sha256": "e36276b3ce83d25d06a39ced0966cd290ad55a1c89353ee852bd4c4d9c0462a5"
+    },
+    {
+      "path": "campaign-provenance/rounds/round-16-gp-rollback-repeat/results.json",
+      "bytes": 29417,
+      "sha256": "bdfabe2fb908f987ec08658e29e1180bd85cb1b79e35d9d353412711411c3681"
+    },
+    {
+      "path": "campaign-provenance/rounds/round-17-gp-baseline-control/manifest.json",
+      "bytes": 65842,
+      "sha256": "bf6c0d8c24f2c0d8a4352ee37493c8a2c3c3d753b08dd9a6039de4a267b420f3"
+    },
+    {
+      "path": "campaign-provenance/rounds/round-17-gp-baseline-control/report.txt",
+      "bytes": 5284,
+      "sha256": "f322bf030f3e641c599224793af4759f4be0977da386d2c2e219a85064005609"
+    },
+    {
+      "path": "campaign-provenance/rounds/round-17-gp-baseline-control/results.json",
+      "bytes": 29448,
+      "sha256": "d34d8d74428ec1806093dd2a0b4e9d64e4e01c4a39e34751c7140d969b856e86"
+    },
+    {
+      "path": "campaign-provenance/rounds/round-18-gp-final-control/manifest.json",
+      "bytes": 65794,
+      "sha256": "f52bcb53b776cb82234f707e9eff71784e98a30348c6f9a345b216e79c280944"
+    },
+    {
+      "path": "campaign-provenance/rounds/round-18-gp-final-control/report.txt",
+      "bytes": 5388,
+      "sha256": "e299d9044691ba1cf8521944472e072b2e73b0312dd734ea686f744befcc1918"
+    },
+    {
+      "path": "campaign-provenance/rounds/round-18-gp-final-control/results.json",
+      "bytes": 29429,
+      "sha256": "3c6192867e0510ed359b74496f4c16b35a0b3630c4975f600a5e4934f0325b19"
+    },
+    {
+      "path": "campaign-provenance/untimed-replay-checksums.tar.gz",
+      "bytes": 93915,
+      "sha256": "ca5a6bc20dd2af8d5b268877cb996c53111c0a565691bdd4cab83050f713cfef"
+    },
+    {
+      "path": "campaign-provenance/zbc-current-tree-full.txt",
+      "bytes": 17858,
+      "sha256": "605b4d303ed27b0fa596219155d3ae35277ac897a6bdb7e500503de19347e132"
+    },
+    {
+      "path": "identity/final-v4-source-identity.json",
+      "bytes": 24617,
+      "sha256": "ec6ea660a5e518f6a91b8c87cc79334ad0e12387acc93ea5aaef47bcb9502c0a"
+    },
+    {
+      "path": "identity/frozen-source-identity.json",
+      "bytes": 24882,
+      "sha256": "a72c8d26ee69e208353d2fa1d1656af15229d0ff717d6f45b47d91e7706b3ace"
+    },
+    {
+      "path": "identity/measurement-inputs.json",
+      "bytes": 25524,
+      "sha256": "463ed0195223e1125d9ea9f23047aeaa0ae094ecc176ea420b75402ca9abe96d"
+    },
+    {
+      "path": "inputs/run-final-v4-consumers-llvm.py",
+      "bytes": 1986,
+      "sha256": "d184040444c616233dc452defaa12569288edaeba0b4e085041a3344f393a1e9"
+    },
+    {
+      "path": "inputs/run-final-v4-flag-controls.py",
+      "bytes": 3528,
+      "sha256": "a8d160331bb3655fc1d23bb5532695f5335caddcf189ae6ac157dbb5ba39a176"
+    },
+    {
+      "path": "inputs/run-final-v4-repeats.py",
+      "bytes": 11495,
+      "sha256": "fb3f269f998e7d423e9c6ffccc4e39686e76b2bb40f04e1ecf4b77439e335dae"
+    },
+    {
+      "path": "inputs/run-final-v4-strict-onehot-all-targets.py",
+      "bytes": 2063,
+      "sha256": "87b886be15649823d574932b86df48ed8c4ebcb9d18061a88b2cbed0ce4cf55c"
+    },
+    {
+      "path": "inputs/run-final-v4-strict-onehot-corrected.py",
+      "bytes": 2028,
+      "sha256": "aa82382ba38b17afe9cc33930ee6af5cda88c470008690eb92aa149124988734"
+    },
+    {
+      "path": "inputs/run-final-v4-strict-onehot.py",
+      "bytes": 2021,
+      "sha256": "261781a6d45279d7f66584e6160f078c8c340818982825b2166da665de47fbba"
+    },
+    {
+      "path": "inputs/run-identical-controls.py",
+      "bytes": 7776,
+      "sha256": "74d5b98e8e237b5a88946a8193aed0f87c7458c7349617e1e61889552302aabd"
+    },
+    {
+      "path": "ledger/f32-global-ledger.jsonl",
+      "bytes": 99887,
+      "sha256": "8d1b385ec50acb23da73533f9cd50a9ea01142e30d5ebb5526f93e71dd401c1b"
+    },
+    {
+      "path": "ledger/summary.json",
+      "bytes": 8854,
+      "sha256": "1966514a0a7756c77f3040f3e7331aefa2615ffe0e470cdd1d1d084f2f2b83be"
+    },
+    {
+      "path": "profiles/baseline-lanes-run0.perf.report.txt",
+      "bytes": 614,
+      "sha256": "b73fa116ae2d55293860ec37ad2c5321180d708d64f96f302304ffa542f9f88f"
+    },
+    {
+      "path": "profiles/baseline-lanes-run0.stderr.txt",
+      "bytes": 219,
+      "sha256": "aa5fb3284a1318ffdcd8b91b3b36db0444919729a6db0d097d9749f4a6e319cc"
+    },
+    {
+      "path": "profiles/baseline-leaf-run0.perf.report.txt",
+      "bytes": 769,
+      "sha256": "ed09505b5b7ace9284a6f3786a4fe21f94cece6a51a38a048cbd0f72e811a3a5"
+    },
+    {
+      "path": "profiles/baseline-leaf-run0.stderr.txt",
+      "bytes": 217,
+      "sha256": "af5cba1508d291880f7d1e52b71577fc18d80894f7355a9dce7c194f53bffdbb"
+    },
+    {
+      "path": "profiles/candidate-lanes-run0.perf.report.txt",
+      "bytes": 1903,
+      "sha256": "25df3a632d30c114eeb7e9f6d9437e648f5254d49e0192acdb39b0e3cf92b248"
+    },
+    {
+      "path": "profiles/candidate-lanes-run0.stderr.txt",
+      "bytes": 219,
+      "sha256": "8bf34277febf79cea5b6eb40896d02bb617affaa4aadc4071e6b80af7587520d"
+    },
+    {
+      "path": "profiles/candidate-leaf-run0.perf.report.txt",
+      "bytes": 1309,
+      "sha256": "172716b9c6060084c2ebfbebdc0d1c50f28b9823926e2885c3afa5100f9e6cdd"
+    },
+    {
+      "path": "profiles/candidate-leaf-run0.stderr.txt",
+      "bytes": 217,
+      "sha256": "6c5712f46f5a0392dddb58cdcf24c78e4b9362a7994493b4eb107cff67d9643e"
+    },
+    {
+      "path": "profiles/perf-report-commands.json",
+      "bytes": 2371,
+      "sha256": "8cc96868e7e0e4ace72e6c8a06c1f54c738fa6557767b736cac97b6b35aba77d"
+    },
+    {
+      "path": "raw-samples.tar.gz",
+      "bytes": 41335,
+      "sha256": "1e17127c22ab881b63fc82fd38f501eb2ddb75563718565c9320fb86efb6ee7d"
+    },
+    {
+      "path": "rounds/round-19-final-v4-roots/manifest.json",
+      "bytes": 72144,
+      "sha256": "e04fdd74c09a121f22b0f12263d234e1549cd8efcd3cd51f89a6a0a2129a0cbd"
+    },
+    {
+      "path": "rounds/round-19-final-v4-roots/report.txt",
+      "bytes": 8504,
+      "sha256": "43cbb9571771db88b7df383ebf06d903c6a546d30057b5af5eebf0ca7d1655ec"
+    },
+    {
+      "path": "rounds/round-19-final-v4-roots/results.json",
+      "bytes": 56233,
+      "sha256": "0eedebd3224e8fe693a4133509353ce8da4d17f9f38fa5da0d094843e8c3dbef"
+    },
+    {
+      "path": "rounds/round-20-final-v4-portable-lanes/manifest.json",
+      "bytes": 57867,
+      "sha256": "c69c402405033fd58e11fb013e03103e4eb500a44a2677c6b357868afaba5fe6"
+    },
+    {
+      "path": "rounds/round-20-final-v4-portable-lanes/report.txt",
+      "bytes": 7288,
+      "sha256": "9caf8f2540519801edefc81d9ecb806ad409796ec26d733bb8278dc392922c5f"
+    },
+    {
+      "path": "rounds/round-20-final-v4-portable-lanes/results.json",
+      "bytes": 40510,
+      "sha256": "5f53feb729bf73082b1fd4ba92cc694d42c5dee5e93d7933c9dff9bef3d0861d"
+    },
+    {
+      "path": "rounds/round-21-final-v4-value-geometry/manifest.json",
+      "bytes": 27861,
+      "sha256": "b45985edee8a40d837c185209e8781cc4e12c166a32b1612f09ded10d88a1387"
+    },
+    {
+      "path": "rounds/round-21-final-v4-value-geometry/report.txt",
+      "bytes": 3508,
+      "sha256": "52c1ea94a0b5661eadf199948aa03aecf0580c5dc4931beffc99f93aef93040f"
+    },
+    {
+      "path": "rounds/round-21-final-v4-value-geometry/results.json",
+      "bytes": 21324,
+      "sha256": "1fdee4448e17ebf924cb4adf0fbf3649925439599959dd91c7e4cb451811fa25"
+    },
+    {
+      "path": "rounds/round-22-final-v4-orientation/manifest.json",
+      "bytes": 43860,
+      "sha256": "79b76a8043b44758f820f69f9cc3da61baf0e91503faf6542fbd2a481b557c21"
+    },
+    {
+      "path": "rounds/round-22-final-v4-orientation/report.txt",
+      "bytes": 3453,
+      "sha256": "1a26c5ec1f92837a54fe0cae976e10d5fc9e23bffc6d1665ea69a60f426ef248"
+    },
+    {
+      "path": "rounds/round-22-final-v4-orientation/results.json",
+      "bytes": 22561,
+      "sha256": "d6216824e00a9d491ca63148ee4f18a1f143ce08f4e458f463be95634ef64137"
+    },
+    {
+      "path": "rounds/round-23-final-v4-half-controls/manifest.json",
+      "bytes": 24674,
+      "sha256": "6b63ddac6f8a690bd8fa2e1b878dc960347cc5f4661287167d1eaa04bdae76c4"
+    },
+    {
+      "path": "rounds/round-23-final-v4-half-controls/report.txt",
+      "bytes": 3193,
+      "sha256": "15d6cdeea6f7157c281fa85d2b5891dbfa93f8662eb9cf98c61f0a9cccaf3720"
+    },
+    {
+      "path": "rounds/round-23-final-v4-half-controls/results.json",
+      "bytes": 19645,
+      "sha256": "dadecb086396e7dda1d1f36788083d2a6b228711f2a34dca54a64ef3df110b9e"
+    },
+    {
+      "path": "rounds/round-24-final-v4-lane-flags-long/manifest.json",
+      "bytes": 9016,
+      "sha256": "fb74242e2e35759b4e01e4ef1b3c4889f1e16f8cd90bec7003d7ebd142a6c963"
+    },
+    {
+      "path": "rounds/round-24-final-v4-lane-flags-long/report.txt",
+      "bytes": 800,
+      "sha256": "81084dcef5b1ce3841f7086380ebdb66fac4262ee7c49f262a4fbe3ac192d4ad"
+    },
+    {
+      "path": "rounds/round-24-final-v4-lane-flags-long/results.json",
+      "bytes": 8478,
+      "sha256": "20df0f32b01b6a0d5a425491a394da64bc968a09a992ae3fffe5fda52a12d075"
+    },
+    {
+      "path": "rounds/round-25-final-v4-lane-identical-control/manifest.json",
+      "bytes": 9043,
+      "sha256": "d2edc97a0861d8fa68b19568436671bf90c192d1a95ce00413a19a025553ff42"
+    },
+    {
+      "path": "rounds/round-25-final-v4-lane-identical-control/report.txt",
+      "bytes": 741,
+      "sha256": "4e7fba772ecaaa3de265df73c39509fd5f8052a89c3e0e45ae69464c3738e898"
+    },
+    {
+      "path": "rounds/round-25-final-v4-lane-identical-control/results.json",
+      "bytes": 8499,
+      "sha256": "7e163ed4ab9265f8af4f65eb9e4d8b027d450162274d7a54de8c8fe73849fabd"
+    },
+    {
+      "path": "sources/final-v4-source.tar.gz",
+      "bytes": 1492106,
+      "sha256": "be3a4127edff6a6b4d893967f022c807ce7e4f320fb720e6ad1e8f54e0588196"
+    },
+    {
+      "path": "sources/frozen-source.tar.gz",
+      "bytes": 1531826,
+      "sha256": "eb21ce80006feb96b0245cfdec74c98ee1c2015f23cc90d8deb98444bed41e96"
+    },
+    {
+      "path": "verification/array-publication-35widths.json",
+      "bytes": 930,
+      "sha256": "9f9fca8119f79ed08478217d651b07167526386928e69a040fb1335ab290406c"
+    },
+    {
+      "path": "verification/final-v4-consumer-llvm-results.json",
+      "bytes": 36069,
+      "sha256": "7ef7af765e3d2dd58ddf3ab092271845343c0bef5aac75f5eb71b5e53aba016c"
+    },
+    {
+      "path": "verification/final-v4-cross-test-summary.json",
+      "bytes": 24439,
+      "sha256": "341e325ddd892f27e22fcbfe4c0434f6aa6d1d9f1ee977d1ecabf8204e7672cd"
+    },
+    {
+      "path": "verification/final-v4-default-native-consumer.json",
+      "bytes": 1002,
+      "sha256": "af8c4b568836d9f4431077e33b5d97dd9de1b1afd0d154abb71d5a403e67eda7"
+    },
+    {
+      "path": "verification/final-v4-gate-summary.json",
+      "bytes": 6357,
+      "sha256": "5c8e76f72edb296cb28383fb89b89c019be57f95dca661585dbbafb9e1209c95"
+    },
+    {
+      "path": "verification/final-v4-strict-onehot-results.json",
+      "bytes": 30946,
+      "sha256": "ca859dd870637cde774b0156f1c3130eb13de0ef06ec9bcc39f27473487094bd"
+    },
+    {
+      "path": "verification/final-v4-untimed-comparison.json",
+      "bytes": 849,
+      "sha256": "bcfe4ca189f04f04f0f342ad9effebfa02f2b6433eb0ded0324e2607645f5be0"
+    }
+  ],
+  "campaign_provenance": {
+    "added": "2026-10-04, after the first 53 members were verified",
+    "reason": "the committed focused and coverage CSVs, and the gate, cross-test and linter figures in the report, had no archived per-cohort receipts; without these the campaign scratch could not be removed",
+    "index": "campaign-provenance/provenance-index.json",
+    "loose_round_directories": 16,
+    "archives": 9,
+    "files_verified_against_campaign_scratch": 1008,
+    "mismatches_against_campaign_scratch": 0,
+    "originals": "left in place and unaltered; these are copies",
+    "perf_streams_included": 0,
+    "current_tree_receipts": "added 2026-10-04: the current-tree gate log, the Debug and ReleaseSafe cross-test summaries with the per-target logs of their runs, and the full 146-line zbc listing, so the current-tree verification receipts survive the campaign scratch. Their commands, run_ids, and the reason two Debug runs are archived are transcribed in the index under current_tree_receipts_commands."
+  }
+}

@@ -1,0 +1,73 @@
+
+cases=64 pairs=9 practical_threshold=2% direction_quorum=8/9
+
+case                                                           cohort           base ns      cand ns    change  fast verdict
+geometry.RayOf(4,f32).intersectSegment.policy.adaptive_exact.contained.normalized_operands geometry           78713        49964  +36.52%  9/9 faster
+geometry.RayOf(4,f64).intersect.policy.adaptive_exact.crossing.normalized_operands geometry           94715        60462  +36.16%  8/9 faster
+geometry.RayOf(4,f64).intersect.policy.adaptive_exact.collinear.normalized_operands geometry           79213        50900  +35.74%  8/9 faster
+geometry.RayOf(4,f32).intersect.policy.adaptive_exact.coincident.normalized_operands geometry           76527        49212  +35.69%  9/9 faster
+geometry.RayOf(4,f64).intersectLine.policy.adaptive_exact.contained.normalized_operands geometry           79103        50945  +35.60%  8/9 faster
+geometry.RayOf(4,f64).intersect.policy.adaptive_exact.coincident.normalized_operands geometry           76913        49744  +35.32%  9/9 faster
+geometry.RayOf(4,f32).intersect.policy.adaptive_exact.collinear.normalized_operands geometry           86563        55988  +35.32%  9/9 faster
+geometry.RayOf(4,f64).intersectSegment.policy.adaptive_exact.crossing_offset.normalized_operands geometry           78495        50996  +35.03%  8/9 faster
+geometry.RayOf(4,f32).intersectLine.policy.adaptive_exact.crossing_offset.normalized_operands geometry           78872        51447  +34.77%  9/9 faster
+geometry.RayOf(4,f32).intersectSegment.policy.adaptive_exact.crossing_offset.normalized_operands geometry           79317        51741  +34.77%  9/9 faster
+geometry.RayOf(4,f64).intersectLine.policy.adaptive_exact.crossing_offset.normalized_operands geometry           79103        52184  +34.03%  8/9 faster
+geometry.RayOf(4,f32).intersectLine.policy.adaptive_exact.contained.normalized_operands geometry           79007        52281  +33.83%  9/9 faster
+geometry.RayOf(4,f64).intersectSegment.policy.adaptive_exact.contained.normalized_operands geometry           79001        53084  +32.81%  8/9 faster
+geometry.RayOf(4,f32).intersect.policy.adaptive_exact.crossing.normalized_operands geometry           94944        65605  +30.90%  8/9 faster
+geometry.RayOf(4,f32).intersect.policy.adaptive_exact.parallel_disjoint.normalized_operands geometry           94096        65551  +30.34%  9/9 faster
+geometry.RayOf(4,f64).intersect.policy.adaptive_exact.parallel_disjoint.normalized_operands geometry           95833        66834  +30.26%  8/9 faster
+geometry.RayOf(2,f64).intersect.policy.adaptive_exact.crossing.normalized_operands geometry           92724        70275  +24.21%  9/9 faster
+geometry.RayOf(3,f32).intersect.policy.adaptive_exact.collinear.normalized_operands geometry           55930        42495  +24.02%  6/9 undecided
+geometry.RayOf(3,f32).intersect.policy.adaptive_exact.crossing.normalized_operands geometry           92857        75729  +18.45%  6/9 undecided
+geometry.RayOf(3,f32).intersectSegment.policy.adaptive_exact.contained.normalized_operands geometry           51438        42010  +18.33%  7/9 undecided
+geometry.RayOf(3,f32).intersectLine.policy.adaptive_exact.contained.normalized_operands geometry           51209        42807  +16.41%  7/9 undecided
+geometry.RayOf(3,f64).intersectLine.policy.adaptive_exact.contained.normalized_operands geometry           49962        42166  +15.60%  9/9 faster
+geometry.RayOf(3,f32).intersect.policy.adaptive_exact.coincident.normalized_operands geometry           48436        41059  +15.23%  7/9 undecided
+geometry.RayOf(3,f64).intersect.policy.adaptive_exact.coincident.normalized_operands geometry           47740        41162  +13.78%  9/9 faster
+geometry.RayOf(3,f64).intersectSegment.policy.adaptive_exact.contained.normalized_operands geometry           48597        41906  +13.77%  8/9 faster
+geometry.RayOf(3,f64).intersectSegment.policy.adaptive_exact.crossing_offset.normalized_operands geometry           48574        42124  +13.28%  9/9 faster
+geometry.RayOf(3,f64).intersect.policy.adaptive_exact.collinear.normalized_operands geometry           48517        42166  +13.09%  7/9 undecided
+geometry.RayOf(3,f32).intersectSegment.policy.adaptive_exact.crossing_offset.normalized_operands geometry           48487        42717  +11.90%  6/9 undecided
+geometry.RayOf(3,f32).intersectLine.policy.adaptive_exact.crossing_offset.normalized_operands geometry           47655        42514  +10.79%  6/9 undecided
+geometry.RayOf(3,f64).intersect.policy.adaptive_exact.crossing.normalized_operands geometry           52824        47561   +9.96%  7/9 undecided
+geometry.RayOf(3,f32).intersect.policy.adaptive_exact.parallel_disjoint.normalized_operands geometry           63219        57473   +9.09%  7/9 undecided
+geometry.RayOf(3,f64).intersectLine.policy.adaptive_exact.crossing_offset.normalized_operands geometry           47490        43184   +9.07%  8/9 faster
+geometry.SegmentOf(2,f32).intersectLine.policy.adaptive_exact.contained.normalized_operands geometry           28176        25695   +8.81%  7/9 undecided
+geometry.SegmentOf(2,f64).intersect.policy.adaptive_exact.subnormal_span geometry           27784        25435   +8.45%  7/9 undecided
+geometry.SegmentOf(2,f32).intersect.policy.adaptive_exact.degenerate_on geometry            7321         6748   +7.83%  7/9 undecided
+geometry.RayOf(3,f64).intersect.policy.adaptive_exact.parallel_disjoint.normalized_operands geometry           62916        58059   +7.72%  8/9 faster
+geometry.SegmentOf(2,f32).intersect.policy.adaptive_exact.contained geometry           27120        25226   +6.98%  8/9 faster
+geometry.SegmentOf(2,f32).intersect.policy.adaptive_exact.subnormal_span geometry           27480        25596   +6.86%  7/9 undecided
+geometry.SegmentOf(2,f32).intersect.policy.adaptive_exact.crossing_offset geometry           27774        25988   +6.43%  7/9 undecided
+geometry.SegmentOf(2,f32).intersect.policy.adaptive_exact.collinear geometry           26844        25190   +6.16%  8/9 faster
+geometry.SegmentOf(2,f32).intersect.policy.adaptive_exact.coincident geometry           26163        24554   +6.15%  8/9 faster
+geometry.SegmentOf(2,f32).intersectRay.policy.adaptive_exact.contained.normalized_operands geometry           27568        25902   +6.04%  7/9 undecided
+geometry.RayOf(2,f64).intersect.policy.adaptive_exact.collinear.normalized_operands geometry           27773        26109   +5.99%  7/9 undecided
+geometry.SegmentOf(2,f64).intersectLine.policy.adaptive_exact.contained.normalized_operands geometry           27090        25470   +5.98%  7/9 undecided
+geometry.RayOf(2,f64).intersectLine.policy.adaptive_exact.contained.normalized_operands geometry           27704        26052   +5.96%  7/9 undecided
+geometry.SegmentOf(2,f64).intersect.policy.adaptive_exact.contained geometry           27319        25728   +5.82%  7/9 undecided
+geometry.SegmentOf(2,f64).intersectRay.policy.adaptive_exact.contained.normalized_operands geometry           27623        26125   +5.42%  8/9 faster
+geometry.SegmentOf(2,f32).intersectLine.policy.adaptive_exact.crossing_offset.normalized_operands geometry           27906        26440   +5.25%  7/9 undecided
+geometry.RayOf(2,f64).intersectSegment.policy.adaptive_exact.contained.normalized_operands geometry           27140        25975   +4.29%  5/9 undecided
+geometry.RayOf(2,f64).intersectLine.policy.adaptive_exact.crossing_offset.normalized_operands geometry           27687        26621   +3.85%  6/9 undecided
+geometry.SegmentOf(2,f64).intersect.policy.adaptive_exact.collinear geometry           26752        25809   +3.52%  7/9 undecided
+geometry.SegmentOf(2,f64).intersect.policy.adaptive_exact.degenerate_on geometry            6982         6742   +3.44%  6/9 undecided
+geometry.SegmentOf(2,f64).intersect.policy.adaptive_exact.crossing_offset geometry           27751        26828   +3.33%  5/9 undecided
+geometry.SegmentOf(2,f32).intersectRay.policy.adaptive_exact.crossing_offset.normalized_operands geometry           27586        26671   +3.32%  6/9 undecided
+geometry.SegmentOf(2,f32).intersect.policy.adaptive_exact.degenerate_off geometry            7491         7244   +3.30%  7/9 undecided
+geometry.SegmentOf(2,f64).intersect.policy.adaptive_exact.coincident geometry           26048        25216   +3.19%  6/9 undecided
+geometry.SegmentOf(2,f32).intersect.policy.adaptive_exact.crossing geometry           28119        27260   +3.05%  7/9 undecided
+geometry.RayOf(2,f64).intersect.policy.adaptive_exact.coincident.normalized_operands geometry           26296        25632   +2.53%  7/9 undecided
+geometry.SegmentOf(2,f64).intersect.policy.adaptive_exact.crossing geometry           27118        26450   +2.46%  7/9 undecided
+geometry.SegmentOf(2,f32).intersect.policy.adaptive_exact.parallel_disjoint geometry           27106        26569   +1.98%  6/9 undecided
+geometry.SegmentOf(2,f64).intersect.policy.adaptive_exact.degenerate_off geometry            7396         7312   +1.14%  5/9 undecided
+geometry.SegmentOf(2,f64).intersect.policy.adaptive_exact.parallel_disjoint geometry           27281        27043   +0.87%  7/9 undecided
+geometry.RayOf(2,f64).intersect.policy.adaptive_exact.parallel_disjoint.normalized_operands geometry           42480        42384   +0.23%  5/9 undecided
+geometry.RayOf(2,f64).intersectSegment.policy.adaptive_exact.crossing_offset.normalized_operands geometry           26550        26606   -0.21%  5/9 undecided
+
+cohort geometry     cases=64    faster=27    slower=0     undecided=37
+module geometry     cases=64    faster=27    slower=0     undecided=37
+
+regressions meeting the criterion: 0

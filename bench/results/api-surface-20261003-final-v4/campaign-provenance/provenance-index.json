@@ -1,0 +1,443 @@
+{
+  "schema": "zmath-api-surface-campaign-provenance/1",
+  "package": "api-surface-20261003-final-v4",
+  "purpose": "Archival backing for the two committed CSVs and for the gate, cross-test and linter figures quoted in docs/reference-performance-analysis.md, section \"API-surface round 2026-10-03\". These members let the campaign scratch be removed without losing the receipts behind a published row or claim.",
+  "build_commands": {
+    "loose_round_receipts": "copied manifest.json, report.txt and results.json verbatim from the matching campaign round directory; permissions and mtimes preserved",
+    "archives": "tar --sort=name --format=gnu --owner=0 --group=0 --numeric-owner --mtime=2026-10-04T00:00:00Z -czf <member> <paths>",
+    "current_tree_archives": "the same tar invocation piped through gzip -n, so the gzip header carries no timestamp either way: tar --sort=name --format=gnu --owner=0 --group=0 --numeric-owner --mtime=2026-10-04T00:00:00Z -cf - <paths> | gzip -n > <member>. Run against gate-cross-final-v4/runs/ of the campaign scratch this rebuilds cross-test-final-v4-runs.tar.gz byte for byte (sha256 9f709b4ab44d1a54ae7271d8235d782075a46ad4e7894cfdbbe3e1a1ffc444e4, 356,025 bytes), which is the check that the two spellings produce one archive",
+    "reproducibility": "member order, ownership and mtime are pinned, so rebuilding from the same round directories yields identical archives; the gzip header carries no name or timestamp",
+    "no_execution": "nothing was built, benchmarked, profiled or replayed to produce these members"
+  },
+  "binds_to": [
+    {
+      "published_artifact": "../api-surface-20261003-focused.csv",
+      "rows": 895,
+      "cohorts": 23,
+      "backed_by": "rounds/<name>/{manifest.json,report.txt,results.json} for the sixteen pre-final-v4 cohorts, and ../../rounds/ for cohorts 19-25",
+      "raw_streams": "raw-samples-rounds-06-18.tar.gz (576 files, cohorts 06-12, 14-18) and ../raw-samples.tar.gz (252 files, cohorts 19-25)",
+      "note": "the two identical-image controls (cohorts 17 and 18) and every rejected candidate (cohorts 06, 07, 10, 16) keep their own manifest, report and results here"
+    },
+    {
+      "published_artifact": "../api-surface-20261003-coverage.csv",
+      "rows": 7428,
+      "cohorts": 2,
+      "backed_by": "coverage-rounds.tar.gz (round-01-coverage and round-13-final-coverage, manifests, reports, results and raw pairs)",
+      "raw_streams": "the case plan behind the 7,428 named cases is coverage-plan-listings.tar.gz, the --plan-only output of the reproduction command below"
+    },
+    {
+      "report_claim": "the final-v4 gate table and the frozen-tree linter counts",
+      "backed_by": "gate-final-v4.log and linter-baseline.tar.gz (the four frozen-tree analyzer logs, baseline-analyzer-counts.json and baseline-analyzers.json)",
+      "note": "rule-level ownership of the two rises, ziglint Z006 32 to 34 and zwanzig identifier-style 190 to 205, is computable from these two sets; verification/final-v4-gate-summary.json records only per-section status"
+    },
+    {
+      "report_claim": "cross-test 19 pass, 1 fail, 33 build-only over 53 targets and the armeb-linux failure detail",
+      "backed_by": "cross-test-final-v4-runs.tar.gz (107 per-target build and run logs of run 20261004-050155-50889-23551, 1,791,918 bytes uncompressed)"
+    },
+    {
+      "report_claim": "the untimed replay of the final-v4 tree against the frozen baseline receipts, output digest b57dd9dd57d847a7",
+      "backed_by": "untimed-replay-checksums.tar.gz (the 7,428-case per-case checksum stream); verification/final-v4-untimed-comparison.json holds the digest"
+    },
+    {
+      "report_claim": "the larger profiling schedules and the first integration defect, quoted in the profiles and geometry paragraphs: geometry at 24 calls, the 64-call leaf/values/aggregates/algebra and 32-call lane runs, the pre-repair orientation output buffer, and the failed initial fixture campaign",
+      "backed_by": "early-cohorts.tar.gz (rounds 00, 02, 03, 04 and 05: manifests, reports, results and raw pairs)",
+      "note": "their perf subtrees are excluded with every other perf stream; the four retained profile reports stand in for them"
+    },
+    {
+      "report_claim": "the current-tree gate, direnv exec . gate over the whole tree in 568.38 s, exit 1, and its per-section table: zig fmt, zig build, zig build test and zig ast-check ok, ziglint 263 issues, zlint 263 issues, zbc 146 use-undefined errors, zwanzig 353 findings, cross-test 19 pass / 1 fail / 33 build-only with the one failure armeb-linux at 950 of 956",
+      "backed_by": "gate-current-tree.log and zbc-current-tree-full.txt",
+      "note": "the gate log truncates every analyzer section to its first lines and so carries only 10 of the 146 zbc findings; zbc-current-tree-full.txt is the complete 146-line listing over the same 213-file list, so the per-file disposition against the frozen 145 in linter-baseline.tar.gz is recomputable from these two members alone, which the truncated log cannot support"
+    },
+    {
+      "report_claim": "cross-test Debug over all 53 Zig 0.16.0 Tier 1/2 targets, 19 pass / 1 fail / 33 build-only / 0 partial in 489.79 s, quoted for run 20261004-153923-46001-17397",
+      "backed_by": "cross-test-current-tree-summary.json and cross-test-current-tree-runs.tar.gz, which holds the per-target logs of run 20261004-153923-46001-17397 and of run 20261004-155201-25886-32090",
+      "note": "both runs are archived because both are published: 153923 is the standalone Debug run the report times at 489.79 s, 155201 is the cross-test section of the current-tree gate run the report times at 568.38 s. The two agree at pass=19 fail=1 build_only=33 partial=0, so the archived summary is valid for both"
+    },
+    {
+      "report_claim": "cross-test ReleaseSafe over armeb-linux and aarch64_be-linux, 2 pass / 0 fail / 0 build-only, both reporting All 956 tests passed.",
+      "backed_by": "cross-test-current-tree-releasesafe-summary.json and cross-test-current-tree-releasesafe-runs.tar.gz (run 20261004-153621-10898-18709, four per-target logs and that run's summary.json)"
+    }
+  ],
+  "deliberately_absent": [
+    "perf .perf.data streams, which the package excludes by design and which are regenerable from profiles/perf-report-commands.json",
+    "test executables, install prefixes and zig build caches",
+    "the calls=1 and calls=8 rehearsal listings and the superseded v2/v3 image receipts, which no published row or claim depends on",
+    "the superseded current-tree cross-test runs 20261003-235652-46039-31260, 20261004-150639-32186-21355 and 20261004-150815-7280-100 under gate-cross-final/runs, and the interrupted ReleaseSafe attempt 20261004-153453-66784-23751 under verify-armeb-rs/runs, none of which any published claim quotes and the last of which recorded no run logs at all",
+    "the campaign driver scripts run-final-gate.py and run-current-gate.py and cleanup-inventory.json, whose environment and command lines are transcribed member by member under current_tree_receipts_commands instead"
+  ],
+  "coverage_round_members": {
+    "round-06-root-retention": {
+      "manifest.json": {
+        "bytes": 72156,
+        "sha256": "98326e3cb9d626b7447f66b13ada338d18c860cfb5a10d224ffdf47acc1946a0"
+      },
+      "report.txt": {
+        "bytes": 8507,
+        "sha256": "7883ed66e9819b829e2fc11ca3032478b4be6b3056ccace76b728b0d7e5844bb"
+      },
+      "results.json": {
+        "bytes": 56835,
+        "sha256": "61af7937f6bc0bac1e5bd0448d3f2a4756e5e72af4c9eb139e194b69594103aa"
+      }
+    },
+    "round-07-algebra-retention": {
+      "manifest.json": {
+        "bytes": 74398,
+        "sha256": "2785e83d8e0c668b02ca023e7c34655f5f5e0dc77dbcd3979e4dbc9a7534552c"
+      },
+      "report.txt": {
+        "bytes": 6592,
+        "sha256": "d60f7205796e262f7420bf8cee903fb167ccf7d8eb0fff3704e129afa6b61e21"
+      },
+      "results.json": {
+        "bytes": 38295,
+        "sha256": "25c8b95fd6b449badb354a63c388f0eeab916a0f214230fbadf0d4093eb2126e"
+      }
+    },
+    "round-08-final-roots": {
+      "manifest.json": {
+        "bytes": 72057,
+        "sha256": "745dd9e62695b1aa2e0d898c82013e78fdc7cfd5d118667b56d4f6115c197ffa"
+      },
+      "report.txt": {
+        "bytes": 8441,
+        "sha256": "eea4d61d0cfb5e41c643c27712097820c44420c46f6b81f512bde9d75effe6ee"
+      },
+      "results.json": {
+        "bytes": 56181,
+        "sha256": "93e9a5a67c5525b61e4757ae9435d16a4daa13e9d6a23e5d18cd568ceedd59bf"
+      }
+    },
+    "round-09-final-half-roots": {
+      "manifest.json": {
+        "bytes": 24638,
+        "sha256": "aaec3c0012b0ca452012acf8ff70327b41637a3409c3b10587b27daf81304a7d"
+      },
+      "report.txt": {
+        "bytes": 3131,
+        "sha256": "2bf824ebefc1144aeb643fa63cd41f57a16c8bba0ffac4a96c14156428405c2f"
+      },
+      "results.json": {
+        "bytes": 19615,
+        "sha256": "7f2afd00be5adbe614714dc29e4dfc389e77c37721a10735fecb68c4efd7d855"
+      }
+    },
+    "round-10-final-gp-rollback": {
+      "manifest.json": {
+        "bytes": 65805,
+        "sha256": "881f48a33cc9f0c522dab81370f06fd7aa92c151229b56cc861e6aaf8d868f5f"
+      },
+      "report.txt": {
+        "bytes": 5279,
+        "sha256": "922306b1e5065dd1fb2b9deb437619b53a5a549a1307b10f22a2aebb5546d491"
+      },
+      "results.json": {
+        "bytes": 29281,
+        "sha256": "a816e90da4f5d1fef4bff6faef878ced410c90c42cb29d651cc82fd164cbf216"
+      }
+    },
+    "round-11-orientation-retention": {
+      "manifest.json": {
+        "bytes": 49962,
+        "sha256": "523df23989e48dbac50c0652be5e0119c8b3d7f4d0d6a69e6ed785ec544380f8"
+      },
+      "report.txt": {
+        "bytes": 3479,
+        "sha256": "20f90367f6d806aea0b4046f28bba4dfb3fe09bdcb0bd56477dc17418d3210cb"
+      },
+      "results.json": {
+        "bytes": 28417,
+        "sha256": "8a2a9817aac05fbe017374457ebcae767f67258335580830c4166b8a83ad240d"
+      }
+    },
+    "round-12-adaptive-00": {
+      "manifest.json": {
+        "bytes": 119295,
+        "sha256": "fd4ee0862eaa6fa7150583aa2d074af40aa639c3a49be025d1d64ac5a5b449b4"
+      },
+      "report.txt": {
+        "bytes": 9639,
+        "sha256": "40f7f1e7f2efc308e03542ec6aba9137089955a6128670e291ec3cb2340de2e3"
+      },
+      "results.json": {
+        "bytes": 50782,
+        "sha256": "feed1a87c92c8a85a54e6f9d82bdc39d23b67feda9e9cff570048067c091d006"
+      }
+    },
+    "round-12-adaptive-01": {
+      "manifest.json": {
+        "bytes": 124281,
+        "sha256": "0d4f04b0264a101d1b5664e00292abef99ab5113a776692e54e8801e345725ff"
+      },
+      "report.txt": {
+        "bytes": 9667,
+        "sha256": "9231924412c4e10f09a52418107fcda2244cfd015885c32e32d44cc88373af0e"
+      },
+      "results.json": {
+        "bytes": 51607,
+        "sha256": "f4f1bc6dbfacd6eda3679b4b57f7f7c58fadeb0376b586fe58a7f0660de422db"
+      }
+    },
+    "round-12-adaptive-02": {
+      "manifest.json": {
+        "bytes": 115245,
+        "sha256": "81e264bb107ea8ed3de176fa73fae0bffb5d9ff00cef5114b37a8164ff1223bf"
+      },
+      "report.txt": {
+        "bytes": 9241,
+        "sha256": "e8890db8696652822bc6f216ca08e2ad3c33e8e7180d73d3aa95dd5a592f8b52"
+      },
+      "results.json": {
+        "bytes": 51446,
+        "sha256": "21bd7ed9baf0397ec02580e9d86e5feeb0fa3c634dc6ea419ced08c8f4533415"
+      }
+    },
+    "round-12-adaptive-03": {
+      "manifest.json": {
+        "bytes": 103455,
+        "sha256": "eab780aa6e1c85626ffad936044f67e6efb532b53bca7a4e6f13ff8d47696f57"
+      },
+      "report.txt": {
+        "bytes": 8573,
+        "sha256": "99b4c7fe6bf373634e7c7fa00c556984aa193c6bc2698994adef9f0cd63f40f7"
+      },
+      "results.json": {
+        "bytes": 50007,
+        "sha256": "eb1704ee452f38aced105d38651d4b1df4c993aafac9916ee088be0a93344cc6"
+      }
+    },
+    "round-12-adaptive-04": {
+      "manifest.json": {
+        "bytes": 108603,
+        "sha256": "985238e5b7fbf7fdb2e74c94000cf13c212888d9cd20724b04dcbba5523f6bcb"
+      },
+      "report.txt": {
+        "bytes": 8766,
+        "sha256": "c53c0bd0de1eaf508550ef1f18cd06dfef7797a6445e348ce72097537b0ec426"
+      },
+      "results.json": {
+        "bytes": 49850,
+        "sha256": "199f66f66068f61286cfded700ca78b4361053dd3a76821575444082ed0d5361"
+      }
+    },
+    "round-14-orientation-long": {
+      "manifest.json": {
+        "bytes": 43826,
+        "sha256": "74c46cc9a450f0ebad434e43f010e85c97376677464f514befade783d394be3a"
+      },
+      "report.txt": {
+        "bytes": 3450,
+        "sha256": "e2d6ce28464c15ac15a96d664ab4402b7bc5ca78d872c66968f16350456a6a8d"
+      },
+      "results.json": {
+        "bytes": 22572,
+        "sha256": "285c7fef82a53c861636fe284853da14be555ff8dad397b0d52d5e0056af7234"
+      }
+    },
+    "round-15-line-regression-repeat": {
+      "manifest.json": {
+        "bytes": 34778,
+        "sha256": "2be4e1f932755c7d737d5afc4462bd0e750ae349f6c08a1f99b7ec5571a3497d"
+      },
+      "report.txt": {
+        "bytes": 2584,
+        "sha256": "24d158c0e0f816e06c82f1ce742d84c2b9a8f03d9c3ee9c058e07ed01165179e"
+      },
+      "results.json": {
+        "bytes": 16872,
+        "sha256": "a0f53872bc55f92621b4ba97477343017db0c17a4a7bcfa34a5889306ba44a0d"
+      }
+    },
+    "round-16-gp-rollback-repeat": {
+      "manifest.json": {
+        "bytes": 65806,
+        "sha256": "dc17207aeb7e1593cd36f2218ba1f404677f802d671f1efb8e80c4367929d42b"
+      },
+      "report.txt": {
+        "bytes": 5284,
+        "sha256": "e36276b3ce83d25d06a39ced0966cd290ad55a1c89353ee852bd4c4d9c0462a5"
+      },
+      "results.json": {
+        "bytes": 29417,
+        "sha256": "bdfabe2fb908f987ec08658e29e1180bd85cb1b79e35d9d353412711411c3681"
+      }
+    },
+    "round-17-gp-baseline-control": {
+      "manifest.json": {
+        "bytes": 65842,
+        "sha256": "bf6c0d8c24f2c0d8a4352ee37493c8a2c3c3d753b08dd9a6039de4a267b420f3"
+      },
+      "report.txt": {
+        "bytes": 5284,
+        "sha256": "f322bf030f3e641c599224793af4759f4be0977da386d2c2e219a85064005609"
+      },
+      "results.json": {
+        "bytes": 29448,
+        "sha256": "d34d8d74428ec1806093dd2a0b4e9d64e4e01c4a39e34751c7140d969b856e86"
+      }
+    },
+    "round-18-gp-final-control": {
+      "manifest.json": {
+        "bytes": 65794,
+        "sha256": "f52bcb53b776cb82234f707e9eff71784e98a30348c6f9a345b216e79c280944"
+      },
+      "report.txt": {
+        "bytes": 5388,
+        "sha256": "e299d9044691ba1cf8521944472e072b2e73b0312dd734ea686f744befcc1918"
+      },
+      "results.json": {
+        "bytes": 29429,
+        "sha256": "3c6192867e0510ed359b74496f4c16b35a0b3630c4975f600a5e4934f0325b19"
+      }
+    }
+  },
+  "archive_members": {
+    "coverage-plan-listings.tar.gz": {
+      "bytes": 257868,
+      "sha256": "e26597eb81eba33d0679a1cc4557f68e23863820ed8b938abcdcce730e89b9ae",
+      "file_members": 2,
+      "uncompressed_bytes": 2801446,
+      "sample_members": [
+        "baseline-list-calls4.jsonl",
+        "candidate-list-calls4.jsonl"
+      ]
+    },
+    "coverage-rounds.tar.gz": {
+      "bytes": 1952203,
+      "sha256": "044a2e4cb46653f99adc2708c781856e7959ad570435c4c6e3884d88ba1a8c56",
+      "file_members": 14,
+      "uncompressed_bytes": 17946147,
+      "sample_members": [
+        "round-01-coverage/manifest.json",
+        "round-01-coverage/raw/baseline-pair00.jsonl",
+        "round-01-coverage/raw/baseline-pair00.stderr.txt"
+      ]
+    },
+    "cross-test-final-v4-runs.tar.gz": {
+      "bytes": 356025,
+      "sha256": "9f709b4ab44d1a54ae7271d8235d782075a46ad4e7894cfdbbe3e1a1ffc444e4",
+      "file_members": 107,
+      "uncompressed_bytes": 1791918,
+      "sample_members": [
+        "gate-cross-final-v4/runs/20261004-050155-50889-23551/build-aarch64-freebsd.log",
+        "gate-cross-final-v4/runs/20261004-050155-50889-23551/build-aarch64-linux.log",
+        "gate-cross-final-v4/runs/20261004-050155-50889-23551/build-aarch64-maccatalyst.log"
+      ]
+    },
+    "linter-baseline.tar.gz": {
+      "bytes": 18628,
+      "sha256": "4b3bf1deff51c44a9b3bba4473af06a0a2e1aa0465ddc2bdc59d737f0668c6b6",
+      "file_members": 6,
+      "uncompressed_bytes": 326608,
+      "sample_members": [
+        "ziglint-baseline.log",
+        "zlint-baseline.log",
+        "zbc-baseline.log"
+      ]
+    },
+    "raw-samples-rounds-06-18.tar.gz": {
+      "bytes": 133135,
+      "sha256": "cb1b990a7a3b4497825e2fcd10b72af4f2d3454a75bded78ca27804486384cfb",
+      "file_members": 576,
+      "uncompressed_bytes": 3599585,
+      "sample_members": [
+        "round-06-root-retention/raw/baseline-pair00.jsonl",
+        "round-06-root-retention/raw/baseline-pair00.stderr.txt",
+        "round-06-root-retention/raw/baseline-pair01.jsonl"
+      ]
+    },
+    "untimed-replay-checksums.tar.gz": {
+      "bytes": 93915,
+      "sha256": "ca5a6bc20dd2af8d5b268877cb996c53111c0a565691bdd4cab83050f713cfef",
+      "file_members": 1,
+      "uncompressed_bytes": 1168248,
+      "sample_members": [
+        "final-v4-untimed-checksums.jsonl"
+      ]
+    },
+    "early-cohorts.tar.gz": {
+      "bytes": 1185914,
+      "sha256": "9cee8e4697dd29ebd4f9b9751f6d9b7d7e2aa37b9c28c081b864623bec79c62a",
+      "file_members": 30,
+      "uncompressed_bytes": 10336054,
+      "sample_members": [
+        "round-00-failed-poisoned-fixture-abort/raw/baseline-pair00.jsonl",
+        "round-00-failed-poisoned-fixture-abort/raw/baseline-pair00.stderr.txt",
+        "round-02-geometry-24/manifest.json"
+      ]
+    },
+    "cross-test-current-tree-runs.tar.gz": {
+      "bytes": 714171,
+      "sha256": "d878019d84e2c777d19476bb0dfb84d84e1f6f1371f2a1553e6afea83e767d2c",
+      "file_members": 214,
+      "uncompressed_bytes": 3768320,
+      "run_ids": [
+        "20261004-153923-46001-17397",
+        "20261004-155201-25886-32090"
+      ],
+      "directory_members": 2,
+      "note": "two run directories of 107 files each: 53 per-target build logs, the run logs of the targets that have a runner, and each run's own summary.json",
+      "sample_members": [
+        "gate-cross-final/runs/20261004-153923-46001-17397/build-aarch64_be-linux.log",
+        "gate-cross-final/runs/20261004-153923-46001-17397/summary.json",
+        "gate-cross-final/runs/20261004-155201-25886-32090/summary.json"
+      ]
+    },
+    "cross-test-current-tree-releasesafe-runs.tar.gz": {
+      "bytes": 36471,
+      "sha256": "1fa894ef40f54a43075c244ad81b9c2cc46e9cdd522db574dc9214340cb0ce5b",
+      "file_members": 5,
+      "uncompressed_bytes": 184320,
+      "run_ids": [
+        "20261004-153621-10898-18709"
+      ],
+      "directory_members": 1,
+      "note": "two per-target build logs, two per-target run logs and the run's own summary.json",
+      "sample_members": [
+        "verify-armeb-rs/runs/20261004-153621-10898-18709/build-armeb-linux.log",
+        "verify-armeb-rs/runs/20261004-153621-10898-18709/run-aarch64_be-linux.log",
+        "verify-armeb-rs/runs/20261004-153621-10898-18709/summary.json"
+      ]
+    }
+  },
+  "current_tree_receipts_commands": {
+    "why_this_section": "the current-tree verification receipts were the last evidence still living only in the campaign scratch, so their commands are transcribed here rather than left with the drivers. Nothing below was re-run to produce these members; each line is the invocation the receipt records, and where a receipt does not itself record the invocation that says so.",
+    "gate-current-tree.log": {
+      "published_artifact": "docs/reference-performance-analysis.md, Runtime verification status, \"The gate is not green\"",
+      "command": "cd ~/zmath && direnv exec . gate",
+      "environment": "ZIG=$SCRATCH/zig-local-prefix.sh, GATE_CACHE_DIR=$SCRATCH/gate-cache, GATE_GLOBAL_CACHE_DIR=/tmp/cache/zig, GATE_SCRATCH=$SCRATCH, GATE_CROSS_OUTPUT=$SCRATCH/gate-cross-final, CROSS_TEST_ARGS=\"--jobs 16 --build-jobs 3\", PERF_BUILDID_DIR=$SCRATCH/perf-buildid-cache, where $SCRATCH=/tmp/tmp/zmath-perf-round.Dz4uxZhl",
+      "capture": "the campaign driver run-final-gate.py set exactly that environment and wrote the merged stdout and stderr verbatim to $SCRATCH/gate-final.log, which is this member",
+      "result": "exit 1 over 568.38 s, GATE FAILED, with the cross-test section naming run 20261004-155201-25886-32090",
+      "command_source": "run-final-gate.py in the campaign scratch, transcribed verbatim; the log itself records the sections, counts and exit codes"
+    },
+    "cross-test-current-tree-summary.json and cross-test-current-tree-runs.tar.gz": {
+      "published_artifact": "docs/reference-performance-analysis.md, Runtime verification status, the cross-test Debug row and \"The gate is not green\"",
+      "command": "ZIG=$SCRATCH/zig-local-prefix.sh ~/.local/bin/cross-test --output $SCRATCH/gate-cross-final --jobs 16 --build-jobs 3",
+      "run_ids": {
+        "20261004-153923-46001-17397": "the standalone Debug run the report quotes at 489.79 s; 107 files, archived",
+        "20261004-155201-25886-32090": "the cross-test section of the gate run in gate-current-tree.log, which the log itself names; 107 files, archived"
+      },
+      "result": "both runs pass=19 fail=1 build_only=33 partial=0 over 53 targets, status fail, exit 1",
+      "summary_file_state": "cross-test-summary.json is rewritten in place by cross-test on every run, so the archived copy names 20261004-155201-25886-32090, the last run to write it. That is not a transcription error and not a mismatch with the archived logs: the file is a byte-for-byte copy of the summary that exists in the scratch, it names the gate's cross-test run, and because both runs report identical counts it is equally valid for the standalone run the report times at 489.79 s. Both runs' own summary.json files are inside the archive, so either run's identity is recoverable without the scratch.",
+      "command_source": "the flags are the report's own sentence and the summaries' recorded target_jobs=16 and jobs_per_build=3; the tool path is zig-gate's section 9 line, ZIG=\"$ZIG\" \"$CROSS_TEST\" --output \"$GATE_CROSS_OUTPUT\" $CROSS_TEST_ARGS with CROSS_TEST=$HOME/.local/bin/cross-test"
+    },
+    "cross-test-current-tree-releasesafe-summary.json and cross-test-current-tree-releasesafe-runs.tar.gz": {
+      "published_artifact": "docs/reference-performance-analysis.md, Runtime verification status, the cross-test ReleaseSafe row",
+      "command": "ZIG=$SCRATCH/zig-local-prefix.sh ~/.local/bin/cross-test --output $SCRATCH/verify-armeb-rs --targets armeb-linux,aarch64_be-linux --jobs 2 --build-jobs 28 -- -Doptimize=ReleaseSafe",
+      "run_id": "20261004-153621-10898-18709",
+      "result": "pass=2 fail=0 build_only=0 partial=0, status pass, exit 0; both run logs end All 956 tests passed.",
+      "command_source": "the flags are the report's own sentence and the summary's recorded target_jobs=2, jobs_per_build=28 and two-target extent; the per-target build logs record the resolved compiler as /tmp/cache/zig/p/N-V-__8AAFFSVRWqblwBIcA-Yqv-u7sbjsJoww8K0mWaHbmJ/zig, which is ZIG resolved through the campaign's local prefix wrapper into the shared global cache"
+    },
+    "zbc-current-tree-full.txt": {
+      "published_artifact": "docs/reference-performance-analysis.md, Runtime verification status, the per-file zbc disposition against the frozen 145",
+      "command": "cd ~/zmath && ~/.local/bin/zbc $(find . -name '*.zig' -not -name 'vk.zig' -not -path './zig-pkg/*' -not -path './.zig-cache/*' -not -path './zig-out/*' -not -path './zig-cache/*' -not -path './zig-global-cache/*' | grep -v '/[.]zig-cache/' | grep -v '/zig-out/' | grep -v '/zig-cache/' | grep -v '/zig-global-cache/') > $SCRATCH/zbc-current-full.txt",
+      "file_list": "213 files, the same files() list every gate section takes; zig-gate's zwanzig section reports \"discovered 213 file(s)\" for it and the command reproduces that count",
+      "result": "146 lines, every one of them an error(use-undefined) finding, matching the gate log's \"zbc: 146 error(s), 0 warning(s) (advisory), exit 1\"",
+      "command_source": "zig-gate section 7, out=$(\"$ZBC\" $(files) 2>&1) with ZBC=$HOME/.local/bin/zbc, transcribed from ~/.local/bin/zig-gate lines 161 and 537"
+    }
+  },
+  "files_not_moved": "every member is a copy. The campaign scratch originals were left in place and unaltered, and their digests were compared against these copies.",
+  "files_verified_against_campaign_scratch": 1008,
+  "archives_count": 9,
+  "verification_method": "every file member of all nine archives, every loose round receipt, the final-v4 gate log and the six current-tree receipts were hashed and compared against the campaign scratch original; 1,008 comparisons, 0 size or SHA256 mismatch. The six current-tree receipts contribute 219 comparisons from the two new archives and 4 from the loose copies; the two per-run summary.json files inside each archived run directory were compared like any other file member."
+}

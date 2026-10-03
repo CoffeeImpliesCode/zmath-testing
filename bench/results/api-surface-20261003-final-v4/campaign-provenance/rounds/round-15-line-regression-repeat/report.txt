@@ -1,0 +1,24 @@
+
+cases=15 pairs=9 practical_threshold=2% direction_quorum=8/9
+
+case                                                           cohort           base ns      cand ns    change  fast verdict
+geometry.LineOf(4,f64).intersect.policy.adaptive_exact.crossing_offset.normalized_operands geometry       135019373     82355640  +39.00%  9/9 faster
+geometry.LineOf(4,f64).intersect.policy.adaptive_exact.parallel_disjoint.normalized_operands geometry       134115862     82214070  +38.70%  9/9 faster
+geometry.LineOf(4,f64).intersect.policy.adaptive_exact.crossing.normalized_operands geometry       128620128     78991235  +38.59%  9/9 faster
+geometry.LineOf(4,f64).intersect.policy.adaptive_exact.collinear.normalized_operands geometry       130000344     79896823  +38.54%  9/9 faster
+geometry.LineOf(4,f64).intersect.policy.adaptive_exact.coincident.normalized_operands geometry       129107896     81051235  +37.22%  9/9 faster
+geometry.LineOf(3,f64).intersect.policy.adaptive_exact.crossing_offset.normalized_operands geometry        84709924     66872638  +21.06%  9/9 faster
+geometry.LineOf(3,f64).intersect.policy.adaptive_exact.coincident.normalized_operands geometry        80784560     65666378  +18.71%  9/9 faster
+geometry.LineOf(3,f64).intersect.policy.adaptive_exact.collinear.normalized_operands geometry        80437936     66811059  +16.94%  9/9 faster
+geometry.LineOf(3,f64).intersect.policy.adaptive_exact.parallel_disjoint.normalized_operands geometry        80658271     71835725  +10.94%  9/9 faster
+geometry.LineOf(3,f64).intersect.policy.adaptive_exact.crossing.normalized_operands geometry        77861091     70358668   +9.64%  9/9 faster
+geometry.LineOf(2,f64).intersect.policy.adaptive_exact.coincident.normalized_operands geometry        43874541     39735923   +9.43%  7/9 undecided
+geometry.LineOf(2,f64).intersect.policy.adaptive_exact.collinear.normalized_operands geometry        44038686     40251909   +8.60%  7/9 undecided
+geometry.LineOf(2,f64).intersect.policy.adaptive_exact.crossing.normalized_operands geometry        45869679     42404096   +7.56%  7/9 undecided
+geometry.LineOf(2,f64).intersect.policy.adaptive_exact.crossing_offset.normalized_operands geometry        44327668     42767481   +3.52%  6/9 undecided
+geometry.LineOf(2,f64).intersect.policy.adaptive_exact.parallel_disjoint.normalized_operands geometry        47168680     46388177   +1.65%  6/9 undecided
+
+cohort geometry     cases=15    faster=10    slower=0     undecided=5
+module geometry     cases=15    faster=10    slower=0     undecided=5
+
+regressions meeting the criterion: 0

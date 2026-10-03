@@ -1,0 +1,2 @@
+[ perf record: Woken up 580 times to write data ]
+[ perf record: Captured and wrote 0,022 MB /tmp/tmp/zmath-perf-round.Dz4uxZhl/round-19-final-v4-roots/perf/baseline-leaf-run0.perf.data (474 samples) ]

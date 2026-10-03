@@ -1,0 +1,73 @@
+
+cases=64 pairs=9 practical_threshold=2% direction_quorum=8/9
+
+case                                                           cohort           base ns      cand ns    change  fast verdict
+geometry.Hyperplane4(f32).intersectSegment.policy.adaptive_exact.disjoint geometry           24817        13547  +45.41%  8/9 faster
+geometry.Hypersphere4(f32).intersectSegment.policy.adaptive_exact.contained geometry           27563        15276  +44.58%  8/9 faster
+geometry.Hyperplane4(f64).intersectSegment.policy.adaptive_exact.disjoint geometry           25424        14156  +44.32%  8/9 faster
+geometry.Hyperplane4(f32).intersectSegment.policy.adaptive_exact.crossing geometry           25803        14478  +43.89%  9/9 faster
+geometry.Hyperplane4(f64).intersectSegment.policy.adaptive_exact.crossing geometry           26333        15075  +42.75%  8/9 faster
+geometry.Hyperplane4(f32).intersectSegment.policy.adaptive_exact.contained geometry           25335        14544  +42.59%  8/9 faster
+geometry.Hypersphere4(f64).intersect.policy.adaptive_exact.contained geometry           20568        11850  +42.39%  8/9 faster
+geometry.Hyperplane4(f64).intersectSegment.policy.adaptive_exact.contained geometry           26345        15357  +41.71%  8/9 faster
+geometry.Hypersphere4(f64).intersectSegment.policy.adaptive_exact.contained geometry           26676        15551  +41.70%  7/9 undecided
+geometry.Hypersphere4(f32).intersect.policy.adaptive_exact.tangent_subnormal geometry           80636        47490  +41.11%  8/9 faster
+geometry.Hypersphere4(f32).intersectSegment.policy.adaptive_exact.tangent geometry           55043        32727  +40.54%  8/9 faster
+geometry.Hypersphere4(f64).intersect.policy.adaptive_exact.tangent_subnormal geometry           18873        11407  +39.56%  8/9 faster
+geometry.Plane3(f32).intersectSegment.policy.adaptive_exact.disjoint geometry           18998        11720  +38.31%  8/9 faster
+geometry.Plane3(f64).intersectSegment.policy.adaptive_exact.disjoint geometry           17975        11133  +38.06%  8/9 faster
+geometry.Hypersphere4(f64).intersectSegment.policy.adaptive_exact.crossing geometry           53330        33226  +37.70%  7/9 undecided
+geometry.Plane3(f64).intersectSegment.policy.adaptive_exact.crossing geometry           19460        12137  +37.63%  7/9 undecided
+geometry.Hypersphere4(f32).intersectRay.policy.adaptive_exact.tangent geometry           22798        14227  +37.60%  8/9 faster
+geometry.Hypersphere4(f64).intersectSegment.policy.adaptive_exact.tangent geometry           54112        33956  +37.25%  8/9 faster
+geometry.Hypersphere4(f64).intersect.policy.adaptive_exact.disjoint geometry           18404        11585  +37.05%  8/9 faster
+geometry.Plane3(f32).intersectSegment.policy.adaptive_exact.crossing geometry           19617        12425  +36.66%  8/9 faster
+geometry.Plane3(f32).intersectSegment.policy.adaptive_exact.contained geometry           19423        12402  +36.15%  8/9 faster
+geometry.Hypersphere4(f64).intersect.policy.adaptive_exact.tangent geometry           19307        12621  +34.63%  8/9 faster
+geometry.Hypersphere4(f32).intersectSegment.policy.adaptive_exact.crossing geometry           77298        50644  +34.48%  8/9 faster
+geometry.Plane3(f64).intersectSegment.policy.adaptive_exact.contained geometry           18773        12481  +33.52%  7/9 undecided
+geometry.Hypersphere4(f64).intersectRay.policy.adaptive_exact.tangent geometry           22809        15212  +33.31%  7/9 undecided
+geometry.Hypersphere4(f64).intersectRay.policy.adaptive_exact.crossing_outside geometry           25503        17647  +30.80%  8/9 faster
+geometry.Hypersphere4(f64).intersect.policy.adaptive_exact.crossing geometry           29188        20200  +30.79%  8/9 faster
+geometry.Hypersphere4(f32).intersectRay.policy.adaptive_exact.origin_inside geometry           22645        15753  +30.43%  7/9 undecided
+geometry.Hypersphere4(f64).intersect.policy.adaptive_exact.coincident geometry             721          503  +30.24%  7/9 undecided
+geometry.Hypersphere4(f64).contains.policy.adaptive_exact.inside geometry           15005        10488  +30.10%  8/9 faster
+geometry.Hypersphere4(f64).intersectRay.policy.adaptive_exact.origin_inside geometry           21771        15222  +30.08%  8/9 faster
+geometry.Hypersphere4(f32).intersectRay.policy.adaptive_exact.crossing_outside geometry           25626        17988  +29.81%  6/9 undecided
+geometry.Hypersphere4(f64).contains.policy.adaptive_exact.outside geometry           13693         9669  +29.39%  8/9 faster
+geometry.Hypersphere4(f64).intersectHyperplane.policy.adaptive_exact.miss geometry           20019        14185  +29.14%  8/9 faster
+geometry.Hypersphere4(f64).intersectHyperplane.policy.adaptive_exact.tangent geometry           19100        13652  +28.52%  7/9 undecided
+geometry.Hyperplane4(f64).intersectSphere.policy.adaptive_exact.cut geometry           19994        14379  +28.08%  7/9 undecided
+geometry.Hyperplane4(f32).intersect.policy.adaptive_exact.parallel_disjoint geometry           29626        21604  +27.08%  7/9 undecided
+geometry.Hyperplane4(f32).intersectSphere.policy.adaptive_exact.miss geometry           18247        13353  +26.82%  7/9 undecided
+geometry.Hypersphere4(f64).contains.policy.adaptive_exact.boundary geometry           13855        10144  +26.78%  8/9 faster
+geometry.Hypersphere4(f32).intersectHyperplane.policy.adaptive_exact.cut geometry           19381        14267  +26.39%  8/9 faster
+geometry.Hypersphere4(f64).intersectHyperplane.policy.adaptive_exact.cut geometry           20601        15191  +26.26%  7/9 undecided
+geometry.Hyperplane4(f64).intersectSphere.policy.adaptive_exact.tangent geometry           18822        13965  +25.80%  7/9 undecided
+geometry.Hyperplane4(f32).intersectSphere.policy.adaptive_exact.cut geometry           19280        14310  +25.78%  6/9 undecided
+geometry.Hypersphere4(f32).intersectHyperplane.policy.adaptive_exact.miss geometry           19780        14702  +25.67%  8/9 faster
+geometry.Hyperplane4(f64).intersect.policy.adaptive_exact.coincident geometry           29115        21797  +25.13%  6/9 undecided
+geometry.Hyperplane4(f32).intersectSphere.policy.adaptive_exact.tangent geometry           18118        13581  +25.04%  7/9 undecided
+geometry.Hyperplane4(f64).intersectSphere.policy.adaptive_exact.miss geometry           18365        13879  +24.43%  7/9 undecided
+geometry.Hypersphere4(f32).intersectHyperplane.policy.adaptive_exact.tangent geometry           19924        15135  +24.04%  8/9 faster
+geometry.Hyperplane4(f64).intersect.policy.adaptive_exact.parallel_disjoint geometry           29360        22607  +23.00%  7/9 undecided
+geometry.Plane3(f32).intersect.policy.adaptive_exact.parallel_disjoint geometry           19736        15361  +22.17%  8/9 faster
+geometry.Hyperplane4(f32).intersect.policy.adaptive_exact.coincident geometry           28726        22433  +21.91%  7/9 undecided
+geometry.Plane3(f32).intersect.policy.adaptive_exact.coincident geometry           20496        16051  +21.69%  7/9 undecided
+geometry.Plane3(f32).intersect.policy.adaptive_exact.nonparallel geometry           10129         7964  +21.37%  8/9 faster
+geometry.Plane3(f32).intersectSphere.policy.adaptive_exact.miss geometry           14396        11650  +19.07%  7/9 undecided
+geometry.Plane3(f32).intersectSphere.policy.adaptive_exact.cut geometry           15420        12639  +18.04%  8/9 faster
+geometry.Plane3(f64).intersectSphere.policy.adaptive_exact.miss geometry           13644        11333  +16.94%  7/9 undecided
+geometry.Plane3(f64).intersect.policy.adaptive_exact.parallel_disjoint geometry           19676        16395  +16.68%  8/9 faster
+geometry.Plane3(f32).intersectSphere.policy.adaptive_exact.tangent geometry           14067        11758  +16.41%  8/9 faster
+geometry.Hyperplane4(f32).intersect.policy.adaptive_exact.nonparallel geometry           17210        14472  +15.91%  7/9 undecided
+geometry.Hyperplane4(f64).intersect.policy.adaptive_exact.nonparallel geometry           17584        14805  +15.80%  7/9 undecided
+geometry.Plane3(f64).intersectSphere.policy.adaptive_exact.tangent geometry           13343        11346  +14.97%  7/9 undecided
+geometry.Plane3(f64).intersect.policy.adaptive_exact.coincident geometry           19784        16850  +14.83%  7/9 undecided
+geometry.Plane3(f64).intersectSphere.policy.adaptive_exact.cut geometry           14758        12763  +13.52%  8/9 faster
+geometry.Plane3(f64).intersect.policy.adaptive_exact.nonparallel geometry            9227         8222  +10.89%  8/9 faster
+
+cohort geometry     cases=64    faster=37    slower=0     undecided=27
+module geometry     cases=64    faster=37    slower=0     undecided=27
+
+regressions meeting the criterion: 0

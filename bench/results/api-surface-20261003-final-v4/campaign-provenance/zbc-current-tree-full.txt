@@ -1,0 +1,146 @@
+~/zmath/src/algebra.zig:375:13: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/algebra.zig:375:20: error(use-undefined): use of `table` while still `undefined`
+~/zmath/src/algebra.zig:409:13: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/algebra.zig:409:20: error(use-undefined): use of `table` while still `undefined`
+~/zmath/src/algebra.zig:819:13: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/algebra.zig:819:20: error(use-undefined): use of `result` while still `undefined`
+~/zmath/src/geometry.zig:1378:12: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/geometry.zig:1391:12: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/geometry.zig:1391:5: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/geometry.zig:1409:12: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/geometry.zig:1475:31: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/geometry.zig:1477:45: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/geometry.zig:1484:12: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/geometry.zig:2028:12: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/geometry.zig:2730:31: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/geometry.zig:2736:12: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/geometry.zig:2744:12: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/geometry.zig:2752:12: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/geometry.zig:2760:12: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/geometry.zig:2760:5: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/geometry.zig:3855:12: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/geometry.zig:3872:12: error(use-undefined): use of `new_low` while still `undefined`
+~/zmath/src/geometry.zig:3887:12: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/geometry.zig:407:12: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/geometry.zig:407:5: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/geometry.zig:416:12: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/geometry.zig:416:5: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/geometry.zig:4248:12: error(use-undefined): use of `low` while still `undefined`
+~/zmath/src/geometry_test.zig:3088:5: error(use-undefined): use of `rows` while still `undefined`
+~/zmath/src/geometry_test.zig:3092:9: error(use-undefined): use of `rows` while still `undefined`
+~/zmath/src/linalg.zig:573:12: error(use-undefined): use of `permutation` while still `undefined`
+~/zmath/src/linalg.zig:591:12: error(use-undefined): use of `lower` while still `undefined`
+~/zmath/src/linalg.zig:591:5: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/linalg.zig:604:12: error(use-undefined): use of `upper` while still `undefined`
+~/zmath/src/linalg.zig:604:5: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/linalg.zig:653:12: error(use-undefined): use of `solution` while still `undefined`
+~/zmath/src/linalg.zig:653:5: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/linalg.zig:702:26: error(use-undefined): use of `lower.data` while `lower` is still `undefined`
+~/zmath/src/linalg.zig:704:30: error(use-undefined): use of `lower.data` while `lower` is still `undefined`
+~/zmath/src/linalg.zig:707:23: error(use-undefined): use of `lower.data` while `lower` is still `undefined`
+~/zmath/src/linalg.zig:725:5: error(use-undefined): use of `lower` while still `undefined`
+~/zmath/src/linalg.zig:727:12: error(use-undefined): use of `lower` while still `undefined`
+~/zmath/src/linalg.zig:727:5: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/linalg.zig:767:12: error(use-undefined): use of `solution` while still `undefined`
+~/zmath/src/linalg.zig:767:5: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/linalg.zig:818:12: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/linalg.zig:818:5: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/linalg.zig:890:24: error(use-undefined): use of `b` while still `undefined`
+~/zmath/src/linalg.zig:893:12: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/linalg.zig:893:5: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/linalg.zig:995:24: error(use-undefined): use of `b` while still `undefined`
+~/zmath/src/linalg.zig:998:12: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/linalg.zig:998:5: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/matrix.zig:466:13: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/matrix.zig:466:20: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/matrix.zig:477:13: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/matrix.zig:477:20: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/matrix.zig:498:13: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/matrix.zig:498:20: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/matrix.zig:554:13: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/matrix.zig:554:20: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/matrix.zig:567:13: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/matrix.zig:567:20: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/matrix.zig:581:13: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/matrix.zig:581:20: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/matrix.zig:593:13: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/matrix.zig:593:20: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/matrix.zig:605:13: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/matrix.zig:605:20: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/matrix.zig:642:13: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/matrix.zig:642:20: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/matrix.zig:717:12: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/matrix.zig:717:5: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/matrix.zig:783:15: error(use-undefined): use of `sum` while still `undefined`
+~/zmath/src/matrix.zig:785:12: error(use-undefined): use of `sum` while still `undefined`
+~/zmath/src/matrix.zig:785:5: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/matrix.zig:932:12: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/matrix.zig:932:5: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/matrix.zig:980:12: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/matrix.zig:980:5: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/quaternion.zig:235:12: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/quaternion.zig:235:5: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/quaternion.zig:244:12: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/quaternion.zig:244:5: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/quaternion.zig:253:12: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/quaternion.zig:253:5: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/quaternion.zig:263:12: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/quaternion.zig:263:5: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/quaternion.zig:274:12: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/quaternion.zig:274:5: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/quaternion.zig:286:12: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/quaternion.zig:286:5: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/vector.zig:137:12: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/vector.zig:137:5: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/vector.zig:155:12: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/vector.zig:155:5: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/vector_core.zig:216:12: error(use-undefined): use of `lanes` while still `undefined`
+~/zmath/src/vector_core.zig:235:12: error(use-undefined): use of `lanes` while still `undefined`
+~/zmath/src/vector_core.zig:258:12: error(use-undefined): use of `lanes` while still `undefined`
+~/zmath/src/vector_core.zig:277:12: error(use-undefined): use of `lanes` while still `undefined`
+~/zmath/src/vector_core.zig:298:12: error(use-undefined): use of `lanes` while still `undefined`
+~/zmath/src/vector_core.zig:323:12: error(use-undefined): use of `lanes` while still `undefined`
+~/zmath/src/vector_intarg.zig:121:12: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/vector_intarg.zig:121:5: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/vector_intarg.zig:142:12: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/vector_intarg.zig:142:5: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/vector_struct.zig:107:12: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/vector_struct.zig:107:5: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/vector_struct.zig:85:12: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/vector_struct.zig:85:5: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/vector_value.zig:203:12: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/vector_value.zig:203:5: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/vector_value.zig:213:12: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/vector_value.zig:213:5: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/vector_value.zig:222:12: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/vector_value.zig:222:5: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/vector_value.zig:236:12: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/vector_value.zig:236:5: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/vector_value.zig:250:12: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/vector_value.zig:250:5: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/vector_value.zig:263:12: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/vector_value.zig:263:5: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/vector_value.zig:276:12: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/vector_value.zig:276:5: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/vector_value.zig:290:12: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/vector_value.zig:290:5: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/vector_value.zig:303:12: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/vector_value.zig:303:5: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/vector_value.zig:409:12: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/vector_value.zig:409:5: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/vector_value.zig:420:12: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/vector_value.zig:420:5: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/vector_value.zig:435:12: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/vector_value.zig:435:5: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/vector_value.zig:482:12: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/vector_value.zig:482:5: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/vector_value.zig:492:12: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/vector_value.zig:492:5: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/vector_value_test.zig:59:12: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/vector_value_test.zig:59:5: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/vector_value_test.zig:66:12: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/vector_value_test.zig:66:5: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/vector_value_test.zig:76:12: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/vector_value_test.zig:76:5: error(use-undefined): returning a value that is still `undefined`
+~/zmath/src/vector_value_test.zig:95:12: error(use-undefined): use of `out` while still `undefined`
+~/zmath/src/vector_value_test.zig:95:5: error(use-undefined): returning a value that is still `undefined`

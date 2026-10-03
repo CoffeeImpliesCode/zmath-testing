@@ -1,0 +1,35 @@
+
+cases=24 pairs=9 practical_threshold=2% direction_quorum=8/9
+
+case                                                           cohort           base ns      cand ns    change  fast verdict
+values/Vec3d.fromVector/ordinary                               values             42508        36521  +14.08%  7/9 undecided
+values/Vec3d.toVector/ordinary                                 values             46283        41656  +10.00%  7/9 undecided
+values/Vec4d.toVector/ordinary                                 values             57379        52434   +8.62%  4/9 undecided
+values/Vec2d.fromVector/ordinary                               values             27643        25327   +8.38%  7/9 undecided
+geometry.Aabb2(f64).center                                     geometry           84134        77816   +7.51%  5/9 undecided
+values/Vec4d.fromVector/ordinary                               values             56783        52523   +7.50%  6/9 undecided
+values/Vec4f.fromVector/ordinary                               values             52528        49324   +6.10%  8/9 faster
+geometry.Aabb2(f32).center                                     geometry           88020        83179   +5.50%  4/9 undecided
+geometry.Aabb3(f64).center                                     geometry           86418        89042   -3.04%  4/9 undecided
+geometry.Aabb4(f32).center                                     geometry          137673       134711   +2.15%  7/9 undecided
+values/Vec3f.fromVector/ordinary                               values             36976        36346   +1.70%  6/9 undecided
+geometry.Aabb4(f64).center.overflow                            geometry          129332       127438   +1.46%  3/9 undecided
+values/Vec4f.toVector/ordinary                                 values             49589        50277   -1.39%  3/9 undecided
+values/Vec2f.fromVector/ordinary                               values             25387        25066   +1.26%  7/9 undecided
+geometry.Aabb2(f32).center.overflow                            geometry           45591        45064   +1.16%  5/9 undecided
+geometry.Aabb4(f64).center                                     geometry          109772       108517   +1.14%  4/9 undecided
+geometry.Aabb3(f64).center.overflow                            geometry          102451       101360   +1.06%  5/9 undecided
+geometry.Aabb4(f32).center.overflow                            geometry          120026       118842   +0.99%  5/9 undecided
+values/Vec2f.toVector/ordinary                                 values             35544        35871   -0.92%  5/9 undecided
+geometry.Aabb3(f32).center.overflow                            geometry           63110        62932   +0.28%  7/9 undecided
+geometry.Aabb2(f64).center.overflow                            geometry           50033        49901   +0.26%  6/9 undecided
+geometry.Aabb3(f32).center                                     geometry           87348        87532   -0.21%  4/9 undecided
+values/Vec2d.toVector/ordinary                                 values             25579        25543   +0.14%  5/9 undecided
+values/Vec3f.toVector/ordinary                                 values             40778        40780   -0.00%  4/9 undecided
+
+cohort geometry     cases=12    faster=0     slower=0     undecided=12
+cohort values       cases=12    faster=1     slower=0     undecided=11
+module geometry     cases=12    faster=0     slower=0     undecided=12
+module vector       cases=12    faster=1     slower=0     undecided=11
+
+regressions meeting the criterion: 0

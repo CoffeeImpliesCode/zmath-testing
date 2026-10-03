@@ -1,0 +1,896 @@
+round,case,calls,pairs,baseline_median_ns,candidate_median_ns,improvement_fraction,faster_pairs,slower_pairs,verdict,checksum
+round-06-root-retention,leaf.scalar.rootn.h.normal,64,9,106496.0,150694.0,-0.4150202824519231,2,7,undecided,a23a8bd616c1b2e7
+round-06-root-retention,leaf.scalar.rootn.h.boundary,64,9,41790.0,60379.0,-0.44481933476908353,2,7,undecided,d018dad566507b28
+round-06-root-retention,leaf.scalar.rootn.h.skewed,64,9,56853.0,53733.0,0.05487837053453644,3,6,undecided,c94d5ec6b1c88f0c
+round-06-root-retention,leaf.scalar.rootn.f.normal,64,9,5615671.0,234187.0,0.9582975925762033,9,0,faster,36c7f9527f0c8ac9
+round-06-root-retention,leaf.scalar.rootn.f.boundary,64,9,3292467.0,132037.0,0.9598972442244675,9,0,faster,4924b3684211942b
+round-06-root-retention,leaf.scalar.rootn.f.skewed,64,9,4341969.0,154390.0,0.9644423992893547,9,0,faster,d9dce4e569055114
+round-06-root-retention,leaf.scalar.rootn.d.normal,64,9,42557879.0,3356537.0,0.9211300685356053,9,0,faster,ecb6910996975047
+round-06-root-retention,leaf.scalar.rootn.d.boundary,64,9,35527072.0,3104357.0,0.9126199592243346,9,0,faster,b75c1576fd9b6863
+round-06-root-retention,leaf.scalar.rootn.d.skewed,64,9,25728986.0,2266562.0,0.91190628344234,9,0,faster,e8c34f84416d6a7d
+round-06-root-retention,leaf.root.rootn.dispatch,64,9,18195158.0,1583951.0,0.9129465652345531,9,0,faster,a08cd2f58e77a686
+round-06-root-retention,lanes.rootnhv.f16.w2.normal,64,9,177163.0,199258.0,-0.124715657332513,2,7,undecided,5f18c030a259fb58
+round-06-root-retention,lanes.rootnhv.f16.w2.boundary,64,9,62222.0,66978.0,-0.07643598727138311,3,6,undecided,2ff5e27b5b2b3db1
+round-06-root-retention,lanes.rootnhv.f16.w2.skewed,64,9,147821.0,180550.0,-0.22140967792126964,2,7,undecided,49726d7734f241ca
+round-06-root-retention,lanes.rootnhv.f16.w4.normal,64,9,323300.0,404619.0,-0.2515279925765543,3,6,undecided,9c5caa01be5e1baa
+round-06-root-retention,lanes.rootnhv.f16.w4.boundary,64,9,106688.0,118668.0,-0.11229004199160168,3,6,undecided,a7c8b5575b9218c2
+round-06-root-retention,lanes.rootnhv.f16.w4.skewed,64,9,248444.0,337407.0,-0.35808069424095573,3,6,undecided,e6b66dd3d93ac579
+round-06-root-retention,lanes.rootnhv.f16.w8.normal,64,9,616577.0,755084.0,-0.22463860961404658,2,7,undecided,a97b07a2e0c83713
+round-06-root-retention,lanes.rootnhv.f16.w8.boundary,64,9,182164.0,218481.0,-0.199364309084122,3,6,undecided,7879130dfad80138
+round-06-root-retention,lanes.rootnhv.f16.w8.skewed,64,9,492621.0,610946.0,-0.24019479478138367,3,6,undecided,1f738483f989fd1b
+round-06-root-retention,lanes.rootnfv.f32.w2.normal,64,9,9659477.0,530913.0,0.9450370863764156,9,0,faster,744f2b0e43f08bb2
+round-06-root-retention,lanes.rootnfv.f32.w2.boundary,64,9,2617463.0,119257.0,0.9544379423892525,9,0,faster,9b3bd05585dd10e1
+round-06-root-retention,lanes.rootnfv.f32.w2.skewed,64,9,7613334.0,552408.0,0.9274420378772296,9,0,faster,ffd6839780d47e57
+round-06-root-retention,lanes.rootnfv.f32.w4.normal,64,9,18442565.0,1198176.0,0.9350320305228692,9,0,faster,a7de7708513ed505
+round-06-root-retention,lanes.rootnfv.f32.w4.boundary,64,9,6465987.0,241111.0,0.9627108746120275,9,0,faster,001638b24a141948
+round-06-root-retention,lanes.rootnfv.f32.w4.skewed,64,9,14163667.0,1054136.0,0.9255746410869445,9,0,faster,cf52ee055367a384
+round-06-root-retention,lanes.rootnfv.f32.w8.normal,64,9,35010625.0,2159009.0,0.9383327489869147,9,0,faster,c422ade8fcd2d9ac
+round-06-root-retention,lanes.rootnfv.f32.w8.boundary,64,9,13717758.0,491573.0,0.9641652083379806,9,0,faster,8e95bf2f9bcf2a41
+round-06-root-retention,lanes.rootnfv.f32.w8.skewed,64,9,27348658.0,1550640.0,0.9433010570390693,9,0,faster,e2700c793c0d4384
+round-06-root-retention,lanes.rootndv.f64.w2.normal,64,9,70517377.0,4652082.0,0.9340292818889165,9,0,faster,7158490f5a8c53dd
+round-06-root-retention,lanes.rootndv.f64.w2.boundary,64,9,32512643.0,2050383.0,0.9369358252418913,9,0,faster,d74ef2e6e57efe70
+round-06-root-retention,lanes.rootndv.f64.w2.skewed,64,9,87780432.0,6867753.0,0.9217621417037456,9,0,faster,adb2c3c7b6f2c0fe
+round-06-root-retention,lanes.rootndv.f64.w4.normal,64,9,118745293.0,10131056.0,0.9146824624029518,9,0,faster,bbe3a3f0946457dc
+round-06-root-retention,lanes.rootndv.f64.w4.boundary,64,9,68035376.0,4316402.0,0.9365565055449977,9,0,faster,77dc8118c1879bb7
+round-06-root-retention,lanes.rootndv.f64.w4.skewed,64,9,164688717.0,12477400.0,0.9242364612021357,9,0,faster,52b707b8ba9c0523
+round-06-root-retention,lanes.rootndv.f64.w8.normal,64,9,236685060.0,17404834.0,0.9264641629682921,9,0,faster,bc3213c54a4e326e
+round-06-root-retention,lanes.rootndv.f64.w8.boundary,64,9,143948954.0,8342354.0,0.9420464423798453,9,0,faster,c3cbe97e78b2a317
+round-06-root-retention,lanes.rootndv.f64.w8.skewed,64,9,315401860.0,23762956.0,0.9246581614959405,9,0,faster,41fd5374e7204705
+round-06-root-retention,lanes.rootnhvLanes.f16.w2.normal,64,9,169393.0,168326.0,0.006298961586370157,4,5,undecided,c6edd8b7bfabded0
+round-06-root-retention,lanes.rootnhvLanes.f16.w2.boundary,64,9,53520.0,62003.0,-0.1585014947683109,4,5,undecided,daa1c27e4ff98695
+round-06-root-retention,lanes.rootnhvLanes.f16.w2.skewed,64,9,121181.0,149143.0,-0.23074574396976424,4,5,undecided,d9370a9a4d9231d2
+round-06-root-retention,lanes.rootnhvLanes.f16.w4.normal,64,9,286019.0,371014.0,-0.29716557291648454,4,5,undecided,f55726d4a00c1644
+round-06-root-retention,lanes.rootnhvLanes.f16.w4.boundary,64,9,101356.0,115088.0,-0.13548285251983108,3,6,undecided,faa33f4298e68a94
+round-06-root-retention,lanes.rootnhvLanes.f16.w4.skewed,64,9,232485.0,267270.0,-0.14962255629395446,1,8,slower,89708fdd4e24aa16
+round-06-root-retention,lanes.rootnhvLanes.f16.w8.normal,64,9,538028.0,759746.0,-0.4120937943750139,2,7,undecided,a22642b56839f882
+round-06-root-retention,lanes.rootnhvLanes.f16.w8.boundary,64,9,193558.0,258060.0,-0.3332437822254828,3,6,undecided,6eb4a2d64890dd04
+round-06-root-retention,lanes.rootnhvLanes.f16.w8.skewed,64,9,411754.0,550920.0,-0.3379833589959053,3,6,undecided,c448cbcf2c7020e4
+round-06-root-retention,lanes.rootnfvLanes.f32.w2.normal,64,9,8926356.0,646657.0,0.9275564407245241,9,0,faster,7b962d7e29ee95a5
+round-06-root-retention,lanes.rootnfvLanes.f32.w2.boundary,64,9,2328517.0,149193.0,0.9359278888666048,9,0,faster,3b2210fa85fe1f6c
+round-06-root-retention,lanes.rootnfvLanes.f32.w2.skewed,64,9,6749703.0,558725.0,0.917222283706409,9,0,faster,a890e6c6839cd282
+round-06-root-retention,lanes.rootnfvLanes.f32.w4.normal,64,9,17051296.0,1203998.0,0.9293896487398964,9,0,faster,e4a0fded52197488
+round-06-root-retention,lanes.rootnfvLanes.f32.w4.boundary,64,9,6149563.0,278465.0,0.9547179206067162,9,0,faster,c293cdeefe0045eb
+round-06-root-retention,lanes.rootnfvLanes.f32.w4.skewed,64,9,12220523.0,878520.0,0.9281110963908827,9,0,faster,afcb1dbdfa0babb9
+round-06-root-retention,lanes.rootnfvLanes.f32.w8.normal,64,9,34780177.0,2315217.0,0.933432857457856,9,0,faster,7a2a80874dd52027
+round-06-root-retention,lanes.rootnfvLanes.f32.w8.boundary,64,9,13160786.0,485333.0,0.9631227952494631,9,0,faster,9159f283dcf3ac7d
+round-06-root-retention,lanes.rootnfvLanes.f32.w8.skewed,64,9,25804786.0,1822723.0,0.929364924785658,9,0,faster,06841d0efe59332d
+round-06-root-retention,lanes.rootndvLanes.f64.w2.normal,64,9,65054237.0,4829453.0,0.9257626678489826,9,0,faster,c04e337b1bc81c93
+round-06-root-retention,lanes.rootndvLanes.f64.w2.boundary,64,9,36679434.0,2342601.0,0.9361331202657053,9,0,faster,5daf89de1e61f7b2
+round-06-root-retention,lanes.rootndvLanes.f64.w2.skewed,64,9,83450254.0,8195289.0,0.9017943192839173,9,0,faster,522c14889a68ba44
+round-06-root-retention,lanes.rootndvLanes.f64.w4.normal,64,9,133347403.0,10313340.0,0.9226581113094493,9,0,faster,f76834937627d3f4
+round-06-root-retention,lanes.rootndvLanes.f64.w4.boundary,64,9,69632164.0,4192167.0,0.9397955375909328,9,0,faster,d2033a66576f4f9f
+round-06-root-retention,lanes.rootndvLanes.f64.w4.skewed,64,9,146094892.0,10849760.0,0.925734843624786,9,0,faster,0a13014b75a91575
+round-06-root-retention,lanes.rootndvLanes.f64.w8.normal,64,9,280366773.0,20869553.0,0.925563386928165,9,0,faster,cfb2013d77bff38d
+round-06-root-retention,lanes.rootndvLanes.f64.w8.boundary,64,9,127401820.0,7216919.0,0.9433530933859501,9,0,faster,5b7143faac72a998
+round-06-root-retention,lanes.rootndvLanes.f64.w8.skewed,64,9,281052858.0,20515870.0,0.9270035176087766,9,0,faster,688f75b2f0b6b849
+round-07-algebra-retention,"algebra.Multivector(3,f32,.clifford,.{ 1, 1, 1 },3).geometricProduct",1024,9,271674.0,1025850.0,-2.776033039598931,0,9,slower,3443b13d3b0ad2e5
+round-07-algebra-retention,"algebra.Multivector(3,f32,.clifford,.{ 1, 1, 1 },3).geometricProduct.sparse",1024,9,112538.0,149505.0,-0.3284846007570776,1,8,slower,6948878b51823003
+round-07-algebra-retention,"algebra.Multivector(3,f64,.clifford,.{ 1, 1, 1 },3).geometricProduct",1024,9,324310.0,824163.0,-1.541281489932472,0,9,slower,9ad3c75ab6b3f3db
+round-07-algebra-retention,"algebra.Multivector(3,f64,.clifford,.{ 1, 1, 1 },3).geometricProduct.sparse",1024,9,104024.0,154093.0,-0.4813216180881335,1,8,slower,f2350a70f4497bae
+round-07-algebra-retention,"algebra.Multivector(4,f32,.clifford,.{ 1, 1, 1, 1 },4).geometricProduct",1024,9,2589454.0,3197007.0,-0.23462590955467832,4,5,undecided,1dd28c230c158dc5
+round-07-algebra-retention,"algebra.Multivector(4,f32,.clifford,.{ 1, 1, 1, 1 },4).geometricProduct.sparse",1024,9,227100.0,283735.0,-0.24938353148392778,3,6,undecided,8fd7ef563a39b02f
+round-07-algebra-retention,"algebra.Multivector(4,f32,.clifford,.{ 1, 1, 1, 1 },4).geometricProduct.motor",1024,9,202285.0,265659.0,-0.31329065427490915,3,6,undecided,b21f29f458105896
+round-07-algebra-retention,"algebra.Multivector(4,f64,.clifford,.{ 1, 1, 1, 1 },4).geometricProduct",1024,9,2226395.0,3335752.0,-0.4982750140922882,2,7,undecided,4a773b144c29515c
+round-07-algebra-retention,"algebra.Multivector(4,f64,.clifford,.{ 1, 1, 1, 1 },4).geometricProduct.sparse",1024,9,230416.0,293277.0,-0.272815255885008,1,8,slower,fc6d4ae77f9c804e
+round-07-algebra-retention,"algebra.Multivector(4,f64,.clifford,.{ 1, 1, 1, 1 },4).geometricProduct.motor",1024,9,227980.0,263220.0,-0.15457496271602772,2,7,undecided,80b94449239cab26
+round-07-algebra-retention,"algebra.Multivector(4,f32,.projective,.{ 0, 1, 1, 1 },3).geometricProduct",1024,9,2032773.0,2506704.0,-0.23314506833768453,1,8,slower,dceb9e6d66b59877
+round-07-algebra-retention,"algebra.Multivector(4,f32,.projective,.{ 0, 1, 1, 1 },3).geometricProduct.sparse",1024,9,245727.0,280115.0,-0.13994392150638718,2,7,undecided,3de01a790f43611e
+round-07-algebra-retention,"algebra.Multivector(4,f32,.projective,.{ 0, 1, 1, 1 },3).geometricProduct.motor",1024,9,212622.0,270441.0,-0.27193329006405736,1,8,slower,ed46c25bc7c2bb4e
+round-07-algebra-retention,"algebra.Multivector(4,f64,.projective,.{ 0, 1, 1, 1 },3).geometricProduct",1024,9,1927341.0,2547546.0,-0.32179308176394317,0,9,slower,f8cf71cea8d211d5
+round-07-algebra-retention,"algebra.Multivector(4,f64,.projective,.{ 0, 1, 1, 1 },3).geometricProduct.sparse",1024,9,233951.0,282784.0,-0.20873174297181887,1,8,slower,db2a2d386eb74a42
+round-07-algebra-retention,"algebra.Multivector(4,f64,.projective,.{ 0, 1, 1, 1 },3).geometricProduct.motor",1024,9,199818.0,299025.0,-0.49648680299072157,2,7,undecided,fba58325ac077259
+round-07-algebra-retention,"algebra.Multivector(5,f32,.projective,.{ 0, 1, 1, 1, 1 },4).geometricProduct",1024,9,7729712.0,9114537.0,-0.1791560927496393,1,8,slower,2bfa8362056b9361
+round-07-algebra-retention,"algebra.Multivector(5,f32,.projective,.{ 0, 1, 1, 1, 1 },4).geometricProduct.sparse",1024,9,394740.0,478495.0,-0.21217763591224603,4,5,undecided,b4a11b0b986254d7
+round-07-algebra-retention,"algebra.Multivector(5,f32,.projective,.{ 0, 1, 1, 1, 1 },4).geometricProduct.motor",1024,9,647544.0,771086.0,-0.19078549102454814,4,5,undecided,0ec1ae97bf85b13c
+round-07-algebra-retention,"algebra.Multivector(5,f64,.projective,.{ 0, 1, 1, 1, 1 },4).geometricProduct",1024,9,8109546.0,8940322.0,-0.10244420587786296,2,7,undecided,64de1f81ed5fcd32
+round-07-algebra-retention,"algebra.Multivector(5,f64,.projective,.{ 0, 1, 1, 1, 1 },4).geometricProduct.sparse",1024,9,423141.0,488600.0,-0.15469784303577294,4,5,undecided,35037cfc62b45632
+round-07-algebra-retention,"algebra.Multivector(5,f64,.projective,.{ 0, 1, 1, 1, 1 },4).geometricProduct.motor",1024,9,623930.0,787833.0,-0.26269453304056545,4,5,undecided,9e040ba1b58861e5
+round-07-algebra-retention,"algebra.Multivector(5,f32,.conformal,.{ 1, 1, 1, 1, -1 },3).geometricProduct",1024,9,10020290.0,11510004.0,-0.14866974907911848,1,8,slower,f2912cbff9c94d29
+round-07-algebra-retention,"algebra.Multivector(5,f32,.conformal,.{ 1, 1, 1, 1, -1 },3).geometricProduct.sparse",1024,9,441024.0,501905.0,-0.13804464156145696,2,7,undecided,2f7865851686887b
+round-07-algebra-retention,"algebra.Multivector(5,f32,.conformal,.{ 1, 1, 1, 1, -1 },3).geometricProduct.motor",1024,9,744644.0,900355.0,-0.209107976429005,2,7,undecided,7f412b357761b144
+round-07-algebra-retention,"algebra.Multivector(5,f64,.conformal,.{ 1, 1, 1, 1, -1 },3).geometricProduct",1024,9,10133375.0,10746118.0,-0.06046781057643678,2,7,undecided,4872d44382fb346b
+round-07-algebra-retention,"algebra.Multivector(5,f64,.conformal,.{ 1, 1, 1, 1, -1 },3).geometricProduct.sparse",1024,9,400803.0,352963.0,0.11936038402906166,5,4,undecided,b5908cf0e1a97197
+round-07-algebra-retention,"algebra.Multivector(5,f64,.conformal,.{ 1, 1, 1, 1, -1 },3).geometricProduct.motor",1024,9,674492.0,565122.0,0.16215166377065998,3,6,undecided,ac6b2b3392be3eb1
+round-07-algebra-retention,"algebra.Multivector(6,f32,.conformal,.{ 1, 1, 1, 1, 1, -1 },4).geometricProduct",1024,9,38990971.0,41294533.0,-0.059079369939261064,0,9,slower,02d07af543097238
+round-07-algebra-retention,"algebra.Multivector(6,f32,.conformal,.{ 1, 1, 1, 1, 1, -1 },4).geometricProduct.sparse",1024,9,793713.0,962213.0,-0.2122933604464082,2,7,undecided,ba1716e2342775a2
+round-07-algebra-retention,"algebra.Multivector(6,f32,.conformal,.{ 1, 1, 1, 1, 1, -1 },4).geometricProduct.motor",1024,9,2169004.0,3428509.0,-0.5806835764249397,1,8,slower,4b82125fe53a9946
+round-07-algebra-retention,"algebra.Multivector(6,f64,.conformal,.{ 1, 1, 1, 1, 1, -1 },4).geometricProduct",1024,9,38733377.0,42596453.0,-0.0997350682849058,1,8,slower,008c96434a4cc30a
+round-07-algebra-retention,"algebra.Multivector(6,f64,.conformal,.{ 1, 1, 1, 1, 1, -1 },4).geometricProduct.sparse",1024,9,822710.0,862869.0,-0.04881306900365864,5,4,undecided,41956669f7afeb63
+round-07-algebra-retention,"algebra.Multivector(6,f64,.conformal,.{ 1, 1, 1, 1, 1, -1 },4).geometricProduct.motor",1024,9,2553603.0,2877806.0,-0.12695904570914116,3,6,undecided,0b0874f62a583e1d
+round-08-final-roots,leaf.scalar.rootn.h.normal,64,9,103613.0,84161.0,0.18773706002142587,5,4,undecided,a23a8bd616c1b2e7
+round-08-final-roots,leaf.scalar.rootn.h.boundary,64,9,45208.0,38643.0,0.14521766059104582,6,3,undecided,d018dad566507b28
+round-08-final-roots,leaf.scalar.rootn.h.skewed,64,9,56764.0,49584.0,0.1264886195476006,4,5,undecided,c94d5ec6b1c88f0c
+round-08-final-roots,leaf.scalar.rootn.f.normal,64,9,4430336.0,326785.0,0.9262392288079279,9,0,faster,36c7f9527f0c8ac9
+round-08-final-roots,leaf.scalar.rootn.f.boundary,64,9,2969499.0,177358.0,0.9402734265948566,9,0,faster,4924b3684211942b
+round-08-final-roots,leaf.scalar.rootn.f.skewed,64,9,4104586.0,246409.0,0.9399673925701642,9,0,faster,d9dce4e569055114
+round-08-final-roots,leaf.scalar.rootn.d.normal,64,9,40587477.0,3252946.0,0.9198534562766737,9,0,faster,ecb6910996975047
+round-08-final-roots,leaf.scalar.rootn.d.boundary,64,9,31800655.0,2870513.0,0.9097341548468105,9,0,faster,b75c1576fd9b6863
+round-08-final-roots,leaf.scalar.rootn.d.skewed,64,9,25573478.0,1933001.0,0.9244138399947007,9,0,faster,e8c34f84416d6a7d
+round-08-final-roots,leaf.root.rootn.dispatch,64,9,18595359.0,1398486.0,0.9247938154891229,9,0,faster,a08cd2f58e77a686
+round-08-final-roots,lanes.rootnhv.f16.w2.normal,64,9,166857.0,144812.0,0.13211911996499998,7,2,undecided,5f18c030a259fb58
+round-08-final-roots,lanes.rootnhv.f16.w2.boundary,64,9,61784.0,46540.0,0.24673054512495143,8,1,faster,2ff5e27b5b2b3db1
+round-08-final-roots,lanes.rootnhv.f16.w2.skewed,64,9,156741.0,113919.0,0.2732022891266484,9,0,faster,49726d7734f241ca
+round-08-final-roots,lanes.rootnhv.f16.w4.normal,64,9,293725.0,254173.0,0.13465656651629926,8,1,faster,9c5caa01be5e1baa
+round-08-final-roots,lanes.rootnhv.f16.w4.boundary,64,9,100994.0,86749.0,0.14104798304849794,7,2,undecided,a7c8b5575b9218c2
+round-08-final-roots,lanes.rootnhv.f16.w4.skewed,64,9,271699.0,225901.0,0.16856153316721814,7,2,undecided,e6b66dd3d93ac579
+round-08-final-roots,lanes.rootnhv.f16.w8.normal,64,9,541002.0,497193.0,0.08097751949161001,7,2,undecided,a97b07a2e0c83713
+round-08-final-roots,lanes.rootnhv.f16.w8.boundary,64,9,165561.0,162096.0,0.020928841937412797,4,5,undecided,7879130dfad80138
+round-08-final-roots,lanes.rootnhv.f16.w8.skewed,64,9,445948.0,429520.0,0.03683837577475401,5,4,undecided,1f738483f989fd1b
+round-08-final-roots,lanes.rootnfv.f32.w2.normal,64,9,10036066.0,576630.0,0.94254422001609,9,0,faster,744f2b0e43f08bb2
+round-08-final-roots,lanes.rootnfv.f32.w2.boundary,64,9,3465437.0,118937.0,0.9656790759722367,9,0,faster,9b3bd05585dd10e1
+round-08-final-roots,lanes.rootnfv.f32.w2.skewed,64,9,7520521.0,544757.0,0.9275639280842378,9,0,faster,ffd6839780d47e57
+round-08-final-roots,lanes.rootnfv.f32.w4.normal,64,9,16006151.0,1173856.0,0.92666219380287,9,0,faster,a7de7708513ed505
+round-08-final-roots,lanes.rootnfv.f32.w4.boundary,64,9,7835222.0,231830.0,0.970411814751388,9,0,faster,001638b24a141948
+round-08-final-roots,lanes.rootnfv.f32.w4.skewed,64,9,12348816.0,1062955.0,0.9139225169441345,9,0,faster,cf52ee055367a384
+round-08-final-roots,lanes.rootnfv.f32.w8.normal,64,9,32049985.0,2381292.0,0.9257006828552338,9,0,faster,c422ade8fcd2d9ac
+round-08-final-roots,lanes.rootnfv.f32.w8.boundary,64,9,12697163.0,450765.0,0.964498762440082,9,0,faster,8e95bf2f9bcf2a41
+round-08-final-roots,lanes.rootnfv.f32.w8.skewed,64,9,24862590.0,1940885.0,0.9219355264274559,9,0,faster,e2700c793c0d4384
+round-08-final-roots,lanes.rootndv.f64.w2.normal,64,9,64525692.0,5021849.0,0.9221728765032075,9,0,faster,7158490f5a8c53dd
+round-08-final-roots,lanes.rootndv.f64.w2.boundary,64,9,29359343.0,1493731.0,0.9491224650360874,9,0,faster,d74ef2e6e57efe70
+round-08-final-roots,lanes.rootndv.f64.w2.skewed,64,9,79526828.0,7239275.0,0.908970655789264,9,0,faster,adb2c3c7b6f2c0fe
+round-08-final-roots,lanes.rootndv.f64.w4.normal,64,9,108821690.0,8562288.0,0.9213181857403612,9,0,faster,bbe3a3f0946457dc
+round-08-final-roots,lanes.rootndv.f64.w4.boundary,64,9,60172362.0,3437057.0,0.9428798058484059,9,0,faster,77dc8118c1879bb7
+round-08-final-roots,lanes.rootndv.f64.w4.skewed,64,9,148767107.0,11618250.0,0.9219030991844185,9,0,faster,52b707b8ba9c0523
+round-08-final-roots,lanes.rootndv.f64.w8.normal,64,9,216317616.0,16839622.0,0.9221532563487571,9,0,faster,bc3213c54a4e326e
+round-08-final-roots,lanes.rootndv.f64.w8.boundary,64,9,127796581.0,6865712.0,0.9462762466235306,9,0,faster,c3cbe97e78b2a317
+round-08-final-roots,lanes.rootndv.f64.w8.skewed,64,9,266620590.0,20885649.0,0.921665280989739,9,0,faster,41fd5374e7204705
+round-08-final-roots,lanes.rootnhvLanes.f16.w2.normal,64,9,128271.0,119216.0,0.07059272945560571,3,6,undecided,c6edd8b7bfabded0
+round-08-final-roots,lanes.rootnhvLanes.f16.w2.boundary,64,9,40760.0,48611.0,-0.1926153091265947,4,5,undecided,daa1c27e4ff98695
+round-08-final-roots,lanes.rootnhvLanes.f16.w2.skewed,64,9,96641.0,120081.0,-0.24254715907327118,3,6,undecided,d9370a9a4d9231d2
+round-08-final-roots,lanes.rootnhvLanes.f16.w4.normal,64,9,224586.0,275647.0,-0.22735611302574515,4,5,undecided,f55726d4a00c1644
+round-08-final-roots,lanes.rootnhvLanes.f16.w4.boundary,64,9,84398.0,94455.0,-0.11916159150690775,6,3,undecided,faa33f4298e68a94
+round-08-final-roots,lanes.rootnhvLanes.f16.w4.skewed,64,9,188826.0,141916.0,0.2484297713238643,5,4,undecided,89708fdd4e24aa16
+round-08-final-roots,lanes.rootnhvLanes.f16.w8.normal,64,9,497963.0,384359.0,0.22813743189755062,5,4,undecided,a22642b56839f882
+round-08-final-roots,lanes.rootnhvLanes.f16.w8.boundary,64,9,181518.0,177592.0,0.021628708998556616,4,5,undecided,6eb4a2d64890dd04
+round-08-final-roots,lanes.rootnhvLanes.f16.w8.skewed,64,9,375636.0,344054.0,0.08407607364576346,4,5,undecided,c448cbcf2c7020e4
+round-08-final-roots,lanes.rootnfvLanes.f32.w2.normal,64,9,7173147.0,577381.0,0.9195079927959096,9,0,faster,7b962d7e29ee95a5
+round-08-final-roots,lanes.rootnfvLanes.f32.w2.boundary,64,9,2422036.0,115383.0,0.952361154004317,9,0,faster,3b2210fa85fe1f6c
+round-08-final-roots,lanes.rootnfvLanes.f32.w2.skewed,64,9,5270943.0,525227.0,0.9003542629848208,9,0,faster,a890e6c6839cd282
+round-08-final-roots,lanes.rootnfvLanes.f32.w4.normal,64,9,13228520.0,1149229.0,0.9131248998376236,9,0,faster,e4a0fded52197488
+round-08-final-roots,lanes.rootnfvLanes.f32.w4.boundary,64,9,6983958.0,254324.0,0.9635845461842697,9,0,faster,c293cdeefe0045eb
+round-08-final-roots,lanes.rootnfvLanes.f32.w4.skewed,64,9,12398738.0,948479.0,0.9235019725394633,9,0,faster,afcb1dbdfa0babb9
+round-08-final-roots,lanes.rootnfvLanes.f32.w8.normal,64,9,28639669.0,2229388.0,0.9221573405754095,9,0,faster,7a2a80874dd52027
+round-08-final-roots,lanes.rootnfvLanes.f32.w8.boundary,64,9,10340886.0,456985.0,0.9558079452766426,9,0,faster,9159f283dcf3ac7d
+round-08-final-roots,lanes.rootnfvLanes.f32.w8.skewed,64,9,21155720.0,1795531.0,0.9151278708547854,9,0,faster,06841d0efe59332d
+round-08-final-roots,lanes.rootndvLanes.f64.w2.normal,64,9,57724276.0,4074244.0,0.9294188808881726,9,0,faster,c04e337b1bc81c93
+round-08-final-roots,lanes.rootndvLanes.f64.w2.boundary,64,9,34478041.0,2271542.0,0.9341162683807934,9,0,faster,5daf89de1e61f7b2
+round-08-final-roots,lanes.rootndvLanes.f64.w2.skewed,64,9,80617028.0,4768756.0,0.9408467898370056,9,0,faster,522c14889a68ba44
+round-08-final-roots,lanes.rootndvLanes.f64.w4.normal,64,9,121482511.0,8785297.0,0.9276826192701927,9,0,faster,f76834937627d3f4
+round-08-final-roots,lanes.rootndvLanes.f64.w4.boundary,64,9,61544550.0,2632766.0,0.9572217848696595,9,0,faster,d2033a66576f4f9f
+round-08-final-roots,lanes.rootndvLanes.f64.w4.skewed,64,9,128786645.0,8345621.0,0.9351980867270826,9,0,faster,0a13014b75a91575
+round-08-final-roots,lanes.rootndvLanes.f64.w8.normal,64,9,237604570.0,20021372.0,0.9157365870530184,9,0,faster,cfb2013d77bff38d
+round-08-final-roots,lanes.rootndvLanes.f64.w8.boundary,64,9,113120933.0,6237535.0,0.9448595866867541,9,0,faster,5b7143faac72a998
+round-08-final-roots,lanes.rootndvLanes.f64.w8.skewed,64,9,246596111.0,20747975.0,0.9158625214490913,9,0,faster,688f75b2f0b6b849
+round-09-final-half-roots,leaf.scalar.rootn.h.normal,4096,9,4259604.0,3782913.0,0.11190969864804334,4,5,undecided,a6702aa6208d1ef5
+round-09-final-half-roots,leaf.scalar.rootn.h.boundary,4096,9,2600073.0,2105965.0,0.19003620282968978,5,4,undecided,2c192c1ecc6eb170
+round-09-final-half-roots,leaf.scalar.rootn.h.skewed,4096,9,2324746.0,2048598.0,0.1187863104184285,5,4,undecided,f616b3e42ba6fbac
+round-09-final-half-roots,lanes.rootnhv.f16.w2.normal,4096,9,6028293.0,7044897.0,-0.16863878381492073,4,5,undecided,ff85b96068d20f84
+round-09-final-half-roots,lanes.rootnhv.f16.w2.boundary,4096,9,1503201.0,1964833.0,-0.307099316724776,5,4,undecided,7e4f60d8aaef5c83
+round-09-final-half-roots,lanes.rootnhv.f16.w2.skewed,4096,9,5983374.0,6774201.0,-0.13217074513476845,4,5,undecided,15f8c06604c3c4de
+round-09-final-half-roots,lanes.rootnhv.f16.w4.normal,4096,9,13960125.0,15573051.0,-0.11553807720203078,5,4,undecided,e5c40b0baccd02eb
+round-09-final-half-roots,lanes.rootnhv.f16.w4.boundary,4096,9,4392976.0,3061076.0,0.30318854462214223,7,2,undecided,df89abf7e5c03911
+round-09-final-half-roots,lanes.rootnhv.f16.w4.skewed,4096,9,10680211.0,11199076.0,-0.048581905357487784,5,4,undecided,e87b582173b8ee1a
+round-09-final-half-roots,lanes.rootnhv.f16.w8.normal,4096,9,27870144.0,27796359.0,0.0026474567192763697,5,4,undecided,123a54f8f855c496
+round-09-final-half-roots,lanes.rootnhv.f16.w8.boundary,4096,9,9706751.0,8130782.0,0.1623580330843966,5,4,undecided,2374b894103c8a2f
+round-09-final-half-roots,lanes.rootnhv.f16.w8.skewed,4096,9,24808737.0,26070282.0,-0.05085083533272976,2,7,undecided,4cfaacf717d562af
+round-09-final-half-roots,lanes.rootnhvLanes.f16.w2.normal,4096,9,7553778.0,7320616.0,0.030866938371765757,5,4,undecided,bad9024bb9e1d369
+round-09-final-half-roots,lanes.rootnhvLanes.f16.w2.boundary,4096,9,2280438.0,2131208.0,0.06543918317446035,4,5,undecided,55b7b6231ad5cd8e
+round-09-final-half-roots,lanes.rootnhvLanes.f16.w2.skewed,4096,9,6961087.0,7022794.0,-0.00886456382458659,6,3,undecided,13aa435027637868
+round-09-final-half-roots,lanes.rootnhvLanes.f16.w4.normal,4096,9,13884632.0,12833787.0,0.07568403685455978,4,5,undecided,51084e1009ba032a
+round-09-final-half-roots,lanes.rootnhvLanes.f16.w4.boundary,4096,9,3318369.0,4333070.0,-0.3057830518546913,5,4,undecided,3853ea9336103c32
+round-09-final-half-roots,lanes.rootnhvLanes.f16.w4.skewed,4096,9,12421022.0,12153564.0,0.021532688695020424,8,1,faster,ffbafaaa91436398
+round-09-final-half-roots,lanes.rootnhvLanes.f16.w8.normal,4096,9,28508956.0,28774593.0,-0.009317668454783122,5,4,undecided,04692f4e5e0c2995
+round-09-final-half-roots,lanes.rootnhvLanes.f16.w8.boundary,4096,9,7489112.0,7308506.0,0.024115809724837872,4,5,undecided,c6c068edbc2ea1ed
+round-09-final-half-roots,lanes.rootnhvLanes.f16.w8.skewed,4096,9,22579510.0,25204380.0,-0.11625008691508364,2,7,undecided,e47464786f0f162e
+round-10-final-gp-rollback,"algebra.Multivector(3,f32,.clifford,.{ 1, 1, 1 },3).geometricProduct",1024,9,247934.0,278617.0,-0.12375470891446917,5,4,undecided,3443b13d3b0ad2e5
+round-10-final-gp-rollback,"algebra.Multivector(3,f32,.clifford,.{ 1, 1, 1 },3).geometricProduct.sparse",1024,9,87650.0,109668.0,-0.2512036508841985,4,5,undecided,6948878b51823003
+round-10-final-gp-rollback,"algebra.Multivector(3,f64,.clifford,.{ 1, 1, 1 },3).geometricProduct",1024,9,292810.0,320078.0,-0.09312523479389365,6,3,undecided,9ad3c75ab6b3f3db
+round-10-final-gp-rollback,"algebra.Multivector(3,f64,.clifford,.{ 1, 1, 1 },3).geometricProduct.sparse",1024,9,89063.0,107025.0,-0.20167746426686728,2,7,undecided,f2350a70f4497bae
+round-10-final-gp-rollback,"algebra.Multivector(4,f32,.clifford,.{ 1, 1, 1, 1 },4).geometricProduct",1024,9,2202624.0,2513950.0,-0.14134323425151094,5,4,undecided,1dd28c230c158dc5
+round-10-final-gp-rollback,"algebra.Multivector(4,f32,.clifford,.{ 1, 1, 1, 1 },4).geometricProduct.sparse",1024,9,212991.0,237104.0,-0.1132113563483903,4,5,undecided,8fd7ef563a39b02f
+round-10-final-gp-rollback,"algebra.Multivector(4,f32,.clifford,.{ 1, 1, 1, 1 },4).geometricProduct.motor",1024,9,143785.0,218884.0,-0.5223006572312828,1,8,slower,b21f29f458105896
+round-10-final-gp-rollback,"algebra.Multivector(4,f64,.clifford,.{ 1, 1, 1, 1 },4).geometricProduct",1024,9,2390867.0,2539350.0,-0.06210424921168764,5,4,undecided,4a773b144c29515c
+round-10-final-gp-rollback,"algebra.Multivector(4,f64,.clifford,.{ 1, 1, 1, 1 },4).geometricProduct.sparse",1024,9,213480.0,226036.0,-0.05881581412778714,3,6,undecided,fc6d4ae77f9c804e
+round-10-final-gp-rollback,"algebra.Multivector(4,f64,.clifford,.{ 1, 1, 1, 1 },4).geometricProduct.motor",1024,9,190263.0,212706.0,-0.1179577742388168,4,5,undecided,80b94449239cab26
+round-10-final-gp-rollback,"algebra.Multivector(4,f32,.projective,.{ 0, 1, 1, 1 },3).geometricProduct",1024,9,1930775.0,1737030.0,0.10034571609845787,4,5,undecided,dceb9e6d66b59877
+round-10-final-gp-rollback,"algebra.Multivector(4,f32,.projective,.{ 0, 1, 1, 1 },3).geometricProduct.sparse",1024,9,191562.0,178410.0,0.06865662292103862,5,4,undecided,3de01a790f43611e
+round-10-final-gp-rollback,"algebra.Multivector(4,f32,.projective,.{ 0, 1, 1, 1 },3).geometricProduct.motor",1024,9,147970.0,135536.0,0.08403054673244577,7,2,undecided,ed46c25bc7c2bb4e
+round-10-final-gp-rollback,"algebra.Multivector(4,f64,.projective,.{ 0, 1, 1, 1 },3).geometricProduct",1024,9,1601201.0,1601650.0,-0.0002804145138555372,3,6,undecided,f8cf71cea8d211d5
+round-10-final-gp-rollback,"algebra.Multivector(4,f64,.projective,.{ 0, 1, 1, 1 },3).geometricProduct.sparse",1024,9,184156.0,224173.0,-0.21729946349833837,3,6,undecided,db2a2d386eb74a42
+round-10-final-gp-rollback,"algebra.Multivector(4,f64,.projective,.{ 0, 1, 1, 1 },3).geometricProduct.motor",1024,9,147476.0,201934.0,-0.36926686376088314,2,7,undecided,fba58325ac077259
+round-10-final-gp-rollback,"algebra.Multivector(5,f32,.projective,.{ 0, 1, 1, 1, 1 },4).geometricProduct",1024,9,7338679.0,7372382.0,-0.004592515901022514,5,4,undecided,2bfa8362056b9361
+round-10-final-gp-rollback,"algebra.Multivector(5,f32,.projective,.{ 0, 1, 1, 1, 1 },4).geometricProduct.sparse",1024,9,289856.0,397808.0,-0.3724332082137337,4,5,undecided,b4a11b0b986254d7
+round-10-final-gp-rollback,"algebra.Multivector(5,f32,.projective,.{ 0, 1, 1, 1, 1 },4).geometricProduct.motor",1024,9,411680.0,565456.0,-0.3735328410415857,3,6,undecided,0ec1ae97bf85b13c
+round-10-final-gp-rollback,"algebra.Multivector(5,f64,.projective,.{ 0, 1, 1, 1, 1 },4).geometricProduct",1024,9,7546105.0,7514600.0,0.004175001540529849,6,3,undecided,64de1f81ed5fcd32
+round-10-final-gp-rollback,"algebra.Multivector(5,f64,.projective,.{ 0, 1, 1, 1, 1 },4).geometricProduct.sparse",1024,9,376651.0,375529.0,0.0029788849624718906,8,1,undecided,35037cfc62b45632
+round-10-final-gp-rollback,"algebra.Multivector(5,f64,.projective,.{ 0, 1, 1, 1, 1 },4).geometricProduct.motor",1024,9,569971.0,579927.0,-0.017467555366852,5,4,undecided,9e040ba1b58861e5
+round-10-final-gp-rollback,"algebra.Multivector(5,f32,.conformal,.{ 1, 1, 1, 1, -1 },3).geometricProduct",1024,9,9134375.0,9282229.0,-0.016186548067054395,3,6,undecided,f2912cbff9c94d29
+round-10-final-gp-rollback,"algebra.Multivector(5,f32,.conformal,.{ 1, 1, 1, 1, -1 },3).geometricProduct.sparse",1024,9,357441.0,415656.0,-0.1628660394302836,2,7,undecided,2f7865851686887b
+round-10-final-gp-rollback,"algebra.Multivector(5,f32,.conformal,.{ 1, 1, 1, 1, -1 },3).geometricProduct.motor",1024,9,612693.0,705047.0,-0.15073454405387363,3,6,undecided,7f412b357761b144
+round-10-final-gp-rollback,"algebra.Multivector(5,f64,.conformal,.{ 1, 1, 1, 1, -1 },3).geometricProduct",1024,9,8859290.0,8625812.0,0.026354030627736533,5,4,undecided,4872d44382fb346b
+round-10-final-gp-rollback,"algebra.Multivector(5,f64,.conformal,.{ 1, 1, 1, 1, -1 },3).geometricProduct.sparse",1024,9,375327.0,342684.0,0.08697216027623912,7,2,undecided,b5908cf0e1a97197
+round-10-final-gp-rollback,"algebra.Multivector(5,f64,.conformal,.{ 1, 1, 1, 1, -1 },3).geometricProduct.motor",1024,9,661668.0,609731.0,0.0784940483747136,6,3,undecided,ac6b2b3392be3eb1
+round-10-final-gp-rollback,"algebra.Multivector(6,f32,.conformal,.{ 1, 1, 1, 1, 1, -1 },4).geometricProduct",1024,9,34730555.0,34222759.0,0.014621015990098633,5,4,undecided,02d07af543097238
+round-10-final-gp-rollback,"algebra.Multivector(6,f32,.conformal,.{ 1, 1, 1, 1, 1, -1 },4).geometricProduct.sparse",1024,9,709913.0,723380.0,-0.018969930118197583,3,6,undecided,ba1716e2342775a2
+round-10-final-gp-rollback,"algebra.Multivector(6,f32,.conformal,.{ 1, 1, 1, 1, 1, -1 },4).geometricProduct.motor",1024,9,2212691.0,1465313.0,0.33776880730296277,6,3,undecided,4b82125fe53a9946
+round-10-final-gp-rollback,"algebra.Multivector(6,f64,.conformal,.{ 1, 1, 1, 1, 1, -1 },4).geometricProduct",1024,9,33976483.0,34981963.0,-0.029593410242019457,2,7,undecided,008c96434a4cc30a
+round-10-final-gp-rollback,"algebra.Multivector(6,f64,.conformal,.{ 1, 1, 1, 1, 1, -1 },4).geometricProduct.sparse",1024,9,709203.0,727112.0,-0.02525229024693917,4,5,undecided,41956669f7afeb63
+round-10-final-gp-rollback,"algebra.Multivector(6,f64,.conformal,.{ 1, 1, 1, 1, 1, -1 },4).geometricProduct.motor",1024,9,2256365.0,1665842.0,0.26171430597443235,5,4,undecided,0b0874f62a583e1d
+round-11-orientation-retention,geometry.Point2(f32).orientation.policy.adaptive_exact.ordinary,128,9,708896.0,545315.0,0.23075458177222047,5,4,undecided,1f1b1dd142ed944b
+round-11-orientation-retention,geometry.Point2(f32).orientation.policy.adaptive_exact.near_degenerate,128,9,425910.0,516844.0,-0.21350520062924092,6,3,undecided,db681ceecac30d62
+round-11-orientation-retention,geometry.Point2(f32).orientation.policy.adaptive_exact.exponent_extreme,128,9,473041.0,497725.0,-0.052181523377466225,6,3,undecided,34cd67ae8e030490
+round-11-orientation-retention,geometry.Point2(f64).orientation.policy.adaptive_exact.ordinary,128,9,567612.0,505799.0,0.10890009372599593,7,2,undecided,1f1b1dd142ed944b
+round-11-orientation-retention,geometry.Point2(f64).orientation.policy.adaptive_exact.near_degenerate,128,9,353344.0,429702.0,-0.21610102336533238,5,4,undecided,db681ceecac30d62
+round-11-orientation-retention,geometry.Point2(f64).orientation.policy.adaptive_exact.exponent_extreme,128,9,440840.0,478167.0,-0.08467244351692224,6,3,undecided,34cd67ae8e030490
+round-11-orientation-retention,geometry.Point3(f32).orientation.policy.adaptive_exact.ordinary,128,9,1531713.0,1303054.0,0.149283188169063,8,1,faster,27f8e6217c2d0cc4
+round-11-orientation-retention,geometry.Point3(f32).orientation.policy.adaptive_exact.near_degenerate,128,9,1320907.0,1001910.0,0.2414984552281122,7,2,undecided,db681ceecac30d62
+round-11-orientation-retention,geometry.Point3(f32).orientation.policy.adaptive_exact.exponent_extreme,128,9,1941230.0,983966.0,0.49312240177619343,8,1,faster,34cd67ae8e030490
+round-11-orientation-retention,geometry.Point3(f32).orientation.policy.adaptive_exact.perturbed_ulp,128,9,1350132.0,1010132.0,0.2518272287450412,7,2,undecided,db681ceecac30d62
+round-11-orientation-retention,geometry.Point3(f64).orientation.policy.adaptive_exact.ordinary,128,9,1903088.0,1265748.0,0.33489780819384074,9,0,faster,27f8e6217c2d0cc4
+round-11-orientation-retention,geometry.Point3(f64).orientation.policy.adaptive_exact.near_degenerate,128,9,1092662.0,1083329.0,0.00854152519260302,5,4,undecided,db681ceecac30d62
+round-11-orientation-retention,geometry.Point3(f64).orientation.policy.adaptive_exact.exponent_extreme,128,9,1554561.0,1137636.0,0.26819468647418787,6,3,undecided,34cd67ae8e030490
+round-11-orientation-retention,geometry.Point3(f64).orientation.policy.adaptive_exact.perturbed_ulp,128,9,1091388.0,951564.0,0.12811575718259685,6,3,undecided,db681ceecac30d62
+round-11-orientation-retention,geometry.Point4(f32).orientation.policy.adaptive_exact.ordinary,128,9,4026300.0,2139050.0,0.46873059632913594,9,0,faster,a7a932aa5f22a263
+round-11-orientation-retention,geometry.Point4(f32).orientation.policy.adaptive_exact.near_degenerate,128,9,1909126.0,1232587.0,0.3543710577510337,8,1,faster,34cd67ae8e030490
+round-11-orientation-retention,geometry.Point4(f32).orientation.policy.adaptive_exact.exponent_extreme,128,9,2916644.0,1222712.0,0.580781199213891,9,0,faster,34cd67ae8e030490
+round-11-orientation-retention,geometry.Point4(f32).orientation.policy.adaptive_exact.near_dependent,128,9,3973945.0,2371362.0,0.4032725666812198,8,1,faster,265a1248983076af
+round-11-orientation-retention,geometry.Point4(f32).orientation.policy.adaptive_exact.perturbed_ulp,128,9,1769199.0,1188651.0,0.328141718370856,9,0,faster,34cd67ae8e030490
+round-11-orientation-retention,geometry.Point4(f64).orientation.policy.adaptive_exact.ordinary,128,9,3105119.0,1725959.0,0.4441568906054808,9,0,faster,a7a932aa5f22a263
+round-11-orientation-retention,geometry.Point4(f64).orientation.policy.adaptive_exact.near_degenerate,128,9,2423964.0,1215229.0,0.49866045865367636,9,0,faster,34cd67ae8e030490
+round-11-orientation-retention,geometry.Point4(f64).orientation.policy.adaptive_exact.exponent_extreme,128,9,3538713.0,1790526.0,0.49401774034797397,9,0,faster,34cd67ae8e030490
+round-11-orientation-retention,geometry.Point4(f64).orientation.policy.adaptive_exact.near_dependent,128,9,2928918.0,1590630.0,0.4569223173881959,7,2,undecided,b3fdef95976ffd4d
+round-11-orientation-retention,geometry.Point4(f64).orientation.policy.adaptive_exact.perturbed_ulp,128,9,1807032.0,732998.0,0.5943635751884858,9,0,faster,34cd67ae8e030490
+round-12-adaptive-00,geometry.Point2(f32).orientation.policy.adaptive_exact.ordinary,2,9,43929.0,39503.0,0.10075348858385122,5,4,undecided,e4cdd1a8f0b4bfb7
+round-12-adaptive-00,geometry.Point2(f32).orientation.policy.adaptive_exact.near_degenerate,2,9,5491.0,7842.0,-0.42815516299399015,4,5,undecided,e4cdd1a8f0b4bfb7
+round-12-adaptive-00,geometry.Point2(f32).orientation.policy.adaptive_exact.exponent_extreme,2,9,6376.0,7808.0,-0.2245922208281054,4,5,undecided,02c2378177e2062f
+round-12-adaptive-00,geometry.Point2(f32).side.policy.adaptive_exact.near_degenerate,2,9,5333.0,8682.0,-0.6279767485467842,4,5,undecided,e4cdd1a8f0b4bfb7
+round-12-adaptive-00,geometry.Point2(f64).orientation.policy.adaptive_exact.ordinary,2,9,8239.0,14684.0,-0.7822551280495206,0,9,slower,e4cdd1a8f0b4bfb7
+round-12-adaptive-00,geometry.Point2(f64).orientation.policy.adaptive_exact.near_degenerate,2,9,5594.0,8800.0,-0.5731140507686807,3,6,undecided,e4cdd1a8f0b4bfb7
+round-12-adaptive-00,geometry.Point2(f64).orientation.policy.adaptive_exact.exponent_extreme,2,9,6398.0,8396.0,-0.31228508909034075,4,5,undecided,02c2378177e2062f
+round-12-adaptive-00,geometry.Point2(f64).side.policy.adaptive_exact.near_degenerate,2,9,5447.0,8412.0,-0.5443363319258308,3,6,undecided,e4cdd1a8f0b4bfb7
+round-12-adaptive-00,geometry.Point3(f32).orientation.policy.adaptive_exact.ordinary,2,9,45977.0,37367.0,0.1872675468168867,8,1,faster,e4cdd1a8f0b4bfb7
+round-12-adaptive-00,geometry.Point3(f32).orientation.policy.adaptive_exact.near_degenerate,2,9,13645.0,16287.0,-0.1936240381091975,4,5,undecided,e4cdd1a8f0b4bfb7
+round-12-adaptive-00,geometry.Point3(f32).orientation.policy.adaptive_exact.exponent_extreme,2,9,16766.0,16191.0,0.034295598234522245,7,2,undecided,02c2378177e2062f
+round-12-adaptive-00,geometry.Point3(f32).orientation.policy.adaptive_exact.perturbed_ulp,2,9,13383.0,15410.0,-0.15146080848838078,5,4,undecided,e4cdd1a8f0b4bfb7
+round-12-adaptive-00,geometry.Point3(f64).orientation.policy.adaptive_exact.ordinary,2,9,22371.0,22316.0,0.0024585400742032095,6,3,undecided,e4cdd1a8f0b4bfb7
+round-12-adaptive-00,geometry.Point3(f64).orientation.policy.adaptive_exact.near_degenerate,2,9,13297.0,16350.0,-0.2296006618034143,4,5,undecided,e4cdd1a8f0b4bfb7
+round-12-adaptive-00,geometry.Point3(f64).orientation.policy.adaptive_exact.exponent_extreme,2,9,16880.0,18289.0,-0.08347156398104265,6,3,undecided,02c2378177e2062f
+round-12-adaptive-00,geometry.Point3(f64).orientation.policy.adaptive_exact.perturbed_ulp,2,9,13243.0,16302.0,-0.2309899569583931,3,6,undecided,e4cdd1a8f0b4bfb7
+round-12-adaptive-00,geometry.Point4(f32).orientation.policy.adaptive_exact.ordinary,2,9,50953.0,37480.0,0.2644201519046965,9,0,faster,28916b9b286343af
+round-12-adaptive-00,geometry.Point4(f32).orientation.policy.adaptive_exact.near_degenerate,2,9,28061.0,20512.0,0.2690210612593992,9,0,faster,02c2378177e2062f
+round-12-adaptive-00,geometry.Point4(f32).orientation.policy.adaptive_exact.exponent_extreme,2,9,32856.0,26343.0,0.19822863403944485,8,1,faster,02c2378177e2062f
+round-12-adaptive-00,geometry.Point4(f32).orientation.policy.adaptive_exact.near_dependent,2,9,46647.0,40088.0,0.14060925675820524,8,1,faster,adcf433261f4a0a1
+round-12-adaptive-00,geometry.Point4(f32).orientation.policy.adaptive_exact.perturbed_ulp,2,9,28003.0,20591.0,0.26468592650787415,8,1,faster,02c2378177e2062f
+round-12-adaptive-00,geometry.Point4(f64).orientation.policy.adaptive_exact.ordinary,2,9,45943.0,37429.0,0.185316587945933,9,0,faster,28916b9b286343af
+round-12-adaptive-00,geometry.Point4(f64).orientation.policy.adaptive_exact.near_degenerate,2,9,28178.0,21761.0,0.22773085385761943,9,0,faster,02c2378177e2062f
+round-12-adaptive-00,geometry.Point4(f64).orientation.policy.adaptive_exact.exponent_extreme,2,9,35800.0,36166.0,-0.010223463687150838,5,4,undecided,02c2378177e2062f
+round-12-adaptive-00,geometry.Point4(f64).orientation.policy.adaptive_exact.near_dependent,2,9,46563.0,41455.0,0.10970083542727058,8,1,faster,28916b9b286343af
+round-12-adaptive-00,geometry.Point4(f64).orientation.policy.adaptive_exact.perturbed_ulp,2,9,28271.0,21691.0,0.23274733826182306,8,1,faster,02c2378177e2062f
+round-12-adaptive-00,"geometry.LineOf(2,f32).intersect.policy.adaptive_exact.crossing.normalized_operands",2,9,38003.0,47649.0,-0.2538220666789464,2,7,undecided,60cba0601ac22f0c
+round-12-adaptive-00,"geometry.LineOf(2,f32).intersect.policy.adaptive_exact.crossing_offset.normalized_operands",2,9,15706.0,26932.0,-0.7147586909461352,2,7,undecided,222cc9b245c1c963
+round-12-adaptive-00,"geometry.LineOf(2,f32).intersect.policy.adaptive_exact.collinear.normalized_operands",2,9,16044.0,26190.0,-0.6323859386686612,2,7,undecided,76ac790caf015ba5
+round-12-adaptive-00,"geometry.LineOf(2,f32).intersect.policy.adaptive_exact.parallel_disjoint.normalized_operands",2,9,15837.0,27762.0,-0.752983519605986,2,7,undecided,f3ea1470e6cadda8
+round-12-adaptive-00,"geometry.LineOf(2,f32).intersect.policy.adaptive_exact.coincident.normalized_operands",2,9,14850.0,25459.0,-0.7144107744107744,2,7,undecided,76ac790caf015ba5
+round-12-adaptive-00,"geometry.LineOf(2,f64).intersect.policy.adaptive_exact.crossing.normalized_operands",2,9,22188.0,32969.0,-0.48589327564449253,2,7,undecided,60cba0601ac22f0c
+round-12-adaptive-00,"geometry.LineOf(2,f64).intersect.policy.adaptive_exact.crossing_offset.normalized_operands",2,9,16250.0,27265.0,-0.6778461538461539,2,7,undecided,a98d699f5ba7cdf4
+round-12-adaptive-00,"geometry.LineOf(2,f64).intersect.policy.adaptive_exact.collinear.normalized_operands",2,9,16108.0,27208.0,-0.6890985845542588,3,6,undecided,5e8b094eb939a2e7
+round-12-adaptive-00,"geometry.LineOf(2,f64).intersect.policy.adaptive_exact.parallel_disjoint.normalized_operands",2,9,16109.0,28150.0,-0.7474703581848656,2,7,undecided,6868f1ac3be5b5c1
+round-12-adaptive-00,"geometry.LineOf(2,f64).intersect.policy.adaptive_exact.coincident.normalized_operands",2,9,14838.0,25897.0,-0.7453160803342769,1,8,slower,5e8b094eb939a2e7
+round-12-adaptive-00,"geometry.LineOf(3,f32).intersect.policy.adaptive_exact.crossing.normalized_operands",2,9,30688.0,45927.0,-0.4965784671532847,3,6,undecided,ccfbc57038e660b2
+round-12-adaptive-00,"geometry.LineOf(3,f32).intersect.policy.adaptive_exact.crossing_offset.normalized_operands",2,9,28630.0,43282.0,-0.51177086971708,2,7,undecided,a774ccac0cc00491
+round-12-adaptive-00,"geometry.LineOf(3,f32).intersect.policy.adaptive_exact.collinear.normalized_operands",2,9,34726.0,41627.0,-0.19872717848298105,4,5,undecided,e4a5a046b8d31206
+round-12-adaptive-00,"geometry.LineOf(3,f32).intersect.policy.adaptive_exact.parallel_disjoint.normalized_operands",2,9,28795.0,42735.0,-0.4841118249696128,3,6,undecided,630c7bcdfabb64f1
+round-12-adaptive-00,"geometry.LineOf(3,f32).intersect.policy.adaptive_exact.coincident.normalized_operands",2,9,27710.0,40777.0,-0.4715626127751714,3,6,undecided,e4a5a046b8d31206
+round-12-adaptive-00,"geometry.LineOf(3,f64).intersect.policy.adaptive_exact.crossing.normalized_operands",2,9,35178.0,57932.0,-0.6468247199954517,2,7,undecided,ccfbc57038e660b2
+round-12-adaptive-00,"geometry.LineOf(3,f64).intersect.policy.adaptive_exact.crossing_offset.normalized_operands",2,9,28638.0,46615.0,-0.627732383546337,2,7,undecided,eecc8390935047ad
+round-12-adaptive-00,"geometry.LineOf(3,f64).intersect.policy.adaptive_exact.collinear.normalized_operands",2,9,28403.0,41318.0,-0.4547054888568109,3,6,undecided,2035ffebd7107aac
+round-12-adaptive-00,"geometry.LineOf(3,f64).intersect.policy.adaptive_exact.parallel_disjoint.normalized_operands",2,9,28885.0,43932.0,-0.5209278172061623,3,6,undecided,f3bf7013833c9bac
+round-12-adaptive-00,"geometry.LineOf(3,f64).intersect.policy.adaptive_exact.coincident.normalized_operands",2,9,27481.0,42523.0,-0.5473599941777956,3,6,undecided,2035ffebd7107aac
+round-12-adaptive-00,"geometry.LineOf(4,f32).intersect.policy.adaptive_exact.crossing.normalized_operands",2,9,51229.0,66533.0,-0.29873704347147123,4,5,undecided,9e68e9423227a4e3
+round-12-adaptive-00,"geometry.LineOf(4,f32).intersect.policy.adaptive_exact.crossing_offset.normalized_operands",2,9,46522.0,54449.0,-0.17039250247194876,4,5,undecided,67312c0ff8d1d037
+round-12-adaptive-00,"geometry.LineOf(4,f32).intersect.policy.adaptive_exact.collinear.normalized_operands",2,9,51358.0,61001.0,-0.1877604268078975,4,5,undecided,a9a1f53b60ffcee6
+round-12-adaptive-00,"geometry.LineOf(4,f32).intersect.policy.adaptive_exact.parallel_disjoint.normalized_operands",2,9,46529.0,53814.0,-0.15656902147048077,3,6,undecided,e8f9b3911df6632e
+round-12-adaptive-00,"geometry.LineOf(4,f32).intersect.policy.adaptive_exact.coincident.normalized_operands",2,9,45072.0,51625.0,-0.14538959886403977,4,5,undecided,a9a1f53b60ffcee6
+round-12-adaptive-00,"geometry.LineOf(4,f64).intersect.policy.adaptive_exact.crossing.normalized_operands",2,9,58005.0,60829.0,-0.04868545815015947,4,5,undecided,9e68e9423227a4e3
+round-12-adaptive-00,"geometry.LineOf(4,f64).intersect.policy.adaptive_exact.crossing_offset.normalized_operands",2,9,46532.0,49694.0,-0.0679532364824207,2,7,undecided,9bc211d9b729b80b
+round-12-adaptive-00,"geometry.LineOf(4,f64).intersect.policy.adaptive_exact.collinear.normalized_operands",2,9,47294.0,47911.0,-0.013046052353364063,4,5,undecided,9d2a4ff79a9ee57c
+round-12-adaptive-00,"geometry.LineOf(4,f64).intersect.policy.adaptive_exact.parallel_disjoint.normalized_operands",2,9,47854.0,50124.0,-0.04743595101767877,3,6,undecided,503c0f06eb13cd6b
+round-12-adaptive-00,"geometry.LineOf(4,f64).intersect.policy.adaptive_exact.coincident.normalized_operands",2,9,45629.0,51741.0,-0.13394990028271495,3,6,undecided,9d2a4ff79a9ee57c
+round-12-adaptive-00,"geometry.RayOf(2,f32).intersect.policy.adaptive_exact.crossing.normalized_operands",2,9,17955.0,27658.0,-0.5404065719855193,3,6,undecided,60cba0601ac22f0c
+round-12-adaptive-00,"geometry.RayOf(2,f32).intersect.policy.adaptive_exact.collinear.normalized_operands",2,9,15677.0,26498.0,-0.6902468584550615,4,5,undecided,d32f4932c0bf2b22
+round-12-adaptive-00,"geometry.RayOf(2,f32).intersect.policy.adaptive_exact.parallel_disjoint.normalized_operands",2,9,23412.0,42445.0,-0.8129591662395352,4,5,undecided,333806f06832aa8b
+round-12-adaptive-00,"geometry.RayOf(2,f32).intersect.policy.adaptive_exact.coincident.normalized_operands",2,9,15424.0,26896.0,-0.7437759336099585,3,6,undecided,8e37a2b2ceba4ed8
+round-12-adaptive-00,"geometry.RayOf(2,f32).intersectLine.policy.adaptive_exact.contained.normalized_operands",2,9,15541.0,27860.0,-0.7926774338845635,3,6,undecided,61fae00da0b90e20
+round-12-adaptive-00,"geometry.RayOf(2,f32).intersectSegment.policy.adaptive_exact.contained.normalized_operands",2,9,17376.0,27001.0,-0.5539249539594844,3,6,undecided,3d689bf7b390a238
+round-12-adaptive-00,"geometry.RayOf(2,f32).intersectLine.policy.adaptive_exact.crossing_offset.normalized_operands",2,9,15501.0,26739.0,-0.7249854848074317,3,6,undecided,222cc9b245c1c963
+round-12-adaptive-00,"geometry.RayOf(2,f32).intersectSegment.policy.adaptive_exact.crossing_offset.normalized_operands",2,9,15533.0,26708.0,-0.7194360393999871,4,5,undecided,222cc9b245c1c963
+round-12-adaptive-01,"geometry.RayOf(2,f64).intersect.policy.adaptive_exact.crossing.normalized_operands",2,9,92724.0,70275.0,0.24210560372719037,9,0,faster,60cba0601ac22f0c
+round-12-adaptive-01,"geometry.RayOf(2,f64).intersect.policy.adaptive_exact.collinear.normalized_operands",2,9,27773.0,26109.0,0.059914305260504806,7,2,undecided,d32f4932c0bf2b22
+round-12-adaptive-01,"geometry.RayOf(2,f64).intersect.policy.adaptive_exact.parallel_disjoint.normalized_operands",2,9,42480.0,42384.0,0.0022598870056497176,5,4,undecided,333806f06832aa8b
+round-12-adaptive-01,"geometry.RayOf(2,f64).intersect.policy.adaptive_exact.coincident.normalized_operands",2,9,26296.0,25632.0,0.025250988743535138,7,2,undecided,8e37a2b2ceba4ed8
+round-12-adaptive-01,"geometry.RayOf(2,f64).intersectLine.policy.adaptive_exact.contained.normalized_operands",2,9,27704.0,26052.0,0.05963037828472423,7,2,undecided,61fae00da0b90e20
+round-12-adaptive-01,"geometry.RayOf(2,f64).intersectSegment.policy.adaptive_exact.contained.normalized_operands",2,9,27140.0,25975.0,0.04292557111274871,5,4,undecided,c70507e8039f2b4b
+round-12-adaptive-01,"geometry.RayOf(2,f64).intersectLine.policy.adaptive_exact.crossing_offset.normalized_operands",2,9,27687.0,26621.0,0.03850182396070358,6,3,undecided,a98d699f5ba7cdf4
+round-12-adaptive-01,"geometry.RayOf(2,f64).intersectSegment.policy.adaptive_exact.crossing_offset.normalized_operands",2,9,26550.0,26606.0,-0.0021092278719397365,5,4,undecided,a98d699f5ba7cdf4
+round-12-adaptive-01,"geometry.RayOf(3,f32).intersect.policy.adaptive_exact.crossing.normalized_operands",2,9,92857.0,75729.0,0.184455668393336,6,3,undecided,ccfbc57038e660b2
+round-12-adaptive-01,"geometry.RayOf(3,f32).intersect.policy.adaptive_exact.collinear.normalized_operands",2,9,55930.0,42495.0,0.24021097800822458,6,3,undecided,d32f4932c0bf2b22
+round-12-adaptive-01,"geometry.RayOf(3,f32).intersect.policy.adaptive_exact.parallel_disjoint.normalized_operands",2,9,63219.0,57473.0,0.09089039687435739,7,2,undecided,333806f06832aa8b
+round-12-adaptive-01,"geometry.RayOf(3,f32).intersect.policy.adaptive_exact.coincident.normalized_operands",2,9,48436.0,41059.0,0.15230407135188703,7,2,undecided,8e37a2b2ceba4ed8
+round-12-adaptive-01,"geometry.RayOf(3,f32).intersectLine.policy.adaptive_exact.contained.normalized_operands",2,9,51209.0,42807.0,0.16407272159190767,7,2,undecided,61fae00da0b90e20
+round-12-adaptive-01,"geometry.RayOf(3,f32).intersectSegment.policy.adaptive_exact.contained.normalized_operands",2,9,51438.0,42010.0,0.1832886193086823,7,2,undecided,2217fac123a56c82
+round-12-adaptive-01,"geometry.RayOf(3,f32).intersectLine.policy.adaptive_exact.crossing_offset.normalized_operands",2,9,47655.0,42514.0,0.10787955093904103,6,3,undecided,a774ccac0cc00491
+round-12-adaptive-01,"geometry.RayOf(3,f32).intersectSegment.policy.adaptive_exact.crossing_offset.normalized_operands",2,9,48487.0,42717.0,0.1190009693319859,6,3,undecided,a774ccac0cc00491
+round-12-adaptive-01,"geometry.RayOf(3,f64).intersect.policy.adaptive_exact.crossing.normalized_operands",2,9,52824.0,47561.0,0.09963274269271544,7,2,undecided,ccfbc57038e660b2
+round-12-adaptive-01,"geometry.RayOf(3,f64).intersect.policy.adaptive_exact.collinear.normalized_operands",2,9,48517.0,42166.0,0.13090257023311416,7,2,undecided,d32f4932c0bf2b22
+round-12-adaptive-01,"geometry.RayOf(3,f64).intersect.policy.adaptive_exact.parallel_disjoint.normalized_operands",2,9,62916.0,58059.0,0.07719816898722105,8,1,faster,333806f06832aa8b
+round-12-adaptive-01,"geometry.RayOf(3,f64).intersect.policy.adaptive_exact.coincident.normalized_operands",2,9,47740.0,41162.0,0.13778801843317973,9,0,faster,8e37a2b2ceba4ed8
+round-12-adaptive-01,"geometry.RayOf(3,f64).intersectLine.policy.adaptive_exact.contained.normalized_operands",2,9,49962.0,42166.0,0.1560385893278892,9,0,faster,61fae00da0b90e20
+round-12-adaptive-01,"geometry.RayOf(3,f64).intersectSegment.policy.adaptive_exact.contained.normalized_operands",2,9,48597.0,41906.0,0.13768339609440913,8,1,faster,b110b6b30958a888
+round-12-adaptive-01,"geometry.RayOf(3,f64).intersectLine.policy.adaptive_exact.crossing_offset.normalized_operands",2,9,47490.0,43184.0,0.09067172036218152,8,1,faster,eecc8390935047ad
+round-12-adaptive-01,"geometry.RayOf(3,f64).intersectSegment.policy.adaptive_exact.crossing_offset.normalized_operands",2,9,48574.0,42124.0,0.13278708774241363,9,0,faster,eecc8390935047ad
+round-12-adaptive-01,"geometry.RayOf(4,f32).intersect.policy.adaptive_exact.crossing.normalized_operands",2,9,94944.0,65605.0,0.30901373441186386,8,1,faster,9e68e9423227a4e3
+round-12-adaptive-01,"geometry.RayOf(4,f32).intersect.policy.adaptive_exact.collinear.normalized_operands",2,9,86563.0,55988.0,0.35321095618220255,9,0,faster,d32f4932c0bf2b22
+round-12-adaptive-01,"geometry.RayOf(4,f32).intersect.policy.adaptive_exact.parallel_disjoint.normalized_operands",2,9,94096.0,65551.0,0.30336039789151503,9,0,faster,333806f06832aa8b
+round-12-adaptive-01,"geometry.RayOf(4,f32).intersect.policy.adaptive_exact.coincident.normalized_operands",2,9,76527.0,49212.0,0.35693284723038926,9,0,faster,8e37a2b2ceba4ed8
+round-12-adaptive-01,"geometry.RayOf(4,f32).intersectLine.policy.adaptive_exact.contained.normalized_operands",2,9,79007.0,52281.0,0.33827382383839405,9,0,faster,61fae00da0b90e20
+round-12-adaptive-01,"geometry.RayOf(4,f32).intersectSegment.policy.adaptive_exact.contained.normalized_operands",2,9,78713.0,49964.0,0.3652382706795574,9,0,faster,28a1c28e6bf79e6a
+round-12-adaptive-01,"geometry.RayOf(4,f32).intersectLine.policy.adaptive_exact.crossing_offset.normalized_operands",2,9,78872.0,51447.0,0.3477152855259154,9,0,faster,67312c0ff8d1d037
+round-12-adaptive-01,"geometry.RayOf(4,f32).intersectSegment.policy.adaptive_exact.crossing_offset.normalized_operands",2,9,79317.0,51741.0,0.3476682174061046,9,0,faster,67312c0ff8d1d037
+round-12-adaptive-01,"geometry.RayOf(4,f64).intersect.policy.adaptive_exact.crossing.normalized_operands",2,9,94715.0,60462.0,0.3616428232064615,8,1,faster,9e68e9423227a4e3
+round-12-adaptive-01,"geometry.RayOf(4,f64).intersect.policy.adaptive_exact.collinear.normalized_operands",2,9,79213.0,50900.0,0.3574287048842993,8,1,faster,d32f4932c0bf2b22
+round-12-adaptive-01,"geometry.RayOf(4,f64).intersect.policy.adaptive_exact.parallel_disjoint.normalized_operands",2,9,95833.0,66834.0,0.30259931338891616,8,1,faster,333806f06832aa8b
+round-12-adaptive-01,"geometry.RayOf(4,f64).intersect.policy.adaptive_exact.coincident.normalized_operands",2,9,76913.0,49744.0,0.35324327486900786,9,0,faster,8e37a2b2ceba4ed8
+round-12-adaptive-01,"geometry.RayOf(4,f64).intersectLine.policy.adaptive_exact.contained.normalized_operands",2,9,79103.0,50945.0,0.3559662718228133,8,1,faster,61fae00da0b90e20
+round-12-adaptive-01,"geometry.RayOf(4,f64).intersectSegment.policy.adaptive_exact.contained.normalized_operands",2,9,79001.0,53084.0,0.3280591384919178,8,1,faster,0dbb0057b44673a3
+round-12-adaptive-01,"geometry.RayOf(4,f64).intersectLine.policy.adaptive_exact.crossing_offset.normalized_operands",2,9,79103.0,52184.0,0.34030314905882203,8,1,faster,9bc211d9b729b80b
+round-12-adaptive-01,"geometry.RayOf(4,f64).intersectSegment.policy.adaptive_exact.crossing_offset.normalized_operands",2,9,78495.0,50996.0,0.3503280463723804,8,1,faster,9bc211d9b729b80b
+round-12-adaptive-01,"geometry.SegmentOf(2,f32).intersect.policy.adaptive_exact.crossing",2,9,28119.0,27260.0,0.030548739286603364,7,2,undecided,60cba0601ac22f0c
+round-12-adaptive-01,"geometry.SegmentOf(2,f32).intersect.policy.adaptive_exact.crossing_offset",2,9,27774.0,25988.0,0.06430474544538058,7,2,undecided,222cc9b245c1c963
+round-12-adaptive-01,"geometry.SegmentOf(2,f32).intersect.policy.adaptive_exact.collinear",2,9,26844.0,25190.0,0.06161525853077038,8,1,faster,fc88a27818b73887
+round-12-adaptive-01,"geometry.SegmentOf(2,f32).intersect.policy.adaptive_exact.parallel_disjoint",2,9,27106.0,26569.0,0.0198111119309378,6,3,undecided,333806f06832aa8b
+round-12-adaptive-01,"geometry.SegmentOf(2,f32).intersect.policy.adaptive_exact.coincident",2,9,26163.0,24554.0,0.06149906356304705,8,1,faster,8e37a2b2ceba4ed8
+round-12-adaptive-01,"geometry.SegmentOf(2,f32).intersect.policy.adaptive_exact.contained",2,9,27120.0,25226.0,0.06983775811209439,8,1,faster,61fae00da0b90e20
+round-12-adaptive-01,"geometry.SegmentOf(2,f32).intersect.policy.adaptive_exact.degenerate_on",2,9,7321.0,6748.0,0.07826799617538588,7,2,undecided,222cc9b245c1c963
+round-12-adaptive-01,"geometry.SegmentOf(2,f32).intersect.policy.adaptive_exact.degenerate_off",2,9,7491.0,7244.0,0.03297290081431051,7,2,undecided,333806f06832aa8b
+round-12-adaptive-01,"geometry.SegmentOf(2,f32).intersect.policy.adaptive_exact.subnormal_span",2,9,27480.0,25596.0,0.0685589519650655,7,2,undecided,d32f4932c0bf2b22
+round-12-adaptive-01,"geometry.SegmentOf(2,f32).intersectRay.policy.adaptive_exact.contained.normalized_operands",2,9,27568.0,25902.0,0.06043238537434707,7,2,undecided,61fae00da0b90e20
+round-12-adaptive-01,"geometry.SegmentOf(2,f32).intersectLine.policy.adaptive_exact.contained.normalized_operands",2,9,28176.0,25695.0,0.08805366269165248,7,2,undecided,61fae00da0b90e20
+round-12-adaptive-01,"geometry.SegmentOf(2,f32).intersectRay.policy.adaptive_exact.crossing_offset.normalized_operands",2,9,27586.0,26671.0,0.03316899876749076,6,3,undecided,222cc9b245c1c963
+round-12-adaptive-01,"geometry.SegmentOf(2,f32).intersectLine.policy.adaptive_exact.crossing_offset.normalized_operands",2,9,27906.0,26440.0,0.052533505339353546,7,2,undecided,222cc9b245c1c963
+round-12-adaptive-01,"geometry.SegmentOf(2,f64).intersect.policy.adaptive_exact.crossing",2,9,27118.0,26450.0,0.024633085035769598,7,2,undecided,60cba0601ac22f0c
+round-12-adaptive-01,"geometry.SegmentOf(2,f64).intersect.policy.adaptive_exact.crossing_offset",2,9,27751.0,26828.0,0.033260062700443224,5,4,undecided,a98d699f5ba7cdf4
+round-12-adaptive-01,"geometry.SegmentOf(2,f64).intersect.policy.adaptive_exact.collinear",2,9,26752.0,25809.0,0.0352497009569378,7,2,undecided,ab4d0cfe98aded6c
+round-12-adaptive-01,"geometry.SegmentOf(2,f64).intersect.policy.adaptive_exact.parallel_disjoint",2,9,27281.0,27043.0,0.008724020380484586,7,2,undecided,333806f06832aa8b
+round-12-adaptive-01,"geometry.SegmentOf(2,f64).intersect.policy.adaptive_exact.coincident",2,9,26048.0,25216.0,0.03194103194103194,6,3,undecided,8e37a2b2ceba4ed8
+round-12-adaptive-01,"geometry.SegmentOf(2,f64).intersect.policy.adaptive_exact.contained",2,9,27319.0,25728.0,0.05823785643691204,7,2,undecided,61fae00da0b90e20
+round-12-adaptive-01,"geometry.SegmentOf(2,f64).intersect.policy.adaptive_exact.degenerate_on",2,9,6982.0,6742.0,0.03437410484101976,6,3,undecided,a98d699f5ba7cdf4
+round-12-adaptive-01,"geometry.SegmentOf(2,f64).intersect.policy.adaptive_exact.degenerate_off",2,9,7396.0,7312.0,0.011357490535424553,5,4,undecided,333806f06832aa8b
+round-12-adaptive-01,"geometry.SegmentOf(2,f64).intersect.policy.adaptive_exact.subnormal_span",2,9,27784.0,25435.0,0.08454506190613302,7,2,undecided,d32f4932c0bf2b22
+round-12-adaptive-01,"geometry.SegmentOf(2,f64).intersectRay.policy.adaptive_exact.contained.normalized_operands",2,9,27623.0,26125.0,0.05423017051008218,8,1,faster,61fae00da0b90e20
+round-12-adaptive-01,"geometry.SegmentOf(2,f64).intersectLine.policy.adaptive_exact.contained.normalized_operands",2,9,27090.0,25470.0,0.059800664451827246,7,2,undecided,61fae00da0b90e20
+round-12-adaptive-02,"geometry.SegmentOf(2,f64).intersectRay.policy.adaptive_exact.crossing_offset.normalized_operands",2,9,81698.0,64925.0,0.20530490342480845,7,2,undecided,a98d699f5ba7cdf4
+round-12-adaptive-02,"geometry.SegmentOf(2,f64).intersectLine.policy.adaptive_exact.crossing_offset.normalized_operands",2,9,27376.0,26968.0,0.014903565166569257,5,4,undecided,a98d699f5ba7cdf4
+round-12-adaptive-02,"geometry.SegmentOf(3,f32).intersect.policy.adaptive_exact.crossing",2,9,84564.0,67268.0,0.20453147911640887,6,3,undecided,ccfbc57038e660b2
+round-12-adaptive-02,"geometry.SegmentOf(3,f32).intersect.policy.adaptive_exact.crossing_offset",2,9,42770.0,38800.0,0.0928220715454758,5,4,undecided,a774ccac0cc00491
+round-12-adaptive-02,"geometry.SegmentOf(3,f32).intersect.policy.adaptive_exact.collinear",2,9,52013.0,37841.0,0.27247034395247344,6,3,undecided,83b1c9070cce7d18
+round-12-adaptive-02,"geometry.SegmentOf(3,f32).intersect.policy.adaptive_exact.parallel_disjoint",2,9,45535.0,41519.0,0.08819589326891403,5,4,undecided,333806f06832aa8b
+round-12-adaptive-02,"geometry.SegmentOf(3,f32).intersect.policy.adaptive_exact.coincident",2,9,42674.0,38707.0,0.0929605848994704,5,4,undecided,8e37a2b2ceba4ed8
+round-12-adaptive-02,"geometry.SegmentOf(3,f32).intersect.policy.adaptive_exact.contained",2,9,45127.0,39901.0,0.11580650165089636,6,3,undecided,61fae00da0b90e20
+round-12-adaptive-02,"geometry.SegmentOf(3,f32).intersect.policy.adaptive_exact.degenerate_on",2,9,20759.0,15602.0,0.24842237101979864,6,3,undecided,333806f06832aa8b
+round-12-adaptive-02,"geometry.SegmentOf(3,f32).intersect.policy.adaptive_exact.degenerate_off",2,9,20103.0,15497.0,0.22912003183604437,6,3,undecided,333806f06832aa8b
+round-12-adaptive-02,"geometry.SegmentOf(3,f32).intersect.policy.adaptive_exact.subnormal_span",2,9,45402.0,40369.0,0.11085414739438791,7,2,undecided,d32f4932c0bf2b22
+round-12-adaptive-02,"geometry.SegmentOf(3,f32).intersectRay.policy.adaptive_exact.contained.normalized_operands",2,9,51543.0,40213.0,0.21981646392332616,7,2,undecided,61fae00da0b90e20
+round-12-adaptive-02,"geometry.SegmentOf(3,f32).intersectLine.policy.adaptive_exact.contained.normalized_operands",2,9,49743.0,37470.0,0.2467281828598999,7,2,undecided,61fae00da0b90e20
+round-12-adaptive-02,"geometry.SegmentOf(3,f32).intersectRay.policy.adaptive_exact.crossing_offset.normalized_operands",2,9,46711.0,38326.0,0.17950803879171928,6,3,undecided,a774ccac0cc00491
+round-12-adaptive-02,"geometry.SegmentOf(3,f32).intersectLine.policy.adaptive_exact.crossing_offset.normalized_operands",2,9,47111.0,39987.0,0.15121733777674004,6,3,undecided,a774ccac0cc00491
+round-12-adaptive-02,"geometry.SegmentOf(3,f64).intersect.policy.adaptive_exact.crossing",2,9,50470.0,42933.0,0.14933623935010898,6,3,undecided,ccfbc57038e660b2
+round-12-adaptive-02,"geometry.SegmentOf(3,f64).intersect.policy.adaptive_exact.crossing_offset",2,9,46345.0,42635.0,0.08005178552163124,6,3,undecided,eecc8390935047ad
+round-12-adaptive-02,"geometry.SegmentOf(3,f64).intersect.policy.adaptive_exact.collinear",2,9,48240.0,42575.0,0.11743366500829187,6,3,undecided,359a8c65ede4ce7a
+round-12-adaptive-02,"geometry.SegmentOf(3,f64).intersect.policy.adaptive_exact.parallel_disjoint",2,9,49046.0,43692.0,0.10916282673408637,5,4,undecided,333806f06832aa8b
+round-12-adaptive-02,"geometry.SegmentOf(3,f64).intersect.policy.adaptive_exact.coincident",2,9,47190.0,32852.0,0.30383555838101295,6,3,undecided,8e37a2b2ceba4ed8
+round-12-adaptive-02,"geometry.SegmentOf(3,f64).intersect.policy.adaptive_exact.contained",2,9,50376.0,25200.0,0.4997617913292044,7,2,undecided,61fae00da0b90e20
+round-12-adaptive-02,"geometry.SegmentOf(3,f64).intersect.policy.adaptive_exact.degenerate_on",2,9,23289.0,9490.0,0.592511486109322,7,2,undecided,333806f06832aa8b
+round-12-adaptive-02,"geometry.SegmentOf(3,f64).intersect.policy.adaptive_exact.degenerate_off",2,9,22657.0,9873.0,0.5642406320342499,7,2,undecided,333806f06832aa8b
+round-12-adaptive-02,"geometry.SegmentOf(3,f64).intersect.policy.adaptive_exact.subnormal_span",2,9,49195.0,25759.0,0.47638987702002233,7,2,undecided,d32f4932c0bf2b22
+round-12-adaptive-02,"geometry.SegmentOf(3,f64).intersectRay.policy.adaptive_exact.contained.normalized_operands",2,9,48221.0,25668.0,0.46770079425976235,7,2,undecided,61fae00da0b90e20
+round-12-adaptive-02,"geometry.SegmentOf(3,f64).intersectLine.policy.adaptive_exact.contained.normalized_operands",2,9,40169.0,33734.0,0.16019816276232915,5,4,undecided,61fae00da0b90e20
+round-12-adaptive-02,"geometry.SegmentOf(3,f64).intersectRay.policy.adaptive_exact.crossing_offset.normalized_operands",2,9,33650.0,35490.0,-0.054680534918276374,5,4,undecided,eecc8390935047ad
+round-12-adaptive-02,"geometry.SegmentOf(3,f64).intersectLine.policy.adaptive_exact.crossing_offset.normalized_operands",2,9,31490.0,24213.0,0.23108923467767545,5,4,undecided,eecc8390935047ad
+round-12-adaptive-02,"geometry.SegmentOf(4,f32).intersect.policy.adaptive_exact.crossing",2,9,72024.0,37940.0,0.47323114517383097,6,3,undecided,9e68e9423227a4e3
+round-12-adaptive-02,"geometry.SegmentOf(4,f32).intersect.policy.adaptive_exact.crossing_offset",2,9,71748.0,28587.0,0.6015638066566316,6,3,undecided,67312c0ff8d1d037
+round-12-adaptive-02,"geometry.SegmentOf(4,f32).intersect.policy.adaptive_exact.collinear",2,9,57341.0,32601.0,0.43145393348563854,6,3,undecided,ea9ce28e79f62975
+round-12-adaptive-02,"geometry.SegmentOf(4,f32).intersect.policy.adaptive_exact.parallel_disjoint",2,9,55168.0,28698.0,0.4798071345707657,5,4,undecided,333806f06832aa8b
+round-12-adaptive-02,"geometry.SegmentOf(4,f32).intersect.policy.adaptive_exact.coincident",2,9,59556.0,27409.0,0.5397776882262073,6,3,undecided,8e37a2b2ceba4ed8
+round-12-adaptive-02,"geometry.SegmentOf(4,f32).intersect.policy.adaptive_exact.contained",2,9,73228.0,27606.0,0.6230130551155296,6,3,undecided,61fae00da0b90e20
+round-12-adaptive-02,"geometry.SegmentOf(4,f32).intersect.policy.adaptive_exact.degenerate_on",2,9,33999.0,13038.0,0.6165181328862613,9,0,faster,333806f06832aa8b
+round-12-adaptive-02,"geometry.SegmentOf(4,f32).intersect.policy.adaptive_exact.degenerate_off",2,9,33307.0,12965.0,0.6107424865643859,9,0,faster,333806f06832aa8b
+round-12-adaptive-02,"geometry.SegmentOf(4,f32).intersect.policy.adaptive_exact.subnormal_span",2,9,60221.0,31199.0,0.48192490991514586,7,2,undecided,d32f4932c0bf2b22
+round-12-adaptive-02,"geometry.SegmentOf(4,f32).intersectRay.policy.adaptive_exact.contained.normalized_operands",2,9,54103.0,30503.0,0.4362050163576881,7,2,undecided,61fae00da0b90e20
+round-12-adaptive-02,"geometry.SegmentOf(4,f32).intersectLine.policy.adaptive_exact.contained.normalized_operands",2,9,46045.0,31391.0,0.3182538820718862,6,3,undecided,61fae00da0b90e20
+round-12-adaptive-02,"geometry.SegmentOf(4,f32).intersectRay.policy.adaptive_exact.crossing_offset.normalized_operands",2,9,55157.0,28694.0,0.4797759123955255,6,3,undecided,67312c0ff8d1d037
+round-12-adaptive-02,"geometry.SegmentOf(4,f32).intersectLine.policy.adaptive_exact.crossing_offset.normalized_operands",2,9,50455.0,28760.0,0.42998711723317806,6,3,undecided,67312c0ff8d1d037
+round-12-adaptive-02,"geometry.SegmentOf(4,f64).intersect.policy.adaptive_exact.crossing",2,9,60238.0,33723.0,0.4401706563962947,6,3,undecided,9e68e9423227a4e3
+round-12-adaptive-02,"geometry.SegmentOf(4,f64).intersect.policy.adaptive_exact.crossing_offset",2,9,56580.0,28620.0,0.4941675503711559,7,2,undecided,9bc211d9b729b80b
+round-12-adaptive-02,"geometry.SegmentOf(4,f64).intersect.policy.adaptive_exact.collinear",2,9,59588.0,30325.0,0.49108880982748204,7,2,undecided,11a204e0ed181929
+round-12-adaptive-02,"geometry.SegmentOf(4,f64).intersect.policy.adaptive_exact.parallel_disjoint",2,9,49682.0,28951.0,0.41727386176079867,7,2,undecided,333806f06832aa8b
+round-12-adaptive-02,"geometry.SegmentOf(4,f64).intersect.policy.adaptive_exact.coincident",2,9,49370.0,27336.0,0.4463034231314563,7,2,undecided,8e37a2b2ceba4ed8
+round-12-adaptive-02,"geometry.SegmentOf(4,f64).intersect.policy.adaptive_exact.contained",2,9,49958.0,30021.0,0.39907522318747746,7,2,undecided,61fae00da0b90e20
+round-12-adaptive-02,"geometry.SegmentOf(4,f64).intersect.policy.adaptive_exact.degenerate_on",2,9,30029.0,12960.0,0.5684171967098471,9,0,faster,333806f06832aa8b
+round-12-adaptive-02,"geometry.SegmentOf(4,f64).intersect.policy.adaptive_exact.degenerate_off",2,9,33196.0,13399.0,0.5963670321725509,9,0,faster,333806f06832aa8b
+round-12-adaptive-02,"geometry.SegmentOf(4,f64).intersect.policy.adaptive_exact.subnormal_span",2,9,46076.0,27935.0,0.3937190728361837,6,3,undecided,d32f4932c0bf2b22
+round-12-adaptive-02,"geometry.SegmentOf(4,f64).intersectRay.policy.adaptive_exact.contained.normalized_operands",2,9,46268.0,30292.0,0.34529264286331807,6,3,undecided,61fae00da0b90e20
+round-12-adaptive-02,"geometry.SegmentOf(4,f64).intersectLine.policy.adaptive_exact.contained.normalized_operands",2,9,45438.0,28158.0,0.3802984286280206,7,2,undecided,61fae00da0b90e20
+round-12-adaptive-02,"geometry.SegmentOf(4,f64).intersectRay.policy.adaptive_exact.crossing_offset.normalized_operands",2,9,46569.0,30864.0,0.33724151259421503,7,2,undecided,9bc211d9b729b80b
+round-12-adaptive-02,"geometry.SegmentOf(4,f64).intersectLine.policy.adaptive_exact.crossing_offset.normalized_operands",2,9,45857.0,28381.0,0.3810977604291602,7,2,undecided,9bc211d9b729b80b
+round-12-adaptive-02,geometry.Circle2(f32).contains.policy.adaptive_exact.inside,2,9,6646.0,4833.0,0.2727956665663557,7,2,undecided,02c2378177e2062f
+round-12-adaptive-02,geometry.Circle2(f32).contains.policy.adaptive_exact.boundary,2,9,5036.0,4026.0,0.2005559968228753,7,2,undecided,02c2378177e2062f
+round-12-adaptive-02,geometry.Circle2(f32).contains.policy.adaptive_exact.outside,2,9,5156.0,4003.0,0.22362296353762606,7,2,undecided,adcf433261f4a0a1
+round-12-adaptive-02,geometry.Circle2(f32).intersect.policy.adaptive_exact.crossing,2,9,9312.0,6976.0,0.2508591065292096,7,2,undecided,6a986049858fb024
+round-12-adaptive-02,geometry.Circle2(f32).intersect.policy.adaptive_exact.tangent,2,9,6696.0,5282.0,0.21117084826762247,7,2,undecided,8b4258486312c4d3
+round-12-adaptive-02,geometry.Circle2(f32).intersect.policy.adaptive_exact.contained,2,9,7799.0,5710.0,0.2678548531863059,7,2,undecided,d32f4932c0bf2b22
+round-12-adaptive-02,geometry.Circle2(f32).intersect.policy.adaptive_exact.disjoint,2,9,7011.0,5330.0,0.23976608187134502,7,2,undecided,333806f06832aa8b
+round-12-adaptive-02,geometry.Circle2(f32).intersect.policy.adaptive_exact.coincident,2,9,584.0,419.0,0.2825342465753425,7,2,undecided,8e37a2b2ceba4ed8
+round-12-adaptive-02,geometry.Circle2(f32).intersect.policy.adaptive_exact.tangent_subnormal,2,9,7071.0,5517.0,0.21977089520577003,7,2,undecided,43d0d231d5dffc58
+round-12-adaptive-02,geometry.Circle2(f32).intersectSegment.policy.adaptive_exact.crossing,2,9,18727.0,14706.0,0.214716719175522,7,2,undecided,e892c19688a9e9e0
+round-12-adaptive-03,geometry.Circle2(f32).intersectSegment.policy.adaptive_exact.contained,2,9,53760.0,39105.0,0.27260044642857145,6,3,undecided,d32f4932c0bf2b22
+round-12-adaptive-03,geometry.Circle2(f32).intersectSegment.policy.adaptive_exact.tangent,2,9,36536.0,31443.0,0.13939675936063062,6,3,undecided,8b4258486312c4d3
+round-12-adaptive-03,geometry.Circle2(f32).intersectRay.policy.adaptive_exact.crossing_outside,2,9,14830.0,11651.0,0.2143627781523938,8,1,faster,e892c19688a9e9e0
+round-12-adaptive-03,geometry.Circle2(f32).intersectRay.policy.adaptive_exact.origin_inside,2,9,12113.0,10479.0,0.13489639230578718,7,2,undecided,7e8c07ae692e7a96
+round-12-adaptive-03,geometry.Circle2(f32).intersectRay.policy.adaptive_exact.tangent,2,9,11555.0,9994.0,0.13509303331890957,7,2,undecided,03c6c0a2c899be24
+round-12-adaptive-03,geometry.Circle2(f64).contains.policy.adaptive_exact.inside,2,9,16142.0,15984.0,0.009788130343204063,4,5,undecided,02c2378177e2062f
+round-12-adaptive-03,geometry.Circle2(f64).contains.policy.adaptive_exact.boundary,2,9,8118.0,6351.0,0.21766444937176643,8,1,faster,02c2378177e2062f
+round-12-adaptive-03,geometry.Circle2(f64).contains.policy.adaptive_exact.outside,2,9,8061.0,6449.0,0.19997518918248355,8,1,faster,adcf433261f4a0a1
+round-12-adaptive-03,geometry.Circle2(f64).intersect.policy.adaptive_exact.crossing,2,9,20042.0,14606.0,0.27123041612613513,8,1,faster,7b845157906a99ee
+round-12-adaptive-03,geometry.Circle2(f64).intersect.policy.adaptive_exact.tangent,2,9,10736.0,8652.0,0.19411326378539492,8,1,faster,6f7527df73110d0b
+round-12-adaptive-03,geometry.Circle2(f64).intersect.policy.adaptive_exact.contained,2,9,12391.0,8801.0,0.28972641433298363,8,1,faster,d32f4932c0bf2b22
+round-12-adaptive-03,geometry.Circle2(f64).intersect.policy.adaptive_exact.disjoint,2,9,11116.0,8744.0,0.21338611011155093,8,1,faster,333806f06832aa8b
+round-12-adaptive-03,geometry.Circle2(f64).intersect.policy.adaptive_exact.coincident,2,9,840.0,571.0,0.3202380952380952,7,2,undecided,8e37a2b2ceba4ed8
+round-12-adaptive-03,geometry.Circle2(f64).intersect.policy.adaptive_exact.tangent_subnormal,2,9,10986.0,8697.0,0.2083560895685418,8,1,faster,811cbcb7c08d3c31
+round-12-adaptive-03,geometry.Circle2(f64).intersectSegment.policy.adaptive_exact.crossing,2,9,36721.0,24549.0,0.33147245445385476,8,1,faster,58b35aa0de5ad3e7
+round-12-adaptive-03,geometry.Circle2(f64).intersectSegment.policy.adaptive_exact.contained,2,9,14506.0,10413.0,0.282159106576589,8,1,faster,d32f4932c0bf2b22
+round-12-adaptive-03,geometry.Circle2(f64).intersectSegment.policy.adaptive_exact.tangent,2,9,29759.0,25604.0,0.1396216270708021,6,3,undecided,6f7527df73110d0b
+round-12-adaptive-03,geometry.Circle2(f64).intersectRay.policy.adaptive_exact.crossing_outside,2,9,15198.0,13037.0,0.14218976181076456,6,3,undecided,58b35aa0de5ad3e7
+round-12-adaptive-03,geometry.Circle2(f64).intersectRay.policy.adaptive_exact.origin_inside,2,9,12545.0,11414.0,0.09015544041450778,6,3,undecided,4560d4a3982c2962
+round-12-adaptive-03,geometry.Circle2(f64).intersectRay.policy.adaptive_exact.tangent,2,9,11550.0,12129.0,-0.05012987012987013,4,5,undecided,255374a3ae530b8e
+round-12-adaptive-03,geometry.Sphere3(f32).contains.policy.adaptive_exact.inside,2,9,13641.0,15708.0,-0.15152848031669233,5,4,undecided,02c2378177e2062f
+round-12-adaptive-03,geometry.Sphere3(f32).contains.policy.adaptive_exact.boundary,2,9,6779.0,9175.0,-0.3534444608349314,6,3,undecided,02c2378177e2062f
+round-12-adaptive-03,geometry.Sphere3(f32).contains.policy.adaptive_exact.outside,2,9,6787.0,9019.0,-0.32886400471489613,6,3,undecided,adcf433261f4a0a1
+round-12-adaptive-03,geometry.Sphere3(f32).intersect.policy.adaptive_exact.crossing,2,9,11579.0,14781.0,-0.2765351066586061,5,4,undecided,cc7a63fd649ad023
+round-12-adaptive-03,geometry.Sphere3(f32).intersect.policy.adaptive_exact.tangent,2,9,8575.0,11414.0,-0.33107871720116616,5,4,undecided,54735f19e9e6d3d3
+round-12-adaptive-03,geometry.Sphere3(f32).intersect.policy.adaptive_exact.contained,2,9,9661.0,12189.0,-0.2616706345098851,6,3,undecided,d32f4932c0bf2b22
+round-12-adaptive-03,geometry.Sphere3(f32).intersect.policy.adaptive_exact.disjoint,2,9,8750.0,11231.0,-0.28354285714285715,6,3,undecided,333806f06832aa8b
+round-12-adaptive-03,geometry.Sphere3(f32).intersect.policy.adaptive_exact.coincident,2,9,507.0,485.0,0.04339250493096647,5,4,undecided,8e37a2b2ceba4ed8
+round-12-adaptive-03,geometry.Sphere3(f32).intersect.policy.adaptive_exact.tangent_subnormal,2,9,11229.0,11347.0,-0.010508504764449193,6,3,undecided,8429e3cb912ab6a1
+round-12-adaptive-03,geometry.Sphere3(f32).intersectSegment.policy.adaptive_exact.crossing,2,9,39084.0,34318.0,0.12194248285743527,8,1,faster,55325c321ca3c57a
+round-12-adaptive-03,geometry.Sphere3(f32).intersectSegment.policy.adaptive_exact.contained,2,9,20327.0,12553.0,0.382446991685935,8,1,faster,d32f4932c0bf2b22
+round-12-adaptive-03,geometry.Sphere3(f32).intersectSegment.policy.adaptive_exact.tangent,2,9,34693.0,29868.0,0.13907704724295966,6,3,undecided,54735f19e9e6d3d3
+round-12-adaptive-03,geometry.Sphere3(f32).intersectRay.policy.adaptive_exact.crossing_outside,2,9,17245.0,14936.0,0.1338938822847202,6,3,undecided,55325c321ca3c57a
+round-12-adaptive-03,geometry.Sphere3(f32).intersectRay.policy.adaptive_exact.origin_inside,2,9,15159.0,13840.0,0.08701101655782044,6,3,undecided,f00d3f7883e578b2
+round-12-adaptive-03,geometry.Sphere3(f32).intersectRay.policy.adaptive_exact.tangent,2,9,10037.0,13510.0,-0.3460197270100628,6,3,undecided,57529fb7b4300ee3
+round-12-adaptive-03,geometry.Sphere3(f32).intersectPlane.policy.adaptive_exact.cut,2,9,8687.0,12724.0,-0.4647173938068378,6,3,undecided,fc6e483cdc23b808
+round-12-adaptive-03,geometry.Sphere3(f32).intersectPlane.policy.adaptive_exact.tangent,2,9,8842.0,13364.0,-0.511422755032798,6,3,undecided,54735f19e9e6d3d3
+round-12-adaptive-03,geometry.Sphere3(f32).intersectPlane.policy.adaptive_exact.miss,2,9,8576.0,12873.0,-0.5010494402985075,6,3,undecided,333806f06832aa8b
+round-12-adaptive-03,geometry.Sphere3(f64).contains.policy.adaptive_exact.inside,2,9,11518.0,9575.0,0.16869248133356485,7,2,undecided,02c2378177e2062f
+round-12-adaptive-03,geometry.Sphere3(f64).contains.policy.adaptive_exact.boundary,2,9,7093.0,8549.0,-0.20527280417312843,6,3,undecided,02c2378177e2062f
+round-12-adaptive-03,geometry.Sphere3(f64).contains.policy.adaptive_exact.outside,2,9,6730.0,9093.0,-0.35111441307578006,5,4,undecided,adcf433261f4a0a1
+round-12-adaptive-03,geometry.Sphere3(f64).intersect.policy.adaptive_exact.crossing,2,9,11506.0,14330.0,-0.24543716321918999,6,3,undecided,e6e6b82e12e7ff4e
+round-12-adaptive-03,geometry.Sphere3(f64).intersect.policy.adaptive_exact.tangent,2,9,8496.0,11336.0,-0.3342749529190207,6,3,undecided,71473d6dec7fcd3b
+round-12-adaptive-03,geometry.Sphere3(f64).intersect.policy.adaptive_exact.contained,2,9,9712.0,11585.0,-0.19285420098846787,6,3,undecided,d32f4932c0bf2b22
+round-12-adaptive-03,geometry.Sphere3(f64).intersect.policy.adaptive_exact.disjoint,2,9,8686.0,11159.0,-0.2847110292424591,6,3,undecided,333806f06832aa8b
+round-12-adaptive-03,geometry.Sphere3(f64).intersect.policy.adaptive_exact.coincident,2,9,311.0,444.0,-0.42765273311897106,3,6,undecided,8e37a2b2ceba4ed8
+round-12-adaptive-03,geometry.Sphere3(f64).intersect.policy.adaptive_exact.tangent_subnormal,2,9,8961.0,11102.0,-0.23892422720678497,5,4,undecided,23bbbf9db9d37a50
+round-12-adaptive-03,geometry.Sphere3(f64).intersectSegment.policy.adaptive_exact.crossing,2,9,25260.0,30345.0,-0.2013064133016627,4,5,undecided,7316ad6a55cc8804
+round-12-adaptive-03,geometry.Sphere3(f64).intersectSegment.policy.adaptive_exact.contained,2,9,12702.0,13112.0,-0.03227838135726657,6,3,undecided,d32f4932c0bf2b22
+round-12-adaptive-03,geometry.Sphere3(f64).intersectSegment.policy.adaptive_exact.tangent,2,9,32205.0,30497.0,0.05303524297469337,5,4,undecided,71473d6dec7fcd3b
+round-12-adaptive-03,geometry.Sphere3(f64).intersectRay.policy.adaptive_exact.crossing_outside,2,9,11690.0,16207.0,-0.38639863130881097,5,4,undecided,7316ad6a55cc8804
+round-12-adaptive-03,geometry.Sphere3(f64).intersectRay.policy.adaptive_exact.origin_inside,2,9,10180.0,13371.0,-0.31345776031434186,5,4,undecided,a71e8727aa0f03c5
+round-12-adaptive-03,geometry.Sphere3(f64).intersectRay.policy.adaptive_exact.tangent,2,9,12036.0,13643.0,-0.13351611831173146,5,4,undecided,c934c3130ff91337
+round-12-adaptive-03,geometry.Sphere3(f64).intersectPlane.policy.adaptive_exact.cut,2,9,9196.0,12701.0,-0.3811439756415833,5,4,undecided,861cabdd7cf02bbc
+round-12-adaptive-03,geometry.Sphere3(f64).intersectPlane.policy.adaptive_exact.tangent,2,9,8923.0,13453.0,-0.507676790317158,7,2,undecided,71473d6dec7fcd3b
+round-12-adaptive-03,geometry.Sphere3(f64).intersectPlane.policy.adaptive_exact.miss,2,9,11570.0,13040.0,-0.12705272255834055,7,2,undecided,333806f06832aa8b
+round-12-adaptive-03,geometry.Hypersphere4(f32).contains.policy.adaptive_exact.inside,2,9,14864.0,11355.0,0.23607373519913885,7,2,undecided,02c2378177e2062f
+round-12-adaptive-03,geometry.Hypersphere4(f32).contains.policy.adaptive_exact.boundary,2,9,13737.0,10071.0,0.26687049574142824,7,2,undecided,02c2378177e2062f
+round-12-adaptive-03,geometry.Hypersphere4(f32).contains.policy.adaptive_exact.outside,2,9,9883.0,9998.0,-0.011636142871597694,6,3,undecided,adcf433261f4a0a1
+round-12-adaptive-03,geometry.Hypersphere4(f32).intersect.policy.adaptive_exact.crossing,2,9,13334.0,16097.0,-0.2072146392680366,4,5,undecided,0e68fb33dd55507f
+round-12-adaptive-03,geometry.Hypersphere4(f32).intersect.policy.adaptive_exact.tangent,2,9,10383.0,13019.0,-0.25387652894153906,5,4,undecided,2eda278489b8965e
+round-12-adaptive-03,geometry.Hypersphere4(f32).intersect.policy.adaptive_exact.contained,2,9,11441.0,13219.0,-0.15540599597937244,5,4,undecided,d32f4932c0bf2b22
+round-12-adaptive-03,geometry.Hypersphere4(f32).intersect.policy.adaptive_exact.disjoint,2,9,10496.0,12682.0,-0.20826981707317074,5,4,undecided,333806f06832aa8b
+round-12-adaptive-03,geometry.Hypersphere4(f32).intersect.policy.adaptive_exact.coincident,2,9,651.0,451.0,0.30721966205837176,8,1,faster,8e37a2b2ceba4ed8
+round-12-adaptive-04,geometry.Hypersphere4(f32).intersect.policy.adaptive_exact.tangent_subnormal,2,9,80636.0,47490.0,0.4110570960861154,8,1,faster,557cf950384912f2
+round-12-adaptive-04,geometry.Hypersphere4(f32).intersectSegment.policy.adaptive_exact.crossing,2,9,77298.0,50644.0,0.34482134078501386,8,1,faster,cbae4ac986250602
+round-12-adaptive-04,geometry.Hypersphere4(f32).intersectSegment.policy.adaptive_exact.contained,2,9,27563.0,15276.0,0.4457787613830135,8,1,faster,d32f4932c0bf2b22
+round-12-adaptive-04,geometry.Hypersphere4(f32).intersectSegment.policy.adaptive_exact.tangent,2,9,55043.0,32727.0,0.4054284831858729,8,1,faster,2eda278489b8965e
+round-12-adaptive-04,geometry.Hypersphere4(f32).intersectRay.policy.adaptive_exact.crossing_outside,2,9,25626.0,17988.0,0.29805666120346525,6,3,undecided,cbae4ac986250602
+round-12-adaptive-04,geometry.Hypersphere4(f32).intersectRay.policy.adaptive_exact.origin_inside,2,9,22645.0,15753.0,0.30434974608081256,7,2,undecided,e6e38d2db21057bc
+round-12-adaptive-04,geometry.Hypersphere4(f32).intersectRay.policy.adaptive_exact.tangent,2,9,22798.0,14227.0,0.37595403105535574,8,1,faster,cf4ba7e89e485a2b
+round-12-adaptive-04,geometry.Hypersphere4(f32).intersectHyperplane.policy.adaptive_exact.cut,2,9,19381.0,14267.0,0.26386667354625665,8,1,faster,1c6b7b05644f454e
+round-12-adaptive-04,geometry.Hypersphere4(f32).intersectHyperplane.policy.adaptive_exact.tangent,2,9,19924.0,15135.0,0.24036338084721942,8,1,faster,2eda278489b8965e
+round-12-adaptive-04,geometry.Hypersphere4(f32).intersectHyperplane.policy.adaptive_exact.miss,2,9,19780.0,14702.0,0.25672396359959554,8,1,faster,333806f06832aa8b
+round-12-adaptive-04,geometry.Hypersphere4(f64).contains.policy.adaptive_exact.inside,2,9,15005.0,10488.0,0.30103298900366543,8,1,faster,02c2378177e2062f
+round-12-adaptive-04,geometry.Hypersphere4(f64).contains.policy.adaptive_exact.boundary,2,9,13855.0,10144.0,0.26784554312522557,8,1,faster,02c2378177e2062f
+round-12-adaptive-04,geometry.Hypersphere4(f64).contains.policy.adaptive_exact.outside,2,9,13693.0,9669.0,0.2938727817132842,8,1,faster,adcf433261f4a0a1
+round-12-adaptive-04,geometry.Hypersphere4(f64).intersect.policy.adaptive_exact.crossing,2,9,29188.0,20200.0,0.3079347677127587,8,1,faster,56b4f2886ee12f19
+round-12-adaptive-04,geometry.Hypersphere4(f64).intersect.policy.adaptive_exact.tangent,2,9,19307.0,12621.0,0.3462992696949293,8,1,faster,939b405466ef153b
+round-12-adaptive-04,geometry.Hypersphere4(f64).intersect.policy.adaptive_exact.contained,2,9,20568.0,11850.0,0.42386231038506417,8,1,faster,d32f4932c0bf2b22
+round-12-adaptive-04,geometry.Hypersphere4(f64).intersect.policy.adaptive_exact.disjoint,2,9,18404.0,11585.0,0.37051727885242336,8,1,faster,333806f06832aa8b
+round-12-adaptive-04,geometry.Hypersphere4(f64).intersect.policy.adaptive_exact.coincident,2,9,721.0,503.0,0.30235783633841884,7,2,undecided,8e37a2b2ceba4ed8
+round-12-adaptive-04,geometry.Hypersphere4(f64).intersect.policy.adaptive_exact.tangent_subnormal,2,9,18873.0,11407.0,0.39559158586340276,8,1,faster,ac52b34f15df70a9
+round-12-adaptive-04,geometry.Hypersphere4(f64).intersectSegment.policy.adaptive_exact.crossing,2,9,53330.0,33226.0,0.37697356084755296,7,2,undecided,13563e887201661e
+round-12-adaptive-04,geometry.Hypersphere4(f64).intersectSegment.policy.adaptive_exact.contained,2,9,26676.0,15551.0,0.4170415354625881,7,2,undecided,d32f4932c0bf2b22
+round-12-adaptive-04,geometry.Hypersphere4(f64).intersectSegment.policy.adaptive_exact.tangent,2,9,54112.0,33956.0,0.37248669426374925,8,1,faster,939b405466ef153b
+round-12-adaptive-04,geometry.Hypersphere4(f64).intersectRay.policy.adaptive_exact.crossing_outside,2,9,25503.0,17647.0,0.3080421911147708,8,1,faster,13563e887201661e
+round-12-adaptive-04,geometry.Hypersphere4(f64).intersectRay.policy.adaptive_exact.origin_inside,2,9,21771.0,15222.0,0.3008130081300813,8,1,faster,d0d4c0a6a7ac3382
+round-12-adaptive-04,geometry.Hypersphere4(f64).intersectRay.policy.adaptive_exact.tangent,2,9,22809.0,15212.0,0.33307027927572447,7,2,undecided,a4cbf19fb51e289b
+round-12-adaptive-04,geometry.Hypersphere4(f64).intersectHyperplane.policy.adaptive_exact.cut,2,9,20601.0,15191.0,0.26260861123246443,7,2,undecided,c1f338fff000b392
+round-12-adaptive-04,geometry.Hypersphere4(f64).intersectHyperplane.policy.adaptive_exact.tangent,2,9,19100.0,13652.0,0.2852356020942408,7,2,undecided,939b405466ef153b
+round-12-adaptive-04,geometry.Hypersphere4(f64).intersectHyperplane.policy.adaptive_exact.miss,2,9,20019.0,14185.0,0.29142314800939106,8,1,faster,333806f06832aa8b
+round-12-adaptive-04,geometry.Plane3(f32).intersect.policy.adaptive_exact.nonparallel,2,9,10129.0,7964.0,0.21374271892585645,8,1,faster,88fcabc340a7f956
+round-12-adaptive-04,geometry.Plane3(f32).intersect.policy.adaptive_exact.coincident,2,9,20496.0,16051.0,0.21687158469945356,7,2,undecided,31b9a4f03a1f3307
+round-12-adaptive-04,geometry.Plane3(f32).intersect.policy.adaptive_exact.parallel_disjoint,2,9,19736.0,15361.0,0.2216761248479935,8,1,faster,31b9a4f03a1f3307
+round-12-adaptive-04,geometry.Plane3(f32).intersectSegment.policy.adaptive_exact.crossing,2,9,19617.0,12425.0,0.3666207880919611,8,1,faster,d32f4932c0bf2b22
+round-12-adaptive-04,geometry.Plane3(f32).intersectSegment.policy.adaptive_exact.contained,2,9,19423.0,12402.0,0.36147865932142303,8,1,faster,333806f06832aa8b
+round-12-adaptive-04,geometry.Plane3(f32).intersectSegment.policy.adaptive_exact.disjoint,2,9,18998.0,11720.0,0.3830929571533846,8,1,faster,d32f4932c0bf2b22
+round-12-adaptive-04,geometry.Plane3(f32).intersectSphere.policy.adaptive_exact.cut,2,9,15420.0,12639.0,0.18035019455252918,8,1,faster,fc6e483cdc23b808
+round-12-adaptive-04,geometry.Plane3(f32).intersectSphere.policy.adaptive_exact.tangent,2,9,14067.0,11758.0,0.16414302978602402,8,1,faster,fc6e483cdc23b808
+round-12-adaptive-04,geometry.Plane3(f32).intersectSphere.policy.adaptive_exact.miss,2,9,14396.0,11650.0,0.19074742984162268,7,2,undecided,fc6e483cdc23b808
+round-12-adaptive-04,geometry.Plane3(f64).intersect.policy.adaptive_exact.nonparallel,2,9,9227.0,8222.0,0.10891947545247643,8,1,faster,9fcfeae86d0df925
+round-12-adaptive-04,geometry.Plane3(f64).intersect.policy.adaptive_exact.coincident,2,9,19784.0,16850.0,0.14830165790537808,7,2,undecided,68ac0c3324fc76a7
+round-12-adaptive-04,geometry.Plane3(f64).intersect.policy.adaptive_exact.parallel_disjoint,2,9,19676.0,16395.0,0.16675137223012806,8,1,faster,68ac0c3324fc76a7
+round-12-adaptive-04,geometry.Plane3(f64).intersectSegment.policy.adaptive_exact.crossing,2,9,19460.0,12137.0,0.3763103802672148,7,2,undecided,d32f4932c0bf2b22
+round-12-adaptive-04,geometry.Plane3(f64).intersectSegment.policy.adaptive_exact.contained,2,9,18773.0,12481.0,0.33516220103339905,7,2,undecided,333806f06832aa8b
+round-12-adaptive-04,geometry.Plane3(f64).intersectSegment.policy.adaptive_exact.disjoint,2,9,17975.0,11133.0,0.38063977746870653,8,1,faster,d32f4932c0bf2b22
+round-12-adaptive-04,geometry.Plane3(f64).intersectSphere.policy.adaptive_exact.cut,2,9,14758.0,12763.0,0.13518091882368885,8,1,faster,861cabdd7cf02bbc
+round-12-adaptive-04,geometry.Plane3(f64).intersectSphere.policy.adaptive_exact.tangent,2,9,13343.0,11346.0,0.14966649179344974,7,2,undecided,861cabdd7cf02bbc
+round-12-adaptive-04,geometry.Plane3(f64).intersectSphere.policy.adaptive_exact.miss,2,9,13644.0,11333.0,0.16937848138375844,7,2,undecided,861cabdd7cf02bbc
+round-12-adaptive-04,geometry.Hyperplane4(f32).intersect.policy.adaptive_exact.nonparallel,2,9,17210.0,14472.0,0.1590935502614759,7,2,undecided,394dfcff099cfc3b
+round-12-adaptive-04,geometry.Hyperplane4(f32).intersect.policy.adaptive_exact.coincident,2,9,28726.0,22433.0,0.21906983220775603,7,2,undecided,5a82dca02933939d
+round-12-adaptive-04,geometry.Hyperplane4(f32).intersect.policy.adaptive_exact.parallel_disjoint,2,9,29626.0,21604.0,0.2707756700195774,7,2,undecided,5a82dca02933939d
+round-12-adaptive-04,geometry.Hyperplane4(f32).intersectSegment.policy.adaptive_exact.crossing,2,9,25803.0,14478.0,0.43890245320311594,9,0,faster,d32f4932c0bf2b22
+round-12-adaptive-04,geometry.Hyperplane4(f32).intersectSegment.policy.adaptive_exact.contained,2,9,25335.0,14544.0,0.42593250444049735,8,1,faster,333806f06832aa8b
+round-12-adaptive-04,geometry.Hyperplane4(f32).intersectSegment.policy.adaptive_exact.disjoint,2,9,24817.0,13547.0,0.4541241890639481,8,1,faster,d32f4932c0bf2b22
+round-12-adaptive-04,geometry.Hyperplane4(f32).intersectSphere.policy.adaptive_exact.cut,2,9,19280.0,14310.0,0.25778008298755184,6,3,undecided,1c6b7b05644f454e
+round-12-adaptive-04,geometry.Hyperplane4(f32).intersectSphere.policy.adaptive_exact.tangent,2,9,18118.0,13581.0,0.25041395297494207,7,2,undecided,1c6b7b05644f454e
+round-12-adaptive-04,geometry.Hyperplane4(f32).intersectSphere.policy.adaptive_exact.miss,2,9,18247.0,13353.0,0.2682084726256371,7,2,undecided,1c6b7b05644f454e
+round-12-adaptive-04,geometry.Hyperplane4(f64).intersect.policy.adaptive_exact.nonparallel,2,9,17584.0,14805.0,0.15804140127388536,7,2,undecided,600c7dcd8e39dd72
+round-12-adaptive-04,geometry.Hyperplane4(f64).intersect.policy.adaptive_exact.coincident,2,9,29115.0,21797.0,0.25134810235273913,6,3,undecided,d9d70b8fca423fb3
+round-12-adaptive-04,geometry.Hyperplane4(f64).intersect.policy.adaptive_exact.parallel_disjoint,2,9,29360.0,22607.0,0.2300068119891008,7,2,undecided,d9d70b8fca423fb3
+round-12-adaptive-04,geometry.Hyperplane4(f64).intersectSegment.policy.adaptive_exact.crossing,2,9,26333.0,15075.0,0.42752439904302586,8,1,faster,d32f4932c0bf2b22
+round-12-adaptive-04,geometry.Hyperplane4(f64).intersectSegment.policy.adaptive_exact.contained,2,9,26345.0,15357.0,0.41708104004554947,8,1,faster,333806f06832aa8b
+round-12-adaptive-04,geometry.Hyperplane4(f64).intersectSegment.policy.adaptive_exact.disjoint,2,9,25424.0,14156.0,0.44320327249842667,8,1,faster,d32f4932c0bf2b22
+round-12-adaptive-04,geometry.Hyperplane4(f64).intersectSphere.policy.adaptive_exact.cut,2,9,19994.0,14379.0,0.2808342502750825,7,2,undecided,c1f338fff000b392
+round-12-adaptive-04,geometry.Hyperplane4(f64).intersectSphere.policy.adaptive_exact.tangent,2,9,18822.0,13965.0,0.25804909148868344,7,2,undecided,c1f338fff000b392
+round-12-adaptive-04,geometry.Hyperplane4(f64).intersectSphere.policy.adaptive_exact.miss,2,9,18365.0,13879.0,0.2442689899264906,7,2,undecided,c1f338fff000b392
+round-14-orientation-long,geometry.Point2(f32).orientation.policy.adaptive_exact.ordinary,4096,9,19944641.0,15426669.0,0.22652561156653558,7,2,undecided,97c8e72a41de75a5
+round-14-orientation-long,geometry.Point2(f32).orientation.policy.adaptive_exact.near_degenerate,4096,9,16101235.0,15434559.0,0.041405271086348346,5,4,undecided,3163b82bc497e5ae
+round-14-orientation-long,geometry.Point2(f32).orientation.policy.adaptive_exact.exponent_extreme,4096,9,16867009.0,14918469.0,0.11552374223550838,8,1,faster,08a3c041086a2492
+round-14-orientation-long,geometry.Point2(f64).orientation.policy.adaptive_exact.ordinary,4096,9,23469826.0,14129255.0,0.39798211541917694,9,0,faster,97c8e72a41de75a5
+round-14-orientation-long,geometry.Point2(f64).orientation.policy.adaptive_exact.near_degenerate,4096,9,16044037.0,14846404.0,0.0746466116975422,7,2,undecided,3163b82bc497e5ae
+round-14-orientation-long,geometry.Point2(f64).orientation.policy.adaptive_exact.exponent_extreme,4096,9,20609069.0,16279220.0,0.21009435215147274,9,0,faster,08a3c041086a2492
+round-14-orientation-long,geometry.Point3(f32).orientation.policy.adaptive_exact.ordinary,4096,9,61473010.0,33777674.0,0.4505283863601278,9,0,faster,56a67943ec78d334
+round-14-orientation-long,geometry.Point3(f32).orientation.policy.adaptive_exact.near_degenerate,4096,9,38983853.0,29078549.0,0.25408735252515957,8,1,faster,3163b82bc497e5ae
+round-14-orientation-long,geometry.Point3(f32).orientation.policy.adaptive_exact.exponent_extreme,4096,9,49941744.0,28639875.0,0.42653434369452536,9,0,faster,08a3c041086a2492
+round-14-orientation-long,geometry.Point3(f32).orientation.policy.adaptive_exact.perturbed_ulp,4096,9,37328309.0,26946469.0,0.27812242981593405,9,0,faster,3163b82bc497e5ae
+round-14-orientation-long,geometry.Point3(f64).orientation.policy.adaptive_exact.ordinary,4096,9,63286066.0,33719917.0,0.46718260224928504,9,0,faster,56a67943ec78d334
+round-14-orientation-long,geometry.Point3(f64).orientation.policy.adaptive_exact.near_degenerate,4096,9,38517777.0,28413864.0,0.26231817583865236,9,0,faster,3163b82bc497e5ae
+round-14-orientation-long,geometry.Point3(f64).orientation.policy.adaptive_exact.exponent_extreme,4096,9,46975871.0,30280555.0,0.35540194667172853,9,0,faster,08a3c041086a2492
+round-14-orientation-long,geometry.Point3(f64).orientation.policy.adaptive_exact.perturbed_ulp,4096,9,39625061.0,24863866.0,0.37252169782148725,9,0,faster,3163b82bc497e5ae
+round-14-orientation-long,geometry.Point4(f32).orientation.policy.adaptive_exact.ordinary,4096,9,121908185.0,60990673.0,0.4996999340118139,9,0,faster,190dcf1217b97f87
+round-14-orientation-long,geometry.Point4(f32).orientation.policy.adaptive_exact.near_degenerate,4096,9,83064194.0,35536723.0,0.5721775979671818,9,0,faster,08a3c041086a2492
+round-14-orientation-long,geometry.Point4(f32).orientation.policy.adaptive_exact.exponent_extreme,4096,9,95572784.0,40385481.0,0.5774374323970723,9,0,faster,08a3c041086a2492
+round-14-orientation-long,geometry.Point4(f32).orientation.policy.adaptive_exact.near_dependent,4096,9,130574682.0,66679708.0,0.4893366234657956,9,0,faster,741e90ee500eab03
+round-14-orientation-long,geometry.Point4(f32).orientation.policy.adaptive_exact.perturbed_ulp,4096,9,83163997.0,34519308.0,0.5849248563654293,9,0,faster,08a3c041086a2492
+round-14-orientation-long,geometry.Point4(f64).orientation.policy.adaptive_exact.ordinary,4096,9,131743929.0,60131655.0,0.5435717193465515,9,0,faster,190dcf1217b97f87
+round-14-orientation-long,geometry.Point4(f64).orientation.policy.adaptive_exact.near_degenerate,4096,9,77987208.0,34329369.0,0.5598076930770493,9,0,faster,08a3c041086a2492
+round-14-orientation-long,geometry.Point4(f64).orientation.policy.adaptive_exact.exponent_extreme,4096,9,103520917.0,56251992.0,0.4566123095683165,9,0,faster,08a3c041086a2492
+round-14-orientation-long,geometry.Point4(f64).orientation.policy.adaptive_exact.near_dependent,4096,9,126225511.0,65876551.0,0.4781043033369063,9,0,faster,50f6419842e8f7c4
+round-14-orientation-long,geometry.Point4(f64).orientation.policy.adaptive_exact.perturbed_ulp,4096,9,81247230.0,35547975.0,0.5624715451837558,9,0,faster,08a3c041086a2492
+round-15-line-regression-repeat,"geometry.LineOf(2,f64).intersect.policy.adaptive_exact.crossing.normalized_operands",4096,9,45869679.0,42404096.0,0.07555280689886668,7,2,undecided,6b291eb1a0e76bda
+round-15-line-regression-repeat,"geometry.LineOf(2,f64).intersect.policy.adaptive_exact.crossing_offset.normalized_operands",4096,9,44327668.0,42767481.0,0.035196685735870425,6,3,undecided,dd6f28f1fd50558f
+round-15-line-regression-repeat,"geometry.LineOf(2,f64).intersect.policy.adaptive_exact.collinear.normalized_operands",4096,9,44038686.0,40251909.0,0.08598751107151562,7,2,undecided,2da0e90819120e60
+round-15-line-regression-repeat,"geometry.LineOf(2,f64).intersect.policy.adaptive_exact.parallel_disjoint.normalized_operands",4096,9,47168680.0,46388177.0,0.016547060464698185,6,3,undecided,48d6cf544a230a36
+round-15-line-regression-repeat,"geometry.LineOf(2,f64).intersect.policy.adaptive_exact.coincident.normalized_operands",4096,9,43874541.0,39735923.0,0.09432846260431534,7,2,undecided,2da0e90819120e60
+round-15-line-regression-repeat,"geometry.LineOf(3,f64).intersect.policy.adaptive_exact.crossing.normalized_operands",4096,9,77861091.0,70358668.0,0.09635651008280888,9,0,faster,1d05adeb0e82eef0
+round-15-line-regression-repeat,"geometry.LineOf(3,f64).intersect.policy.adaptive_exact.crossing_offset.normalized_operands",4096,9,84709924.0,66872638.0,0.2105690237663299,9,0,faster,ba28b0336a0454d8
+round-15-line-regression-repeat,"geometry.LineOf(3,f64).intersect.policy.adaptive_exact.collinear.normalized_operands",4096,9,80437936.0,66811059.0,0.169408586018418,9,0,faster,969170a3a3252681
+round-15-line-regression-repeat,"geometry.LineOf(3,f64).intersect.policy.adaptive_exact.parallel_disjoint.normalized_operands",4096,9,80658271.0,71835725.0,0.10938178925258639,9,0,faster,4319d572f38ef5e3
+round-15-line-regression-repeat,"geometry.LineOf(3,f64).intersect.policy.adaptive_exact.coincident.normalized_operands",4096,9,80784560.0,65666378.0,0.18714197366427446,9,0,faster,969170a3a3252681
+round-15-line-regression-repeat,"geometry.LineOf(4,f64).intersect.policy.adaptive_exact.crossing.normalized_operands",4096,9,128620128.0,78991235.0,0.3858563490156066,9,0,faster,1a36c45a08a6ba8c
+round-15-line-regression-repeat,"geometry.LineOf(4,f64).intersect.policy.adaptive_exact.crossing_offset.normalized_operands",4096,9,135019373.0,82355640.0,0.3900457529157686,9,0,faster,52263eb8fc7af65c
+round-15-line-regression-repeat,"geometry.LineOf(4,f64).intersect.policy.adaptive_exact.collinear.normalized_operands",4096,9,130000344.0,79896823.0,0.3854106801440464,9,0,faster,8e89dd71730c4379
+round-15-line-regression-repeat,"geometry.LineOf(4,f64).intersect.policy.adaptive_exact.parallel_disjoint.normalized_operands",4096,9,134115862.0,82214070.0,0.3869921963443817,9,0,faster,8a227bed70013ccd
+round-15-line-regression-repeat,"geometry.LineOf(4,f64).intersect.policy.adaptive_exact.coincident.normalized_operands",4096,9,129107896.0,81051235.0,0.372220929074702,9,0,faster,8e89dd71730c4379
+round-16-gp-rollback-repeat,"algebra.Multivector(3,f32,.clifford,.{ 1, 1, 1 },3).geometricProduct",4096,9,886351.0,879516.0,0.007711391988049881,5,4,undecided,4eacd0d975bda0bc
+round-16-gp-rollback-repeat,"algebra.Multivector(3,f32,.clifford,.{ 1, 1, 1 },3).geometricProduct.sparse",4096,9,379472.0,355592.0,0.06292954420879537,5,4,undecided,49f2cb31a3ae41d0
+round-16-gp-rollback-repeat,"algebra.Multivector(3,f64,.clifford,.{ 1, 1, 1 },3).geometricProduct",4096,9,1267225.0,1043771.0,0.1763333267572846,5,4,undecided,b0068aa2a4adfbd9
+round-16-gp-rollback-repeat,"algebra.Multivector(3,f64,.clifford,.{ 1, 1, 1 },3).geometricProduct.sparse",4096,9,441175.0,328158.0,0.25617272057573526,6,3,undecided,52becdc855a2af94
+round-16-gp-rollback-repeat,"algebra.Multivector(4,f32,.clifford,.{ 1, 1, 1, 1 },4).geometricProduct",4096,9,9434382.0,9311213.0,0.01305533314211784,4,5,undecided,8e43a4bd0a39e9d4
+round-16-gp-rollback-repeat,"algebra.Multivector(4,f32,.clifford,.{ 1, 1, 1, 1 },4).geometricProduct.sparse",4096,9,946649.0,922776.0,0.025218428372078775,5,4,undecided,fea9f11f6e36f18e
+round-16-gp-rollback-repeat,"algebra.Multivector(4,f32,.clifford,.{ 1, 1, 1, 1 },4).geometricProduct.motor",4096,9,852321.0,720859.0,0.15424001051247124,6,3,undecided,6f8c030cf3d83e56
+round-16-gp-rollback-repeat,"algebra.Multivector(4,f64,.clifford,.{ 1, 1, 1, 1 },4).geometricProduct",4096,9,7974108.0,8881016.0,-0.11373159229847402,2,7,undecided,22755c5592b92d87
+round-16-gp-rollback-repeat,"algebra.Multivector(4,f64,.clifford,.{ 1, 1, 1, 1 },4).geometricProduct.sparse",4096,9,784947.0,819558.0,-0.04409342286804077,4,5,undecided,5075e2218092ed4e
+round-16-gp-rollback-repeat,"algebra.Multivector(4,f64,.clifford,.{ 1, 1, 1, 1 },4).geometricProduct.motor",4096,9,638624.0,615247.0,0.036605263817206996,6,3,undecided,025885011aac7542
+round-16-gp-rollback-repeat,"algebra.Multivector(4,f32,.projective,.{ 0, 1, 1, 1 },3).geometricProduct",4096,9,7308803.0,5999643.0,0.17912098602192453,6,3,undecided,d25eb67cf18ec7f1
+round-16-gp-rollback-repeat,"algebra.Multivector(4,f32,.projective,.{ 0, 1, 1, 1 },3).geometricProduct.sparse",4096,9,853992.0,779449.0,0.08728770292930145,5,4,undecided,b83ddb88b8b6c154
+round-16-gp-rollback-repeat,"algebra.Multivector(4,f32,.projective,.{ 0, 1, 1, 1 },3).geometricProduct.motor",4096,9,790179.0,759166.0,0.039248069108391896,5,4,undecided,6c59c54debcf2383
+round-16-gp-rollback-repeat,"algebra.Multivector(4,f64,.projective,.{ 0, 1, 1, 1 },3).geometricProduct",4096,9,7065753.0,7292566.0,-0.03210032957563051,2,7,undecided,17b60dcbcb482181
+round-16-gp-rollback-repeat,"algebra.Multivector(4,f64,.projective,.{ 0, 1, 1, 1 },3).geometricProduct.sparse",4096,9,886974.0,895763.0,-0.009908971401641988,3,6,undecided,8dff0c506a1c1b39
+round-16-gp-rollback-repeat,"algebra.Multivector(4,f64,.projective,.{ 0, 1, 1, 1 },3).geometricProduct.motor",4096,9,801294.0,814321.0,-0.01625745356885238,5,4,undecided,bcf6f7826e7bddd5
+round-16-gp-rollback-repeat,"algebra.Multivector(5,f32,.projective,.{ 0, 1, 1, 1, 1 },4).geometricProduct",4096,9,26378453.0,27258769.0,-0.033372540838539695,4,5,undecided,e83d217d692e2e94
+round-16-gp-rollback-repeat,"algebra.Multivector(5,f32,.projective,.{ 0, 1, 1, 1, 1 },4).geometricProduct.sparse",4096,9,1506154.0,1575445.0,-0.04600525577065825,3,6,undecided,a5230d84bca7c539
+round-16-gp-rollback-repeat,"algebra.Multivector(5,f32,.projective,.{ 0, 1, 1, 1, 1 },4).geometricProduct.motor",4096,9,2403447.0,2037649.0,0.15219724004731539,4,5,undecided,347b5a74c8a9640e
+round-16-gp-rollback-repeat,"algebra.Multivector(5,f64,.projective,.{ 0, 1, 1, 1, 1 },4).geometricProduct",4096,9,26260362.0,26474416.0,-0.008151220459184835,4,5,undecided,843ae063f0ef1cd9
+round-16-gp-rollback-repeat,"algebra.Multivector(5,f64,.projective,.{ 0, 1, 1, 1, 1 },4).geometricProduct.sparse",4096,9,1530165.0,1166209.0,0.23785408763107246,7,2,undecided,fb19f7984cc0b067
+round-16-gp-rollback-repeat,"algebra.Multivector(5,f64,.projective,.{ 0, 1, 1, 1, 1 },4).geometricProduct.motor",4096,9,1975721.0,2094469.0,-0.060103627992008996,5,4,undecided,02214c0a131bb982
+round-16-gp-rollback-repeat,"algebra.Multivector(5,f32,.conformal,.{ 1, 1, 1, 1, -1 },3).geometricProduct",4096,9,33337284.0,33465878.0,-0.0038573628253579387,3,6,undecided,d754a3d730660e4e
+round-16-gp-rollback-repeat,"algebra.Multivector(5,f32,.conformal,.{ 1, 1, 1, 1, -1 },3).geometricProduct.sparse",4096,9,1518187.0,1683021.0,-0.10857292283493404,2,7,undecided,2be07468bcc77019
+round-16-gp-rollback-repeat,"algebra.Multivector(5,f32,.conformal,.{ 1, 1, 1, 1, -1 },3).geometricProduct.motor",4096,9,2687595.0,1846927.0,0.3127956407122353,4,5,undecided,d94e3faba1b6dedf
+round-16-gp-rollback-repeat,"algebra.Multivector(5,f64,.conformal,.{ 1, 1, 1, 1, -1 },3).geometricProduct",4096,9,34657416.0,34642507.0,0.00043018210013118116,5,4,undecided,6d443d846b18136b
+round-16-gp-rollback-repeat,"algebra.Multivector(5,f64,.conformal,.{ 1, 1, 1, 1, -1 },3).geometricProduct.sparse",4096,9,1316785.0,1371701.0,-0.041704606294877294,5,4,undecided,b9254da07bad97fb
+round-16-gp-rollback-repeat,"algebra.Multivector(5,f64,.conformal,.{ 1, 1, 1, 1, -1 },3).geometricProduct.motor",4096,9,1606583.0,1854461.0,-0.15428894741199178,1,8,slower,9474bf887995f37e
+round-16-gp-rollback-repeat,"algebra.Multivector(6,f32,.conformal,.{ 1, 1, 1, 1, 1, -1 },4).geometricProduct",4096,9,131450646.0,129983945.0,0.011157807470949972,3,6,undecided,5fd33f30c906b79f
+round-16-gp-rollback-repeat,"algebra.Multivector(6,f32,.conformal,.{ 1, 1, 1, 1, 1, -1 },4).geometricProduct.sparse",4096,9,2780793.0,2482185.0,0.10738231864076182,5,4,undecided,d7c64dc9d3768c05
+round-16-gp-rollback-repeat,"algebra.Multivector(6,f32,.conformal,.{ 1, 1, 1, 1, 1, -1 },4).geometricProduct.motor",4096,9,8303715.0,10047771.0,-0.21003322007077554,2,7,undecided,3ae597892f5a7258
+round-16-gp-rollback-repeat,"algebra.Multivector(6,f64,.conformal,.{ 1, 1, 1, 1, 1, -1 },4).geometricProduct",4096,9,130266919.0,130683423.0,-0.0031973121280315228,5,4,undecided,012f2f7900e6dd2b
+round-16-gp-rollback-repeat,"algebra.Multivector(6,f64,.conformal,.{ 1, 1, 1, 1, 1, -1 },4).geometricProduct.sparse",4096,9,3187054.0,2513575.0,0.21131709723148714,7,2,undecided,28bd6ca5466452ae
+round-16-gp-rollback-repeat,"algebra.Multivector(6,f64,.conformal,.{ 1, 1, 1, 1, 1, -1 },4).geometricProduct.motor",4096,9,8361184.0,5442197.0,0.34911168083371924,6,3,undecided,6e6e947ad807632e
+round-17-gp-baseline-control,"algebra.Multivector(3,f32,.clifford,.{ 1, 1, 1 },3).geometricProduct",4096,9,1108285.0,1052058.0,0.05073334025092824,5,4,undecided,4eacd0d975bda0bc
+round-17-gp-baseline-control,"algebra.Multivector(3,f32,.clifford,.{ 1, 1, 1 },3).geometricProduct.sparse",4096,9,440629.0,475878.0,-0.07999700428251431,4,5,undecided,49f2cb31a3ae41d0
+round-17-gp-baseline-control,"algebra.Multivector(3,f64,.clifford,.{ 1, 1, 1 },3).geometricProduct",4096,9,1277835.0,1305757.0,-0.021851021454256613,4,5,undecided,b0068aa2a4adfbd9
+round-17-gp-baseline-control,"algebra.Multivector(3,f64,.clifford,.{ 1, 1, 1 },3).geometricProduct.sparse",4096,9,441942.0,512182.0,-0.1589348828579316,2,7,undecided,52becdc855a2af94
+round-17-gp-baseline-control,"algebra.Multivector(4,f32,.clifford,.{ 1, 1, 1, 1 },4).geometricProduct",4096,9,10152481.0,9738466.0,0.04077968725083061,7,2,undecided,8e43a4bd0a39e9d4
+round-17-gp-baseline-control,"algebra.Multivector(4,f32,.clifford,.{ 1, 1, 1, 1 },4).geometricProduct.sparse",4096,9,939101.0,840966.0,0.10449887711758374,4,5,undecided,fea9f11f6e36f18e
+round-17-gp-baseline-control,"algebra.Multivector(4,f32,.clifford,.{ 1, 1, 1, 1 },4).geometricProduct.motor",4096,9,677487.0,688614.0,-0.01642393138170917,4,5,undecided,6f8c030cf3d83e56
+round-17-gp-baseline-control,"algebra.Multivector(4,f64,.clifford,.{ 1, 1, 1, 1 },4).geometricProduct",4096,9,8824626.0,9728654.0,-0.10244377495431535,3,6,undecided,22755c5592b92d87
+round-17-gp-baseline-control,"algebra.Multivector(4,f64,.clifford,.{ 1, 1, 1, 1 },4).geometricProduct.sparse",4096,9,836121.0,1022646.0,-0.22308374027204197,2,7,undecided,5075e2218092ed4e
+round-17-gp-baseline-control,"algebra.Multivector(4,f64,.clifford,.{ 1, 1, 1, 1 },4).geometricProduct.motor",4096,9,677820.0,890096.0,-0.31317458912395624,2,7,undecided,025885011aac7542
+round-17-gp-baseline-control,"algebra.Multivector(4,f32,.projective,.{ 0, 1, 1, 1 },3).geometricProduct",4096,9,7399387.0,7666159.0,-0.03605325684411425,4,5,undecided,d25eb67cf18ec7f1
+round-17-gp-baseline-control,"algebra.Multivector(4,f32,.projective,.{ 0, 1, 1, 1 },3).geometricProduct.sparse",4096,9,939971.0,823807.0,0.12358253605696345,8,1,faster,b83ddb88b8b6c154
+round-17-gp-baseline-control,"algebra.Multivector(4,f32,.projective,.{ 0, 1, 1, 1 },3).geometricProduct.motor",4096,9,773844.0,706832.0,0.08659626488026011,4,5,undecided,6c59c54debcf2383
+round-17-gp-baseline-control,"algebra.Multivector(4,f64,.projective,.{ 0, 1, 1, 1 },3).geometricProduct",4096,9,7942584.0,7608276.0,0.04209058412224535,5,4,undecided,17b60dcbcb482181
+round-17-gp-baseline-control,"algebra.Multivector(4,f64,.projective,.{ 0, 1, 1, 1 },3).geometricProduct.sparse",4096,9,886522.0,1029494.0,-0.1612729294930075,2,7,undecided,8dff0c506a1c1b39
+round-17-gp-baseline-control,"algebra.Multivector(4,f64,.projective,.{ 0, 1, 1, 1 },3).geometricProduct.motor",4096,9,737562.0,899301.0,-0.2192886835276221,3,6,undecided,bcf6f7826e7bddd5
+round-17-gp-baseline-control,"algebra.Multivector(5,f32,.projective,.{ 0, 1, 1, 1, 1 },4).geometricProduct",4096,9,29065328.0,29793805.0,-0.025063436407805204,6,3,undecided,e83d217d692e2e94
+round-17-gp-baseline-control,"algebra.Multivector(5,f32,.projective,.{ 0, 1, 1, 1, 1 },4).geometricProduct.sparse",4096,9,1531789.0,1646096.0,-0.07462320202064383,4,5,undecided,a5230d84bca7c539
+round-17-gp-baseline-control,"algebra.Multivector(5,f32,.projective,.{ 0, 1, 1, 1, 1 },4).geometricProduct.motor",4096,9,1929147.0,1896641.0,0.016849934193713594,5,4,undecided,347b5a74c8a9640e
+round-17-gp-baseline-control,"algebra.Multivector(5,f64,.projective,.{ 0, 1, 1, 1, 1 },4).geometricProduct",4096,9,29753234.0,29157023.0,0.02003852757653168,2,7,undecided,843ae063f0ef1cd9
+round-17-gp-baseline-control,"algebra.Multivector(5,f64,.projective,.{ 0, 1, 1, 1, 1 },4).geometricProduct.sparse",4096,9,1607478.0,1396163.0,0.13145747562330556,5,4,undecided,fb19f7984cc0b067
+round-17-gp-baseline-control,"algebra.Multivector(5,f64,.projective,.{ 0, 1, 1, 1, 1 },4).geometricProduct.motor",4096,9,1947956.0,2512985.0,-0.2900625065453224,2,7,undecided,02214c0a131bb982
+round-17-gp-baseline-control,"algebra.Multivector(5,f32,.conformal,.{ 1, 1, 1, 1, -1 },3).geometricProduct",4096,9,35848358.0,36890582.0,-0.02907313076933677,3,6,undecided,d754a3d730660e4e
+round-17-gp-baseline-control,"algebra.Multivector(5,f32,.conformal,.{ 1, 1, 1, 1, -1 },3).geometricProduct.sparse",4096,9,1420987.0,1643233.0,-0.15640255681438325,4,5,undecided,2be07468bcc77019
+round-17-gp-baseline-control,"algebra.Multivector(5,f32,.conformal,.{ 1, 1, 1, 1, -1 },3).geometricProduct.motor",4096,9,2103897.0,1889187.0,0.10205347505129767,7,2,undecided,d94e3faba1b6dedf
+round-17-gp-baseline-control,"algebra.Multivector(5,f64,.conformal,.{ 1, 1, 1, 1, -1 },3).geometricProduct",4096,9,38078159.0,39139338.0,-0.027868442904500714,3,6,undecided,6d443d846b18136b
+round-17-gp-baseline-control,"algebra.Multivector(5,f64,.conformal,.{ 1, 1, 1, 1, -1 },3).geometricProduct.sparse",4096,9,1708504.0,1893837.0,-0.10847677266193113,3,6,undecided,b9254da07bad97fb
+round-17-gp-baseline-control,"algebra.Multivector(5,f64,.conformal,.{ 1, 1, 1, 1, -1 },3).geometricProduct.motor",4096,9,2593042.0,2618706.0,-0.009897255809971455,4,5,undecided,9474bf887995f37e
+round-17-gp-baseline-control,"algebra.Multivector(6,f32,.conformal,.{ 1, 1, 1, 1, 1, -1 },4).geometricProduct",4096,9,146598101.0,152919868.0,-0.04312311658116226,3,6,undecided,5fd33f30c906b79f
+round-17-gp-baseline-control,"algebra.Multivector(6,f32,.conformal,.{ 1, 1, 1, 1, 1, -1 },4).geometricProduct.sparse",4096,9,2774305.0,2731039.0,0.015595257190539613,3,6,undecided,d7c64dc9d3768c05
+round-17-gp-baseline-control,"algebra.Multivector(6,f32,.conformal,.{ 1, 1, 1, 1, 1, -1 },4).geometricProduct.motor",4096,9,8188655.0,9144607.0,-0.11674102767792757,3,6,undecided,3ae597892f5a7258
+round-17-gp-baseline-control,"algebra.Multivector(6,f64,.conformal,.{ 1, 1, 1, 1, 1, -1 },4).geometricProduct",4096,9,144122646.0,148180810.0,-0.02815771228624265,3,6,undecided,012f2f7900e6dd2b
+round-17-gp-baseline-control,"algebra.Multivector(6,f64,.conformal,.{ 1, 1, 1, 1, 1, -1 },4).geometricProduct.sparse",4096,9,2708549.0,3134941.0,-0.15742451031899368,4,5,undecided,28bd6ca5466452ae
+round-17-gp-baseline-control,"algebra.Multivector(6,f64,.conformal,.{ 1, 1, 1, 1, 1, -1 },4).geometricProduct.motor",4096,9,8097641.0,10236807.0,-0.26417150377498827,1,8,slower,6e6e947ad807632e
+round-18-gp-final-control,"algebra.Multivector(3,f32,.clifford,.{ 1, 1, 1 },3).geometricProduct",4096,9,1043341.0,1049729.0,-0.006122638715434359,4,5,undecided,4eacd0d975bda0bc
+round-18-gp-final-control,"algebra.Multivector(3,f32,.clifford,.{ 1, 1, 1 },3).geometricProduct.sparse",4096,9,443745.0,470947.0,-0.061300972405322875,3,6,undecided,49f2cb31a3ae41d0
+round-18-gp-final-control,"algebra.Multivector(3,f64,.clifford,.{ 1, 1, 1 },3).geometricProduct",4096,9,1209003.0,1245147.0,-0.02989570745482021,4,5,undecided,b0068aa2a4adfbd9
+round-18-gp-final-control,"algebra.Multivector(3,f64,.clifford,.{ 1, 1, 1 },3).geometricProduct.sparse",4096,9,428968.0,455603.0,-0.062090878573693144,3,6,undecided,52becdc855a2af94
+round-18-gp-final-control,"algebra.Multivector(4,f32,.clifford,.{ 1, 1, 1, 1 },4).geometricProduct",4096,9,9196145.0,9141610.0,0.005930202274975003,4,5,undecided,8e43a4bd0a39e9d4
+round-18-gp-final-control,"algebra.Multivector(4,f32,.clifford,.{ 1, 1, 1, 1 },4).geometricProduct.sparse",4096,9,801020.0,763338.0,0.047042520785997854,5,4,undecided,fea9f11f6e36f18e
+round-18-gp-final-control,"algebra.Multivector(4,f32,.clifford,.{ 1, 1, 1, 1 },4).geometricProduct.motor",4096,9,611380.0,848980.0,-0.388629003238575,5,4,undecided,6f8c030cf3d83e56
+round-18-gp-final-control,"algebra.Multivector(4,f64,.clifford,.{ 1, 1, 1, 1 },4).geometricProduct",4096,9,9451275.0,9184089.0,0.028269836609346358,6,3,undecided,22755c5592b92d87
+round-18-gp-final-control,"algebra.Multivector(4,f64,.clifford,.{ 1, 1, 1, 1 },4).geometricProduct.sparse",4096,9,977290.0,928315.0,0.05011306776903478,4,5,undecided,5075e2218092ed4e
+round-18-gp-final-control,"algebra.Multivector(4,f64,.clifford,.{ 1, 1, 1, 1 },4).geometricProduct.motor",4096,9,794267.0,865601.0,-0.0898111088588598,6,3,undecided,025885011aac7542
+round-18-gp-final-control,"algebra.Multivector(4,f32,.projective,.{ 0, 1, 1, 1 },3).geometricProduct",4096,9,7272866.0,7281899.0,-0.0012420138085866012,4,5,undecided,d25eb67cf18ec7f1
+round-18-gp-final-control,"algebra.Multivector(4,f32,.projective,.{ 0, 1, 1, 1 },3).geometricProduct.sparse",4096,9,876317.0,883476.0,-0.008169418144347308,4,5,undecided,b83ddb88b8b6c154
+round-18-gp-final-control,"algebra.Multivector(4,f32,.projective,.{ 0, 1, 1, 1 },3).geometricProduct.motor",4096,9,693910.0,873465.0,-0.2587583404187863,1,8,slower,6c59c54debcf2383
+round-18-gp-final-control,"algebra.Multivector(4,f64,.projective,.{ 0, 1, 1, 1 },3).geometricProduct",4096,9,6889559.0,7268472.0,-0.05499815009930244,5,4,undecided,17b60dcbcb482181
+round-18-gp-final-control,"algebra.Multivector(4,f64,.projective,.{ 0, 1, 1, 1 },3).geometricProduct.sparse",4096,9,877264.0,876706.0,0.0006360685038939248,3,6,undecided,8dff0c506a1c1b39
+round-18-gp-final-control,"algebra.Multivector(4,f64,.projective,.{ 0, 1, 1, 1 },3).geometricProduct.motor",4096,9,829741.0,835213.0,-0.00659482898880494,3,6,undecided,bcf6f7826e7bddd5
+round-18-gp-final-control,"algebra.Multivector(5,f32,.projective,.{ 0, 1, 1, 1, 1 },4).geometricProduct",4096,9,27094369.0,27599810.0,-0.018654835622855803,5,4,undecided,e83d217d692e2e94
+round-18-gp-final-control,"algebra.Multivector(5,f32,.projective,.{ 0, 1, 1, 1, 1 },4).geometricProduct.sparse",4096,9,1539013.0,1525594.0,0.008719224593944301,3,6,undecided,a5230d84bca7c539
+round-18-gp-final-control,"algebra.Multivector(5,f32,.projective,.{ 0, 1, 1, 1, 1 },4).geometricProduct.motor",4096,9,2250643.0,2274640.0,-0.010662286288851675,4,5,undecided,347b5a74c8a9640e
+round-18-gp-final-control,"algebra.Multivector(5,f64,.projective,.{ 0, 1, 1, 1, 1 },4).geometricProduct",4096,9,26407907.0,28582565.0,-0.0823487450179221,3,6,undecided,843ae063f0ef1cd9
+round-18-gp-final-control,"algebra.Multivector(5,f64,.projective,.{ 0, 1, 1, 1, 1 },4).geometricProduct.sparse",4096,9,1522408.0,1537618.0,-0.009990751493686318,4,5,undecided,fb19f7984cc0b067
+round-18-gp-final-control,"algebra.Multivector(5,f64,.projective,.{ 0, 1, 1, 1, 1 },4).geometricProduct.motor",4096,9,1828572.0,2433869.0,-0.3310216934307208,1,8,slower,02214c0a131bb982
+round-18-gp-final-control,"algebra.Multivector(5,f32,.conformal,.{ 1, 1, 1, 1, -1 },3).geometricProduct",4096,9,33984832.0,36080806.0,-0.061673807891708864,3,6,undecided,d754a3d730660e4e
+round-18-gp-final-control,"algebra.Multivector(5,f32,.conformal,.{ 1, 1, 1, 1, -1 },3).geometricProduct.sparse",4096,9,1226490.0,1620030.0,-0.32086686397769243,2,7,undecided,2be07468bcc77019
+round-18-gp-final-control,"algebra.Multivector(5,f32,.conformal,.{ 1, 1, 1, 1, -1 },3).geometricProduct.motor",4096,9,1621975.0,2770391.0,-0.7080355739145178,3,6,undecided,d94e3faba1b6dedf
+round-18-gp-final-control,"algebra.Multivector(5,f64,.conformal,.{ 1, 1, 1, 1, -1 },3).geometricProduct",4096,9,34648232.0,34801075.0,-0.004411278474468769,4,5,undecided,6d443d846b18136b
+round-18-gp-final-control,"algebra.Multivector(5,f64,.conformal,.{ 1, 1, 1, 1, -1 },3).geometricProduct.sparse",4096,9,1616320.0,1503558.0,0.0697646505642447,4,5,undecided,b9254da07bad97fb
+round-18-gp-final-control,"algebra.Multivector(5,f64,.conformal,.{ 1, 1, 1, 1, -1 },3).geometricProduct.motor",4096,9,2653274.0,2675171.0,-0.008252822739000947,4,5,undecided,9474bf887995f37e
+round-18-gp-final-control,"algebra.Multivector(6,f32,.conformal,.{ 1, 1, 1, 1, 1, -1 },4).geometricProduct",4096,9,128905110.0,130731304.0,-0.014166963590504674,3,6,undecided,5fd33f30c906b79f
+round-18-gp-final-control,"algebra.Multivector(6,f32,.conformal,.{ 1, 1, 1, 1, 1, -1 },4).geometricProduct.sparse",4096,9,3012172.0,3032000.0,-0.006582625427764418,5,4,undecided,d7c64dc9d3768c05
+round-18-gp-final-control,"algebra.Multivector(6,f32,.conformal,.{ 1, 1, 1, 1, 1, -1 },4).geometricProduct.motor",4096,9,8341907.0,7046520.0,0.15528667485743966,6,3,undecided,3ae597892f5a7258
+round-18-gp-final-control,"algebra.Multivector(6,f64,.conformal,.{ 1, 1, 1, 1, 1, -1 },4).geometricProduct",4096,9,129458967.0,132110268.0,-0.020479855984020016,2,7,undecided,012f2f7900e6dd2b
+round-18-gp-final-control,"algebra.Multivector(6,f64,.conformal,.{ 1, 1, 1, 1, 1, -1 },4).geometricProduct.sparse",4096,9,3067778.0,3072301.0,-0.0014743570101878297,3,6,undecided,28bd6ca5466452ae
+round-18-gp-final-control,"algebra.Multivector(6,f64,.conformal,.{ 1, 1, 1, 1, 1, -1 },4).geometricProduct.motor",4096,9,8915060.0,9321575.0,-0.04559868357588171,3,6,undecided,6e6e947ad807632e
+round-19-final-v4-roots,leaf.scalar.rootn.h.normal,64,9,73317.0,81204.0,-0.10757395965465036,5,4,undecided,a23a8bd616c1b2e7
+round-19-final-v4-roots,leaf.scalar.rootn.h.boundary,64,9,32075.0,33081.0,-0.031363990646921275,5,4,undecided,d018dad566507b28
+round-19-final-v4-roots,leaf.scalar.rootn.h.skewed,64,9,39625.0,35938.0,0.09304731861198738,5,4,undecided,c94d5ec6b1c88f0c
+round-19-final-v4-roots,leaf.scalar.rootn.f.normal,64,9,4162924.0,216394.0,0.9480187483605274,9,0,faster,36c7f9527f0c8ac9
+round-19-final-v4-roots,leaf.scalar.rootn.f.boundary,64,9,2260546.0,126145.0,0.9441971099017671,9,0,faster,4924b3684211942b
+round-19-final-v4-roots,leaf.scalar.rootn.f.skewed,64,9,3113548.0,145680.0,0.9532109349205472,9,0,faster,d9dce4e569055114
+round-19-final-v4-roots,leaf.scalar.rootn.d.normal,64,9,33734217.0,1909302.0,0.9434016209713716,9,0,faster,ecb6910996975047
+round-19-final-v4-roots,leaf.scalar.rootn.d.boundary,64,9,26218253.0,1601902.0,0.9389012685170137,9,0,faster,b75c1576fd9b6863
+round-19-final-v4-roots,leaf.scalar.rootn.d.skewed,64,9,24050085.0,1236804.0,0.948573820009368,9,0,faster,e8c34f84416d6a7d
+round-19-final-v4-roots,leaf.root.rootn.dispatch,64,9,17040572.0,977662.0,0.9426273953714699,9,0,faster,a08cd2f58e77a686
+round-19-final-v4-roots,lanes.rootnhv.f16.w2.normal,64,9,95644.0,155084.0,-0.6214712893647275,4,5,undecided,5f18c030a259fb58
+round-19-final-v4-roots,lanes.rootnhv.f16.w2.boundary,64,9,40979.0,52342.0,-0.2772883672124747,4,5,undecided,2ff5e27b5b2b3db1
+round-19-final-v4-roots,lanes.rootnhv.f16.w2.skewed,64,9,78345.0,100201.0,-0.2789712170527794,3,6,undecided,49726d7734f241ca
+round-19-final-v4-roots,lanes.rootnhv.f16.w4.normal,64,9,193169.0,194940.0,-0.009168137744669175,4,5,undecided,9c5caa01be5e1baa
+round-19-final-v4-roots,lanes.rootnhv.f16.w4.boundary,64,9,63050.0,76583.0,-0.21463917525773196,3,6,undecided,a7c8b5575b9218c2
+round-19-final-v4-roots,lanes.rootnhv.f16.w4.skewed,64,9,169042.0,171917.0,-0.01700760757681523,4,5,undecided,e6b66dd3d93ac579
+round-19-final-v4-roots,lanes.rootnhv.f16.w8.normal,64,9,324540.0,369225.0,-0.1376871880199667,4,5,undecided,a97b07a2e0c83713
+round-19-final-v4-roots,lanes.rootnhv.f16.w8.boundary,64,9,116926.0,158882.0,-0.3588252398953184,2,7,undecided,7879130dfad80138
+round-19-final-v4-roots,lanes.rootnhv.f16.w8.skewed,64,9,297844.0,354648.0,-0.190717288244853,3,6,undecided,1f738483f989fd1b
+round-19-final-v4-roots,lanes.rootnfv.f32.w2.normal,64,9,6380657.0,579315.0,0.9092076254843349,9,0,faster,744f2b0e43f08bb2
+round-19-final-v4-roots,lanes.rootnfv.f32.w2.boundary,64,9,2328748.0,132888.0,0.9429358608144806,9,0,faster,9b3bd05585dd10e1
+round-19-final-v4-roots,lanes.rootnfv.f32.w2.skewed,64,9,5500757.0,558929.0,0.898390530612423,9,0,faster,ffd6839780d47e57
+round-19-final-v4-roots,lanes.rootnfv.f32.w4.normal,64,9,12745992.0,828171.0,0.9350249866781651,9,0,faster,a7de7708513ed505
+round-19-final-v4-roots,lanes.rootnfv.f32.w4.boundary,64,9,3960926.0,196196.0,0.9504671382398965,9,0,faster,001638b24a141948
+round-19-final-v4-roots,lanes.rootnfv.f32.w4.skewed,64,9,10387362.0,774850.0,0.9254045444839604,9,0,faster,cf52ee055367a384
+round-19-final-v4-roots,lanes.rootnfv.f32.w8.normal,64,9,26637804.0,2016787.0,0.9242885412025706,9,0,faster,c422ade8fcd2d9ac
+round-19-final-v4-roots,lanes.rootnfv.f32.w8.boundary,64,9,12610134.0,431978.0,0.9657435836922906,9,0,faster,8e95bf2f9bcf2a41
+round-19-final-v4-roots,lanes.rootnfv.f32.w8.skewed,64,9,22032680.0,1796358.0,0.9184684750107568,9,0,faster,e2700c793c0d4384
+round-19-final-v4-roots,lanes.rootndv.f64.w2.normal,64,9,56561493.0,3632189.0,0.9357833605983491,9,0,faster,7158490f5a8c53dd
+round-19-final-v4-roots,lanes.rootndv.f64.w2.boundary,64,9,26229139.0,1252267.0,0.9522566486074896,9,0,faster,d74ef2e6e57efe70
+round-19-final-v4-roots,lanes.rootndv.f64.w2.skewed,64,9,68544336.0,4344293.0,0.9366206859163388,9,0,faster,adb2c3c7b6f2c0fe
+round-19-final-v4-roots,lanes.rootndv.f64.w4.normal,64,9,97602936.0,6772375.0,0.9306129991827296,9,0,faster,bbe3a3f0946457dc
+round-19-final-v4-roots,lanes.rootndv.f64.w4.boundary,64,9,53013849.0,3425954.0,0.9353762447997315,9,0,faster,77dc8118c1879bb7
+round-19-final-v4-roots,lanes.rootndv.f64.w4.skewed,64,9,139225182.0,9373222.0,0.9326758143508838,9,0,faster,52b707b8ba9c0523
+round-19-final-v4-roots,lanes.rootndv.f64.w8.normal,64,9,184638175.0,13339488.0,0.927753358697355,9,0,faster,bc3213c54a4e326e
+round-19-final-v4-roots,lanes.rootndv.f64.w8.boundary,64,9,115876520.0,5567985.0,0.9519489798278374,9,0,faster,c3cbe97e78b2a317
+round-19-final-v4-roots,lanes.rootndv.f64.w8.skewed,64,9,244672167.0,16332960.0,0.9332455333998002,9,0,faster,41fd5374e7204705
+round-19-final-v4-roots,lanes.rootnhvLanes.f16.w2.normal,64,9,91276.0,91377.0,-0.0011065340286603269,6,3,undecided,c6edd8b7bfabded0
+round-19-final-v4-roots,lanes.rootnhvLanes.f16.w2.boundary,64,9,32533.0,30851.0,0.051701349399071714,8,1,faster,daa1c27e4ff98695
+round-19-final-v4-roots,lanes.rootnhvLanes.f16.w2.skewed,64,9,72742.0,73709.0,-0.013293558054493965,6,3,undecided,d9370a9a4d9231d2
+round-19-final-v4-roots,lanes.rootnhvLanes.f16.w4.normal,64,9,165142.0,184866.0,-0.11943660607234986,6,3,undecided,f55726d4a00c1644
+round-19-final-v4-roots,lanes.rootnhvLanes.f16.w4.boundary,64,9,60801.0,67792.0,-0.11498166148583082,4,5,undecided,faa33f4298e68a94
+round-19-final-v4-roots,lanes.rootnhvLanes.f16.w4.skewed,64,9,123260.0,141592.0,-0.14872626967386013,5,4,undecided,89708fdd4e24aa16
+round-19-final-v4-roots,lanes.rootnhvLanes.f16.w8.normal,64,9,294488.0,347911.0,-0.18140976881910298,1,8,slower,a22642b56839f882
+round-19-final-v4-roots,lanes.rootnhvLanes.f16.w8.boundary,64,9,106862.0,130400.0,-0.22026538900638207,2,7,undecided,6eb4a2d64890dd04
+round-19-final-v4-roots,lanes.rootnhvLanes.f16.w8.skewed,64,9,226725.0,271431.0,-0.19718160767449552,5,4,undecided,c448cbcf2c7020e4
+round-19-final-v4-roots,lanes.rootnfvLanes.f32.w2.normal,64,9,5232819.0,420026.0,0.9197323660535555,9,0,faster,7b962d7e29ee95a5
+round-19-final-v4-roots,lanes.rootnfvLanes.f32.w2.boundary,64,9,2199360.0,100559.0,0.9542780627091517,9,0,faster,3b2210fa85fe1f6c
+round-19-final-v4-roots,lanes.rootnfvLanes.f32.w2.skewed,64,9,4671225.0,375541.0,0.9196054568127204,9,0,faster,a890e6c6839cd282
+round-19-final-v4-roots,lanes.rootnfvLanes.f32.w4.normal,64,9,12189865.0,817476.0,0.9329380596093558,9,0,faster,e4a0fded52197488
+round-19-final-v4-roots,lanes.rootnfvLanes.f32.w4.boundary,64,9,4868897.0,189857.0,0.9610061580682442,9,0,faster,c293cdeefe0045eb
+round-19-final-v4-roots,lanes.rootnfvLanes.f32.w4.skewed,64,9,8776672.0,607639.0,0.9307665821395626,9,0,faster,afcb1dbdfa0babb9
+round-19-final-v4-roots,lanes.rootnfvLanes.f32.w8.normal,64,9,23703601.0,1582914.0,0.9332205262820615,9,0,faster,7a2a80874dd52027
+round-19-final-v4-roots,lanes.rootnfvLanes.f32.w8.boundary,64,9,9499838.0,356536.0,0.9624692547388702,9,0,faster,9159f283dcf3ac7d
+round-19-final-v4-roots,lanes.rootnfvLanes.f32.w8.skewed,64,9,22181394.0,1245047.0,0.9438697585913671,9,0,faster,06841d0efe59332d
+round-19-final-v4-roots,lanes.rootndvLanes.f64.w2.normal,64,9,53858985.0,4196779.0,0.9220783867352866,9,0,faster,c04e337b1bc81c93
+round-19-final-v4-roots,lanes.rootndvLanes.f64.w2.boundary,64,9,32407326.0,1230067.0,0.9620435515105442,9,0,faster,5daf89de1e61f7b2
+round-19-final-v4-roots,lanes.rootndvLanes.f64.w2.skewed,64,9,72916980.0,3811421.0,0.947729308043202,9,0,faster,522c14889a68ba44
+round-19-final-v4-roots,lanes.rootndvLanes.f64.w4.normal,64,9,129531264.0,5998084.0,0.9536939282859156,9,0,faster,f76834937627d3f4
+round-19-final-v4-roots,lanes.rootndvLanes.f64.w4.boundary,64,9,53894469.0,2293792.0,0.9574391947344355,9,0,faster,d2033a66576f4f9f
+round-19-final-v4-roots,lanes.rootndvLanes.f64.w4.skewed,64,9,123949167.0,8095210.0,0.93468927467661,9,0,faster,0a13014b75a91575
+round-19-final-v4-roots,lanes.rootndvLanes.f64.w8.normal,64,9,213805349.0,15236911.0,0.9287346594869336,9,0,faster,cfb2013d77bff38d
+round-19-final-v4-roots,lanes.rootndvLanes.f64.w8.boundary,64,9,110005516.0,4468609.0,0.9593783188108495,9,0,faster,5b7143faac72a998
+round-19-final-v4-roots,lanes.rootndvLanes.f64.w8.skewed,64,9,225213287.0,14845465.0,0.9340826414029471,9,0,faster,688f75b2f0b6b849
+round-20-final-v4-portable-lanes,lanes.totalOrderhv.f16.w2.normal,1024,9,24729.0,22175.0,0.10327955032552873,7,2,undecided,8103c646029e354b
+round-20-final-v4-portable-lanes,lanes.totalOrderhv.f16.w2.boundary,1024,9,87168.0,87518.0,-0.004015234948604993,5,4,undecided,8d486230aed37f90
+round-20-final-v4-portable-lanes,lanes.totalOrderhv.f16.w2.skewed,1024,9,64184.0,65263.0,-0.01681104325065437,1,8,undecided,26278146eb179259
+round-20-final-v4-portable-lanes,lanes.totalOrderhv.f16.w4.normal,1024,9,37175.0,33289.0,0.10453261600537996,7,2,undecided,0795e3a7655ec4a8
+round-20-final-v4-portable-lanes,lanes.totalOrderhv.f16.w4.boundary,1024,9,152317.0,153948.0,-0.010707931484995109,2,7,undecided,ecd723109ca86568
+round-20-final-v4-portable-lanes,lanes.totalOrderhv.f16.w4.skewed,1024,9,123937.0,126041.0,-0.01697636702518215,1,8,undecided,e71f1302fcd72807
+round-20-final-v4-portable-lanes,lanes.totalOrderhv.f16.w8.normal,1024,9,81904.0,81940.0,-0.0004395389724555577,5,4,undecided,7c1a06e1efa0e3ef
+round-20-final-v4-portable-lanes,lanes.totalOrderhv.f16.w8.boundary,1024,9,310357.0,311874.0,-0.004887919396050355,3,6,undecided,ff1a81b22d276c54
+round-20-final-v4-portable-lanes,lanes.totalOrderhv.f16.w8.skewed,1024,9,255527.0,252243.0,0.012851870839480759,5,4,undecided,10528af0ef8661f3
+round-20-final-v4-portable-lanes,lanes.totalOrderfv.f32.w2.normal,1024,9,19405.0,17157.0,0.11584643133213089,8,1,faster,017e7570e379f4f2
+round-20-final-v4-portable-lanes,lanes.totalOrderfv.f32.w2.boundary,1024,9,78059.0,78785.0,-0.009300657195198504,2,7,undecided,8d486230aed37f90
+round-20-final-v4-portable-lanes,lanes.totalOrderfv.f32.w2.skewed,1024,9,67774.0,68514.0,-0.010918641366895859,3,6,undecided,5f59a88c8d26ef00
+round-20-final-v4-portable-lanes,lanes.totalOrderfv.f32.w4.normal,1024,9,37342.0,33519.0,0.10237801938835628,7,2,undecided,a9b0c0d14d234084
+round-20-final-v4-portable-lanes,lanes.totalOrderfv.f32.w4.boundary,1024,9,150265.0,156252.0,-0.03984294413203341,0,9,slower,ecd723109ca86568
+round-20-final-v4-portable-lanes,lanes.totalOrderfv.f32.w4.skewed,1024,9,130881.0,133028.0,-0.01640421451547589,0,9,undecided,93e4797b8d45dda2
+round-20-final-v4-portable-lanes,lanes.totalOrderfv.f32.w8.normal,1024,9,79779.0,79674.0,0.0013161358252171624,5,4,undecided,d13b4fef0b387dbd
+round-20-final-v4-portable-lanes,lanes.totalOrderfv.f32.w8.boundary,1024,9,309277.0,314558.0,-0.017075307895511142,3,6,undecided,ff1a81b22d276c54
+round-20-final-v4-portable-lanes,lanes.totalOrderfv.f32.w8.skewed,1024,9,274311.0,274761.0,-0.0016404737688244366,3,6,undecided,e36969f5fe8b27cf
+round-20-final-v4-portable-lanes,lanes.totalOrderdv.f64.w2.normal,1024,9,24907.0,24131.0,0.031155899947805838,6,3,undecided,84589a5e5ceffefc
+round-20-final-v4-portable-lanes,lanes.totalOrderdv.f64.w2.boundary,1024,9,77558.0,80340.0,-0.03586992960107275,3,6,undecided,8d486230aed37f90
+round-20-final-v4-portable-lanes,lanes.totalOrderdv.f64.w2.skewed,1024,9,68200.0,69769.0,-0.023005865102639297,2,7,undecided,57d604a10b419e40
+round-20-final-v4-portable-lanes,lanes.totalOrderdv.f64.w4.normal,1024,9,37741.0,38090.0,-0.009247237752046845,5,4,undecided,3971f6d8e162df18
+round-20-final-v4-portable-lanes,lanes.totalOrderdv.f64.w4.boundary,1024,9,149815.0,156058.0,-0.04167139472015486,1,8,slower,ecd723109ca86568
+round-20-final-v4-portable-lanes,lanes.totalOrderdv.f64.w4.skewed,1024,9,132613.0,138321.0,-0.04304253730780542,1,8,slower,1de465da3b696a1e
+round-20-final-v4-portable-lanes,lanes.totalOrderdv.f64.w8.normal,1024,9,87153.0,86409.0,0.008536711300815807,6,3,undecided,8d2101ee8bad00b8
+round-20-final-v4-portable-lanes,lanes.totalOrderdv.f64.w8.boundary,1024,9,328069.0,326680.0,0.004233865436844078,5,4,undecided,ff1a81b22d276c54
+round-20-final-v4-portable-lanes,lanes.totalOrderdv.f64.w8.skewed,1024,9,283281.0,283496.0,-0.0007589637144743205,4,5,undecided,a04ff82b37acd67a
+round-20-final-v4-portable-lanes,lanes.totalOrderMaghv.f16.w2.normal,1024,9,17215.0,14743.0,0.14359570142317746,7,2,undecided,8c27120947ef95c2
+round-20-final-v4-portable-lanes,lanes.totalOrderMaghv.f16.w2.boundary,1024,9,77459.0,78326.0,-0.011193018241908622,4,5,undecided,6554ce09a003b4da
+round-20-final-v4-portable-lanes,lanes.totalOrderMaghv.f16.w2.skewed,1024,9,62934.0,64613.0,-0.02667874280992786,2,7,undecided,7f7e773453c5180b
+round-20-final-v4-portable-lanes,lanes.totalOrderMaghv.f16.w4.normal,1024,9,31465.0,27522.0,0.1253138407754648,7,2,undecided,c9be1be0c7f96d69
+round-20-final-v4-portable-lanes,lanes.totalOrderMaghv.f16.w4.boundary,1024,9,149686.0,152866.0,-0.021244471760886122,2,7,undecided,efaf9b24753a3da8
+round-20-final-v4-portable-lanes,lanes.totalOrderMaghv.f16.w4.skewed,1024,9,121851.0,123980.0,-0.017472158619953878,4,5,undecided,24414938a02ac70f
+round-20-final-v4-portable-lanes,lanes.totalOrderMaghv.f16.w8.normal,1024,9,75668.0,75955.0,-0.003792884706877412,3,6,undecided,1735e69bd968f5b3
+round-20-final-v4-portable-lanes,lanes.totalOrderMaghv.f16.w8.boundary,1024,9,305258.0,305456.0,-0.0006486316492933846,6,3,undecided,068e8cc47ea3336b
+round-20-final-v4-portable-lanes,lanes.totalOrderMaghv.f16.w8.skewed,1024,9,249442.0,256859.0,-0.02973436710738368,2,7,undecided,a2a7c1a5624add09
+round-20-final-v4-portable-lanes,lanes.totalOrderMagfv.f32.w2.normal,1024,9,17184.0,14827.0,0.1371624767225326,6,3,undecided,924c9192e8700886
+round-20-final-v4-portable-lanes,lanes.totalOrderMagfv.f32.w2.boundary,1024,9,80172.0,76876.0,0.0411116100384174,5,4,undecided,6554ce09a003b4da
+round-20-final-v4-portable-lanes,lanes.totalOrderMagfv.f32.w2.skewed,1024,9,67137.0,67267.0,-0.0019363391274557994,3,6,undecided,99ddeb6c00da4fb8
+round-20-final-v4-portable-lanes,lanes.totalOrderMagfv.f32.w4.normal,1024,9,31717.0,27455.0,0.13437588674843143,6,3,undecided,c1ede7d89fc49bf9
+round-20-final-v4-portable-lanes,lanes.totalOrderMagfv.f32.w4.boundary,1024,9,148027.0,151129.0,-0.020955636471724753,4,5,undecided,efaf9b24753a3da8
+round-20-final-v4-portable-lanes,lanes.totalOrderMagfv.f32.w4.skewed,1024,9,129891.0,131991.0,-0.01616740189851491,4,5,undecided,054385683b2e121a
+round-20-final-v4-portable-lanes,lanes.totalOrderMagfv.f32.w8.normal,1024,9,78659.0,78816.0,-0.001995957233120177,4,5,undecided,ae4293a18f88a606
+round-20-final-v4-portable-lanes,lanes.totalOrderMagfv.f32.w8.boundary,1024,9,321149.0,306599.0,0.04530607288205786,5,4,undecided,068e8cc47ea3336b
+round-20-final-v4-portable-lanes,lanes.totalOrderMagfv.f32.w8.skewed,1024,9,300563.0,272805.0,0.09235335021276737,4,5,undecided,288417ad926ad954
+round-20-final-v4-portable-lanes,lanes.totalOrderMagdv.f64.w2.normal,1024,9,26186.0,15281.0,0.41644390132131676,7,2,undecided,ccec2d7fdecfae58
+round-20-final-v4-portable-lanes,lanes.totalOrderMagdv.f64.w2.boundary,1024,9,83709.0,76032.0,0.09171056875604773,4,5,undecided,6554ce09a003b4da
+round-20-final-v4-portable-lanes,lanes.totalOrderMagdv.f64.w2.skewed,1024,9,76865.0,73754.0,0.04047355753593963,5,4,undecided,052a634df4f99106
+round-20-final-v4-portable-lanes,lanes.totalOrderMagdv.f64.w4.normal,1024,9,46375.0,28573.0,0.3838706199460916,7,2,undecided,4260e36b9a0de543
+round-20-final-v4-portable-lanes,lanes.totalOrderMagdv.f64.w4.boundary,1024,9,180465.0,150773.0,0.16453051838306598,5,4,undecided,efaf9b24753a3da8
+round-20-final-v4-portable-lanes,lanes.totalOrderMagdv.f64.w4.skewed,1024,9,150273.0,133130.0,0.11407904280875474,4,5,undecided,f354906714e3e796
+round-20-final-v4-portable-lanes,lanes.totalOrderMagdv.f64.w8.normal,1024,9,114222.0,85516.0,0.2513176095673338,5,4,undecided,877d0f16d65e596e
+round-20-final-v4-portable-lanes,lanes.totalOrderMagdv.f64.w8.boundary,1024,9,402058.0,330171.0,0.17879758641788002,5,4,undecided,068e8cc47ea3336b
+round-20-final-v4-portable-lanes,lanes.totalOrderMagdv.f64.w8.skewed,1024,9,330121.0,288882.0,0.12492086235047149,4,5,undecided,6a888b56cda49431
+round-21-final-v4-value-geometry,values/Vec2f.toVector/ordinary,4096,9,35544.0,35871.0,-0.009199864956110736,5,4,undecided,a81e3dc7202b1b0a
+round-21-final-v4-value-geometry,values/Vec2f.fromVector/ordinary,4096,9,25387.0,25066.0,0.012644266750699176,7,2,undecided,6d3257b884cd5a23
+round-21-final-v4-value-geometry,values/Vec3f.toVector/ordinary,4096,9,40778.0,40780.0,-4.9046054244935994e-05,4,5,undecided,242ad4877408b5ea
+round-21-final-v4-value-geometry,values/Vec3f.fromVector/ordinary,4096,9,36976.0,36346.0,0.01703807875378624,6,3,undecided,195128680743bb32
+round-21-final-v4-value-geometry,values/Vec4f.toVector/ordinary,4096,9,49589.0,50277.0,-0.013874044646998327,3,6,undecided,2a4a6a7d3984eceb
+round-21-final-v4-value-geometry,values/Vec4f.fromVector/ordinary,4096,9,52528.0,49324.0,0.06099604020712763,8,1,faster,97889fd7f923f848
+round-21-final-v4-value-geometry,values/Vec2d.toVector/ordinary,4096,9,25579.0,25543.0,0.001407404511513351,5,4,undecided,edceefa29b828212
+round-21-final-v4-value-geometry,values/Vec2d.fromVector/ordinary,4096,9,27643.0,25327.0,0.08378251275187208,7,2,undecided,34a8ff852f80b919
+round-21-final-v4-value-geometry,values/Vec3d.toVector/ordinary,4096,9,46283.0,41656.0,0.09997191193310719,7,2,undecided,71e0e7150ca8fd7e
+round-21-final-v4-value-geometry,values/Vec3d.fromVector/ordinary,4096,9,42508.0,36521.0,0.1408440764091465,7,2,undecided,1e6b10b7e226e5a6
+round-21-final-v4-value-geometry,values/Vec4d.toVector/ordinary,4096,9,57379.0,52434.0,0.08618135554819707,4,5,undecided,302f0cc50870d8c7
+round-21-final-v4-value-geometry,values/Vec4d.fromVector/ordinary,4096,9,56783.0,52523.0,0.07502245390345702,6,3,undecided,8f24ee5c6ddcd730
+round-21-final-v4-value-geometry,geometry.Aabb2(f32).center,4096,9,88020.0,83179.0,0.054998863894569414,4,5,undecided,bc4fe4e8221e5ea6
+round-21-final-v4-value-geometry,geometry.Aabb2(f32).center.overflow,4096,9,45591.0,45064.0,0.011559298984448685,5,4,undecided,bc4fe4e8221e5ea6
+round-21-final-v4-value-geometry,geometry.Aabb2(f64).center,4096,9,84134.0,77816.0,0.0750944921197138,5,4,undecided,bc4fe4e8221e5ea6
+round-21-final-v4-value-geometry,geometry.Aabb2(f64).center.overflow,4096,9,50033.0,49901.0,0.002638258749225511,6,3,undecided,bc4fe4e8221e5ea6
+round-21-final-v4-value-geometry,geometry.Aabb3(f32).center,4096,9,87348.0,87532.0,-0.0021065164628840958,4,5,undecided,11dfe6771fc702d4
+round-21-final-v4-value-geometry,geometry.Aabb3(f32).center.overflow,4096,9,63110.0,62932.0,0.0028204721914118205,7,2,undecided,11dfe6771fc702d4
+round-21-final-v4-value-geometry,geometry.Aabb3(f64).center,4096,9,86418.0,89042.0,-0.030364044527760422,4,5,undecided,11dfe6771fc702d4
+round-21-final-v4-value-geometry,geometry.Aabb3(f64).center.overflow,4096,9,102451.0,101360.0,0.010648993177226186,5,4,undecided,11dfe6771fc702d4
+round-21-final-v4-value-geometry,geometry.Aabb4(f32).center,4096,9,137673.0,134711.0,0.02151474871616076,7,2,undecided,b0f105b4737ff753
+round-21-final-v4-value-geometry,geometry.Aabb4(f32).center.overflow,4096,9,120026.0,118842.0,0.009864529351973739,5,4,undecided,b0f105b4737ff753
+round-21-final-v4-value-geometry,geometry.Aabb4(f64).center,4096,9,109772.0,108517.0,0.011432787960499945,4,5,undecided,b0f105b4737ff753
+round-21-final-v4-value-geometry,geometry.Aabb4(f64).center.overflow,4096,9,129332.0,127438.0,0.014644480870936814,3,6,undecided,b0f105b4737ff753
+round-22-final-v4-orientation,geometry.Point2(f32).orientation.policy.adaptive_exact.ordinary,4096,9,22511323.0,13020925.0,0.421583307209443,9,0,faster,97c8e72a41de75a5
+round-22-final-v4-orientation,geometry.Point2(f32).orientation.policy.adaptive_exact.near_degenerate,4096,9,15396023.0,13968428.0,0.09272491993549244,6,3,undecided,3163b82bc497e5ae
+round-22-final-v4-orientation,geometry.Point2(f32).orientation.policy.adaptive_exact.exponent_extreme,4096,9,20119953.0,11779883.0,0.4145173698964406,9,0,faster,08a3c041086a2492
+round-22-final-v4-orientation,geometry.Point2(f64).orientation.policy.adaptive_exact.ordinary,4096,9,21053325.0,14780277.0,0.29795996594362173,7,2,undecided,97c8e72a41de75a5
+round-22-final-v4-orientation,geometry.Point2(f64).orientation.policy.adaptive_exact.near_degenerate,4096,9,15015577.0,13718044.0,0.08641246353703225,6,3,undecided,3163b82bc497e5ae
+round-22-final-v4-orientation,geometry.Point2(f64).orientation.policy.adaptive_exact.exponent_extreme,4096,9,21512607.0,15581479.0,0.2757047530315596,7,2,undecided,08a3c041086a2492
+round-22-final-v4-orientation,geometry.Point3(f32).orientation.policy.adaptive_exact.ordinary,4096,9,55349434.0,32602013.0,0.4109783850725556,9,0,faster,56a67943ec78d334
+round-22-final-v4-orientation,geometry.Point3(f32).orientation.policy.adaptive_exact.near_degenerate,4096,9,37772251.0,23437719.0,0.37949901370717887,8,1,faster,3163b82bc497e5ae
+round-22-final-v4-orientation,geometry.Point3(f32).orientation.policy.adaptive_exact.exponent_extreme,4096,9,41260858.0,28164248.0,0.31741002574401145,9,0,faster,08a3c041086a2492
+round-22-final-v4-orientation,geometry.Point3(f32).orientation.policy.adaptive_exact.perturbed_ulp,4096,9,36394216.0,22369969.0,0.38534274237422783,9,0,faster,3163b82bc497e5ae
+round-22-final-v4-orientation,geometry.Point3(f64).orientation.policy.adaptive_exact.ordinary,4096,9,55589834.0,29996912.0,0.46038853075186376,9,0,faster,56a67943ec78d334
+round-22-final-v4-orientation,geometry.Point3(f64).orientation.policy.adaptive_exact.near_degenerate,4096,9,33918868.0,22461900.0,0.3377756592584399,9,0,faster,3163b82bc497e5ae
+round-22-final-v4-orientation,geometry.Point3(f64).orientation.policy.adaptive_exact.exponent_extreme,4096,9,47416944.0,28775832.0,0.39313187285962586,9,0,faster,08a3c041086a2492
+round-22-final-v4-orientation,geometry.Point3(f64).orientation.policy.adaptive_exact.perturbed_ulp,4096,9,33242075.0,28942062.0,0.12935453036550817,9,0,faster,3163b82bc497e5ae
+round-22-final-v4-orientation,geometry.Point4(f32).orientation.policy.adaptive_exact.ordinary,4096,9,127061396.0,52461113.0,0.5871199699395716,9,0,faster,190dcf1217b97f87
+round-22-final-v4-orientation,geometry.Point4(f32).orientation.policy.adaptive_exact.near_degenerate,4096,9,72675671.0,33775162.0,0.535261779695161,9,0,faster,08a3c041086a2492
+round-22-final-v4-orientation,geometry.Point4(f32).orientation.policy.adaptive_exact.exponent_extreme,4096,9,81251844.0,38202853.0,0.5298217108771095,9,0,faster,08a3c041086a2492
+round-22-final-v4-orientation,geometry.Point4(f32).orientation.policy.adaptive_exact.near_dependent,4096,9,118682622.0,61751989.0,0.4796880288000378,9,0,faster,741e90ee500eab03
+round-22-final-v4-orientation,geometry.Point4(f32).orientation.policy.adaptive_exact.perturbed_ulp,4096,9,75808431.0,37145688.0,0.5100058461835202,9,0,faster,08a3c041086a2492
+round-22-final-v4-orientation,geometry.Point4(f64).orientation.policy.adaptive_exact.ordinary,4096,9,119521869.0,74305163.0,0.3783132440808803,9,0,faster,190dcf1217b97f87
+round-22-final-v4-orientation,geometry.Point4(f64).orientation.policy.adaptive_exact.near_degenerate,4096,9,71699371.0,39894840.0,0.44358172960819975,9,0,faster,08a3c041086a2492
+round-22-final-v4-orientation,geometry.Point4(f64).orientation.policy.adaptive_exact.exponent_extreme,4096,9,89517796.0,56480360.0,0.36905997998431506,9,0,faster,08a3c041086a2492
+round-22-final-v4-orientation,geometry.Point4(f64).orientation.policy.adaptive_exact.near_dependent,4096,9,117106658.0,69101007.0,0.40993101348686767,9,0,faster,50f6419842e8f7c4
+round-22-final-v4-orientation,geometry.Point4(f64).orientation.policy.adaptive_exact.perturbed_ulp,4096,9,74203510.0,34858133.0,0.5302360629571297,9,0,faster,08a3c041086a2492
+round-23-final-v4-half-controls,leaf.scalar.rootn.h.normal,4096,9,3531832.0,3941517.0,-0.11599787305851468,5,4,undecided,a6702aa6208d1ef5
+round-23-final-v4-half-controls,leaf.scalar.rootn.h.boundary,4096,9,3877751.0,2500184.0,0.35524895744982077,6,3,undecided,2c192c1ecc6eb170
+round-23-final-v4-half-controls,leaf.scalar.rootn.h.skewed,4096,9,3920594.0,2735356.0,0.30231082330891695,5,4,undecided,f616b3e42ba6fbac
+round-23-final-v4-half-controls,lanes.rootnhv.f16.w2.normal,4096,9,9452361.0,8707576.0,0.07879354163473021,5,4,undecided,ff85b96068d20f84
+round-23-final-v4-half-controls,lanes.rootnhv.f16.w2.boundary,4096,9,2055458.0,2248259.0,-0.09379953275620324,3,6,undecided,7e4f60d8aaef5c83
+round-23-final-v4-half-controls,lanes.rootnhv.f16.w2.skewed,4096,9,6528590.0,6147179.0,0.05842165000405907,3,6,undecided,15f8c06604c3c4de
+round-23-final-v4-half-controls,lanes.rootnhv.f16.w4.normal,4096,9,15719505.0,13579698.0,0.136124324525486,5,4,undecided,e5c40b0baccd02eb
+round-23-final-v4-half-controls,lanes.rootnhv.f16.w4.boundary,4096,9,3653276.0,3769456.0,-0.03180159396662064,6,3,undecided,df89abf7e5c03911
+round-23-final-v4-half-controls,lanes.rootnhv.f16.w4.skewed,4096,9,14161389.0,12349121.0,0.12797247501639847,4,5,undecided,e87b582173b8ee1a
+round-23-final-v4-half-controls,lanes.rootnhv.f16.w8.normal,4096,9,29051830.0,29057515.0,-0.00019568474688169387,5,4,undecided,123a54f8f855c496
+round-23-final-v4-half-controls,lanes.rootnhv.f16.w8.boundary,4096,9,9482674.0,9471434.0,0.0011853196682707853,4,5,undecided,2374b894103c8a2f
+round-23-final-v4-half-controls,lanes.rootnhv.f16.w8.skewed,4096,9,22546986.0,24825110.0,-0.101038959264888,2,7,undecided,4cfaacf717d562af
+round-23-final-v4-half-controls,lanes.rootnhvLanes.f16.w2.normal,4096,9,7137167.0,6913702.0,0.031310042205822,6,3,undecided,bad9024bb9e1d369
+round-23-final-v4-half-controls,lanes.rootnhvLanes.f16.w2.boundary,4096,9,2791242.0,1756587.0,0.3706790740466072,5,4,undecided,55b7b6231ad5cd8e
+round-23-final-v4-half-controls,lanes.rootnhvLanes.f16.w2.skewed,4096,9,6456150.0,5431359.0,0.15873097744011525,5,4,undecided,13aa435027637868
+round-23-final-v4-half-controls,lanes.rootnhvLanes.f16.w4.normal,4096,9,16436607.0,14059847.0,0.1446016200302167,5,4,undecided,51084e1009ba032a
+round-23-final-v4-half-controls,lanes.rootnhvLanes.f16.w4.boundary,4096,9,3501633.0,4079301.0,-0.1649710292312187,1,8,slower,3853ea9336103c32
+round-23-final-v4-half-controls,lanes.rootnhvLanes.f16.w4.skewed,4096,9,10845046.0,10684482.0,0.014805285288785313,3,6,undecided,ffbafaaa91436398
+round-23-final-v4-half-controls,lanes.rootnhvLanes.f16.w8.normal,4096,9,28206432.0,29881097.0,-0.059371741877880906,4,5,undecided,04692f4e5e0c2995
+round-23-final-v4-half-controls,lanes.rootnhvLanes.f16.w8.boundary,4096,9,8870517.0,7567376.0,0.14690699538707835,5,4,undecided,c6c068edbc2ea1ed
+round-23-final-v4-half-controls,lanes.rootnhvLanes.f16.w8.skewed,4096,9,24040212.0,24048937.0,-0.00036293357146767257,5,4,undecided,e47464786f0f162e
+round-24-final-v4-lane-flags-long,lanes.totalOrderfv.f32.w4.boundary,2048,9,376530.0,440225.0,-0.16916314769075505,1,8,slower,b4ec4afd44abffd3
+round-24-final-v4-lane-flags-long,lanes.totalOrderdv.f64.w4.boundary,2048,9,369264.0,452075.0,-0.2242596083019195,3,6,undecided,b4ec4afd44abffd3
+round-24-final-v4-lane-flags-long,lanes.totalOrderdv.f64.w4.skewed,2048,9,317505.0,375571.0,-0.18288215933607344,3,6,undecided,c63f45c0e0f2ac6d
+round-25-final-v4-lane-identical-control,lanes.totalOrderfv.f32.w4.boundary,1024,9,244727.0,244483.0,0.0009970293429004565,3,6,undecided,ecd723109ca86568
+round-25-final-v4-lane-identical-control,lanes.totalOrderdv.f64.w4.boundary,1024,9,238079.0,240285.0,-0.009265831929737608,4,5,undecided,ecd723109ca86568
+round-25-final-v4-lane-identical-control,lanes.totalOrderdv.f64.w4.skewed,1024,9,196748.0,196457.0,0.0014790493423058938,5,4,undecided,1de465da3b696a1e

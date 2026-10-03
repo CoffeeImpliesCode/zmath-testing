@@ -1,0 +1,44 @@
+
+cases=34 pairs=9 practical_threshold=2% direction_quorum=8/9
+
+case                                                           cohort           base ns      cand ns    change  fast verdict
+algebra.Multivector(6,f64,.conformal,.{ 1, 1, 1, 1, 1, -1 },4).geometricProduct.motor algebra          8361184      5442197  +34.91%  6/9 undecided
+algebra.Multivector(5,f32,.conformal,.{ 1, 1, 1, 1, -1 },3).geometricProduct.motor algebra          2687595      1846927  +31.28%  4/9 undecided
+algebra.Multivector(3,f64,.clifford,.{ 1, 1, 1 },3).geometricProduct.sparse algebra           441175       328158  +25.62%  6/9 undecided
+algebra.Multivector(5,f64,.projective,.{ 0, 1, 1, 1, 1 },4).geometricProduct.sparse algebra          1530165      1166209  +23.79%  7/9 undecided
+algebra.Multivector(6,f64,.conformal,.{ 1, 1, 1, 1, 1, -1 },4).geometricProduct.sparse algebra          3187054      2513575  +21.13%  7/9 undecided
+algebra.Multivector(6,f32,.conformal,.{ 1, 1, 1, 1, 1, -1 },4).geometricProduct.motor algebra          8303715     10047771  -21.00%  2/9 undecided
+algebra.Multivector(4,f32,.projective,.{ 0, 1, 1, 1 },3).geometricProduct algebra          7308803      5999643  +17.91%  6/9 undecided
+algebra.Multivector(3,f64,.clifford,.{ 1, 1, 1 },3).geometricProduct algebra          1267225      1043771  +17.63%  5/9 undecided
+algebra.Multivector(5,f64,.conformal,.{ 1, 1, 1, 1, -1 },3).geometricProduct.motor algebra          1606583      1854461  -15.43%  1/9 slower
+algebra.Multivector(4,f32,.clifford,.{ 1, 1, 1, 1 },4).geometricProduct.motor algebra           852321       720859  +15.42%  6/9 undecided
+algebra.Multivector(5,f32,.projective,.{ 0, 1, 1, 1, 1 },4).geometricProduct.motor algebra          2403447      2037649  +15.22%  4/9 undecided
+algebra.Multivector(4,f64,.clifford,.{ 1, 1, 1, 1 },4).geometricProduct algebra          7974108      8881016  -11.37%  2/9 undecided
+algebra.Multivector(5,f32,.conformal,.{ 1, 1, 1, 1, -1 },3).geometricProduct.sparse algebra          1518187      1683021  -10.86%  2/9 undecided
+algebra.Multivector(6,f32,.conformal,.{ 1, 1, 1, 1, 1, -1 },4).geometricProduct.sparse algebra          2780793      2482185  +10.74%  5/9 undecided
+algebra.Multivector(4,f32,.projective,.{ 0, 1, 1, 1 },3).geometricProduct.sparse algebra           853992       779449   +8.73%  5/9 undecided
+algebra.Multivector(3,f32,.clifford,.{ 1, 1, 1 },3).geometricProduct.sparse algebra           379472       355592   +6.29%  5/9 undecided
+algebra.Multivector(5,f64,.projective,.{ 0, 1, 1, 1, 1 },4).geometricProduct.motor algebra          1975721      2094469   -6.01%  5/9 undecided
+algebra.Multivector(5,f32,.projective,.{ 0, 1, 1, 1, 1 },4).geometricProduct.sparse algebra          1506154      1575445   -4.60%  3/9 undecided
+algebra.Multivector(4,f64,.clifford,.{ 1, 1, 1, 1 },4).geometricProduct.sparse algebra           784947       819558   -4.41%  4/9 undecided
+algebra.Multivector(5,f64,.conformal,.{ 1, 1, 1, 1, -1 },3).geometricProduct.sparse algebra          1316785      1371701   -4.17%  5/9 undecided
+algebra.Multivector(4,f32,.projective,.{ 0, 1, 1, 1 },3).geometricProduct.motor algebra           790179       759166   +3.92%  5/9 undecided
+algebra.Multivector(4,f64,.clifford,.{ 1, 1, 1, 1 },4).geometricProduct.motor algebra           638624       615247   +3.66%  6/9 undecided
+algebra.Multivector(5,f32,.projective,.{ 0, 1, 1, 1, 1 },4).geometricProduct algebra         26378453     27258769   -3.34%  4/9 undecided
+algebra.Multivector(4,f64,.projective,.{ 0, 1, 1, 1 },3).geometricProduct algebra          7065753      7292566   -3.21%  2/9 undecided
+algebra.Multivector(4,f32,.clifford,.{ 1, 1, 1, 1 },4).geometricProduct.sparse algebra           946649       922776   +2.52%  5/9 undecided
+algebra.Multivector(4,f64,.projective,.{ 0, 1, 1, 1 },3).geometricProduct.motor algebra           801294       814321   -1.63%  5/9 undecided
+algebra.Multivector(4,f32,.clifford,.{ 1, 1, 1, 1 },4).geometricProduct algebra          9434382      9311213   +1.31%  4/9 undecided
+algebra.Multivector(6,f32,.conformal,.{ 1, 1, 1, 1, 1, -1 },4).geometricProduct algebra        131450646    129983945   +1.12%  3/9 undecided
+algebra.Multivector(4,f64,.projective,.{ 0, 1, 1, 1 },3).geometricProduct.sparse algebra           886974       895763   -0.99%  3/9 undecided
+algebra.Multivector(5,f64,.projective,.{ 0, 1, 1, 1, 1 },4).geometricProduct algebra         26260362     26474416   -0.82%  4/9 undecided
+algebra.Multivector(3,f32,.clifford,.{ 1, 1, 1 },3).geometricProduct algebra           886351       879516   +0.77%  5/9 undecided
+algebra.Multivector(5,f32,.conformal,.{ 1, 1, 1, 1, -1 },3).geometricProduct algebra         33337284     33465878   -0.39%  3/9 undecided
+algebra.Multivector(6,f64,.conformal,.{ 1, 1, 1, 1, 1, -1 },4).geometricProduct algebra        130266919    130683423   -0.32%  5/9 undecided
+algebra.Multivector(5,f64,.conformal,.{ 1, 1, 1, 1, -1 },3).geometricProduct algebra         34657416     34642507   +0.04%  5/9 undecided
+
+cohort algebra      cases=34    faster=0     slower=1     undecided=33
+module algebra      cases=34    faster=0     slower=1     undecided=33
+
+regressions meeting the criterion: 1
+  algebra.Multivector(5,f64,.conformal,.{ 1, 1, 1, 1, -1 },3).geometricProduct.motor -15.43% 8/9 pairs slower

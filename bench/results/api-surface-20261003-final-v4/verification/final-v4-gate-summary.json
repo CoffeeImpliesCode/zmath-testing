@@ -1,0 +1,287 @@
+{
+  "bridge_consumer_all_passed": true,
+  "bridge_consumer_matrix": [
+    {
+      "mode": "Debug",
+      "run_exit": 0,
+      "target": "x86_64-linux-gnu.2.38"
+    },
+    {
+      "mode": "ReleaseSafe",
+      "run_exit": 0,
+      "target": "x86_64-linux-gnu.2.38"
+    },
+    {
+      "mode": "Debug",
+      "run_exit": 0,
+      "target": "aarch64_be-linux"
+    },
+    {
+      "mode": "ReleaseSafe",
+      "run_exit": 0,
+      "target": "aarch64_be-linux"
+    },
+    {
+      "mode": "Debug",
+      "run_exit": 0,
+      "target": "armeb-linux"
+    },
+    {
+      "mode": "ReleaseSafe",
+      "run_exit": 0,
+      "target": "armeb-linux"
+    },
+    {
+      "mode": "Debug",
+      "run_exit": 0,
+      "target": "mips-linux"
+    },
+    {
+      "mode": "ReleaseSafe",
+      "run_exit": 0,
+      "target": "mips-linux"
+    },
+    {
+      "mode": "Debug",
+      "run_exit": 0,
+      "target": "mipsel-linux"
+    },
+    {
+      "mode": "ReleaseSafe",
+      "run_exit": 0,
+      "target": "mipsel-linux"
+    }
+  ],
+  "cross_test": {
+    "armeb_linux": {
+      "failed": 6,
+      "failing_tests": [
+        "vector_value_test.test.toVector and fromVector move the components in lane order",
+        "vector_value_test.test.toVector and fromVector round-trip the bits a float comparison cannot see",
+        "vector_value_test.test.toVector carries every component onto its own lane, bit for bit",
+        "vector_value_test.test.toVector carries every component onto its own lane when the components are run-time values",
+        "vector_value_test.test.toVector and fromVector move run-time components in lane order",
+        "vector_value_test.test.toVector and fromVector round-trip the bits of run-time components"
+      ],
+      "passed": 948,
+      "skipped": 0,
+      "tests": 954
+    },
+    "build_only_targets": [
+      "aarch64-freebsd",
+      "aarch64-maccatalyst",
+      "aarch64-macos",
+      "aarch64-netbsd",
+      "aarch64-openbsd",
+      "aarch64-windows",
+      "aarch64_be-netbsd",
+      "arm-freebsd",
+      "arm-netbsd",
+      "arm-openbsd",
+      "armeb-netbsd",
+      "mips-netbsd",
+      "mips64-openbsd",
+      "mips64el-openbsd",
+      "mipsel-netbsd",
+      "powerpc-netbsd",
+      "powerpc-openbsd",
+      "powerpc64-freebsd",
+      "powerpc64-openbsd",
+      "powerpc64le-freebsd",
+      "riscv64-freebsd",
+      "riscv64-openbsd",
+      "thumb-windows",
+      "wasm32-wasi",
+      "x86-netbsd",
+      "x86-openbsd",
+      "x86-windows",
+      "x86_64-freebsd",
+      "x86_64-maccatalyst",
+      "x86_64-macos",
+      "x86_64-netbsd",
+      "x86_64-openbsd",
+      "x86_64-windows"
+    ],
+    "counts": {
+      "build_only": 33,
+      "fail": 1,
+      "partial": 0,
+      "pass": 19
+    },
+    "failing_targets": [
+      "armeb-linux"
+    ],
+    "other_big_endian_targets_passed": [
+      "aarch64_be-linux",
+      "s390x-linux",
+      "powerpc64-linux",
+      "powerpc-linux"
+    ],
+    "passing_targets": [
+      "aarch64-linux",
+      "aarch64_be-linux",
+      "arm-linux",
+      "hexagon-linux",
+      "loongarch64-linux",
+      "mips-linux",
+      "mips64-linux",
+      "mips64el-linux",
+      "mipsel-linux",
+      "powerpc-linux",
+      "powerpc64-linux",
+      "powerpc64le-linux",
+      "riscv32-linux",
+      "riscv64-linux",
+      "s390x-linux",
+      "thumb-linux",
+      "thumbeb-linux",
+      "x86-linux",
+      "x86_64-linux"
+    ],
+    "run_id": "20261004-050155-50889-23551",
+    "status": "fail"
+  },
+  "gate_log": "gate-final-v4.log",
+  "overall": "GATE FAILED",
+  "sections": [
+    {
+      "name": "zig fmt --check",
+      "status": "ok"
+    },
+    {
+      "name": "zig build",
+      "status": "ok"
+    },
+    {
+      "name": "zig build test",
+      "status": "ok"
+    },
+    {
+      "name": "zig ast-check",
+      "status": "ok"
+    },
+    {
+      "by_rule": {
+        "Z001": 7,
+        "Z004": 5,
+        "Z005": 5,
+        "Z006": 34,
+        "Z010": 4,
+        "Z011": 1,
+        "Z023": 58,
+        "Z024": 149
+      },
+      "exit": 1,
+      "findings": 263,
+      "name": "ziglint"
+    },
+    {
+      "by_rule": {
+        "avoid-as": 5,
+        "no-print": 4,
+        "unsafe-undefined": 241,
+        "unused-decls": 13
+      },
+      "exit": 0,
+      "findings": 263,
+      "name": "zlint"
+    },
+    {
+      "by_rule": {
+        "use-undefined": 144
+      },
+      "errors": 144,
+      "exit": 1,
+      "name": "zbc"
+    },
+    {
+      "classes": [
+        "analysis-limit-exceeded",
+        "dupe-import",
+        "identifier-style",
+        "optional-unwrap",
+        "store-violations-engine",
+        "unreachable-code-engine",
+        "unused-decl",
+        "unused-parameter"
+      ],
+      "exit": 1,
+      "findings": 351,
+      "name": "zwanzig"
+    },
+    {
+      "counts": {
+        "build_only": 33,
+        "fail": 1,
+        "partial": 0,
+        "pass": 19
+      },
+      "name": "cross-test",
+      "status": "fail",
+      "targets": 53
+    }
+  ],
+  "state": "superseded; final runtime verification is pending. These are the observed final-v4 outcomes.",
+  "strict_onehot_consumer": {
+    "failures": [
+      {
+        "first_failure": "FAIL n=64 one_hot=0 lane=0 order=false expected=true mag=false expected_mag=true",
+        "mode": "ReleaseSafe",
+        "run_exit": 1,
+        "target": "aarch64_be-linux"
+      }
+    ],
+    "targets_and_modes": [
+      {
+        "mode": "Debug",
+        "run_exit": 0,
+        "target": "x86_64-linux-gnu.2.38"
+      },
+      {
+        "mode": "ReleaseSafe",
+        "run_exit": 0,
+        "target": "x86_64-linux-gnu.2.38"
+      },
+      {
+        "mode": "Debug",
+        "run_exit": 0,
+        "target": "aarch64_be-linux"
+      },
+      {
+        "mode": "ReleaseSafe",
+        "run_exit": 1,
+        "target": "aarch64_be-linux"
+      },
+      {
+        "mode": "Debug",
+        "run_exit": 0,
+        "target": "armeb-linux"
+      },
+      {
+        "mode": "ReleaseSafe",
+        "run_exit": 0,
+        "target": "armeb-linux"
+      },
+      {
+        "mode": "Debug",
+        "run_exit": 0,
+        "target": "mips-linux"
+      },
+      {
+        "mode": "ReleaseSafe",
+        "run_exit": 0,
+        "target": "mips-linux"
+      },
+      {
+        "mode": "Debug",
+        "run_exit": 0,
+        "target": "mipsel-linux"
+      },
+      {
+        "mode": "ReleaseSafe",
+        "run_exit": 0,
+        "target": "mipsel-linux"
+      }
+    ]
+  }
+}

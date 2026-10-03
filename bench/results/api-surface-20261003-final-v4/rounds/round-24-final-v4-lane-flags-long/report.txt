@@ -1,0 +1,13 @@
+
+cases=3 pairs=9 practical_threshold=2% direction_quorum=8/9
+
+case                                                           cohort           base ns      cand ns    change  fast verdict
+lanes.totalOrderdv.f64.w4.boundary                             lanes             369264       452075  -22.43%  3/9 undecided
+lanes.totalOrderdv.f64.w4.skewed                               lanes             317505       375571  -18.29%  3/9 undecided
+lanes.totalOrderfv.f32.w4.boundary                             lanes             376530       440225  -16.92%  1/9 slower
+
+cohort lanes        cases=3     faster=0     slower=1     undecided=2
+module vector       cases=3     faster=0     slower=1     undecided=2
+
+regressions meeting the criterion: 1
+  lanes.totalOrderfv.f32.w4.boundary -16.92% 8/9 pairs slower

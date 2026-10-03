@@ -1,0 +1,456 @@
+{
+  "canonical_keys": 109,
+  "cap_per_canonical_key": 1048576,
+  "keys_over_cap": [],
+  "labels": {
+    "diagnostic:whole-surface single-call scan": 109,
+    "round": 569
+  },
+  "ledger_records": 678,
+  "max_sequence": 677,
+  "note": "Summed from the append-only ledger; every reservation is kept, including failed attempts. 2026-10-04T05:07Z and 2026-10-04T05:16Z are the two windows of rounds 19-25.",
+  "per_key": {
+    "absf": {
+      "remaining": 571542,
+      "reserved": 477034
+    },
+    "acosf": {
+      "remaining": 1040464,
+      "reserved": 8112
+    },
+    "acoshf": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "acospif": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "asinf": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "asinhf": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "asinpif": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "atan2f": {
+      "remaining": 1030910,
+      "reserved": 17666
+    },
+    "atan2pif": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "atanf": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "atanhf": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "atanpif": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "canonicalizef": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "cbrtf": {
+      "remaining": 1033476,
+      "reserved": 15100
+    },
+    "ceilf": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "classifyf": {
+      "remaining": 1047733,
+      "reserved": 843
+    },
+    "compoundnf": {
+      "remaining": 1034600,
+      "reserved": 13976
+    },
+    "copySignf": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "cosf": {
+      "remaining": 1033720,
+      "reserved": 14856
+    },
+    "coshf": {
+      "remaining": 1035968,
+      "reserved": 12608
+    },
+    "cospif": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "erfcf": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "erff": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "exp10f": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "exp10m1f": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "exp2f": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "exp2m1f": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "expf": {
+      "remaining": 1032914,
+      "reserved": 15662
+    },
+    "expm1f": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "f16addf32": {
+      "remaining": 1047733,
+      "reserved": 843
+    },
+    "f16divf32": {
+      "remaining": 1047733,
+      "reserved": 843
+    },
+    "f16fmaf32": {
+      "remaining": 1047733,
+      "reserved": 843
+    },
+    "f16mulf32": {
+      "remaining": 1047733,
+      "reserved": 843
+    },
+    "f16sqrtf32": {
+      "remaining": 1047733,
+      "reserved": 843
+    },
+    "f16subf32": {
+      "remaining": 1047733,
+      "reserved": 843
+    },
+    "f32addf64": {
+      "remaining": 1040464,
+      "reserved": 8112
+    },
+    "f32divf64": {
+      "remaining": 1040464,
+      "reserved": 8112
+    },
+    "f32fmaf64": {
+      "remaining": 1040464,
+      "reserved": 8112
+    },
+    "f32mulf64": {
+      "remaining": 1040464,
+      "reserved": 8112
+    },
+    "f32sqrtf64": {
+      "remaining": 1040464,
+      "reserved": 8112
+    },
+    "f32subf64": {
+      "remaining": 1040464,
+      "reserved": 8112
+    },
+    "fdimf": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "floorf": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "fmaf": {
+      "remaining": 467751,
+      "reserved": 580825
+    },
+    "fmaxf": {
+      "remaining": 624938,
+      "reserved": 423638
+    },
+    "fmaximum_mag_numf": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "fmaximum_magf": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "fmaximum_numf": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "fmaximumf": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "fminf": {
+      "remaining": 947584,
+      "reserved": 100992
+    },
+    "fminimum_mag_numf": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "fminimum_magf": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "fminimum_numf": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "fminimumf": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "fmodf": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "frexpf": {
+      "remaining": 1033439,
+      "reserved": 15137
+    },
+    "fromfpf": {
+      "remaining": 1034600,
+      "reserved": 13976
+    },
+    "fromfpxf": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "getPayloadf": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "hypotf": {
+      "remaining": 3774,
+      "reserved": 1044802
+    },
+    "ilogbf": {
+      "remaining": 1034600,
+      "reserved": 13976
+    },
+    "ldexpf": {
+      "remaining": 1021748,
+      "reserved": 26828
+    },
+    "lgammaf": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "llogbf": {
+      "remaining": 1034600,
+      "reserved": 13976
+    },
+    "llrintf": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "llroundf": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "log10f": {
+      "remaining": 1040183,
+      "reserved": 8393
+    },
+    "log10p1f": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "log1pf": {
+      "remaining": 1033476,
+      "reserved": 15100
+    },
+    "log2f": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "log2p1f": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "logbf": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "logf": {
+      "remaining": 1032596,
+      "reserved": 15980
+    },
+    "lrintf": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "lroundf": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "modff": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "nanf": {
+      "remaining": 1047452,
+      "reserved": 1124
+    },
+    "nearbyintf": {
+      "remaining": 1025926,
+      "reserved": 22650
+    },
+    "nextAfterf": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "nextDownf": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "nextTowardf": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "nextUpf": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "powf": {
+      "remaining": 1026207,
+      "reserved": 22369
+    },
+    "pownf": {
+      "remaining": 1034600,
+      "reserved": 13976
+    },
+    "remainderf": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "remquof": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "rootnf": {
+      "remaining": 696680,
+      "reserved": 351896
+    },
+    "roundIntegralf": {
+      "remaining": 1047733,
+      "reserved": 843
+    },
+    "roundf": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "rsqrtf": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "scalblnf": {
+      "remaining": 1034600,
+      "reserved": 13976
+    },
+    "scalbnf": {
+      "remaining": 1004252,
+      "reserved": 44324
+    },
+    "scaleBf": {
+      "remaining": 1047733,
+      "reserved": 843
+    },
+    "setPayloadSigf": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "setPayloadf": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "sinf": {
+      "remaining": 1032034,
+      "reserved": 16542
+    },
+    "sinhf": {
+      "remaining": 1035968,
+      "reserved": 12608
+    },
+    "sinpif": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "sqrtf": {
+      "remaining": 960015,
+      "reserved": 88561
+    },
+    "tanf": {
+      "remaining": 1040183,
+      "reserved": 8393
+    },
+    "tanhf": {
+      "remaining": 1039340,
+      "reserved": 9236
+    },
+    "tanpif": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "tgammaf": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "totalOrderMagf": {
+      "remaining": 266882,
+      "reserved": 781694
+    },
+    "totalOrderf": {
+      "remaining": 39272,
+      "reserved": 1009304
+    },
+    "truncf": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "ufromfpf": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "ufromfpxf": {
+      "remaining": 1041026,
+      "reserved": 7550
+    },
+    "ulpDistancef": {
+      "remaining": 1047733,
+      "reserved": 843
+    }
+  },
+  "reserved_before_final_v4_rounds": 3865730,
+  "reserved_by_final_v4_rounds": {
+    "2026-10-04T05:07": 1660928,
+    "2026-10-04T05:16": 221184
+  },
+  "total_reserved": 5747842
+}
