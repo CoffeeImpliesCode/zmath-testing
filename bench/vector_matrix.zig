@@ -627,8 +627,8 @@ fn decodeInput(
             value.integer_type.oracleValueBits(),
         ),
         .unsigned_integer => |value| value.value,
-        .rounding => |value| @intFromEnum(value),
-        .round_mode => |value| @intFromEnum(value),
+        .rounding => |value| @backingInt(value),
+        .round_mode => |value| @backingInt(value),
         .tag => |value| {
             if (value.len > tag_buffer.len) return error.TagTooLong;
             @memcpy(tag_buffer[0..value.len], value);

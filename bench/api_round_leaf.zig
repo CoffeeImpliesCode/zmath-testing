@@ -163,7 +163,7 @@ const round_modes = [_]zmath.ieee.RoundMode{
 };
 
 fn Bits(comptime T: type) type {
-    return std.meta.Int(.unsigned, @bitSizeOf(T));
+    return @Int(.unsigned, @bitSizeOf(T));
 }
 
 /// A deterministic, non-affine spread of the eight slots of one regime.
@@ -176,7 +176,7 @@ fn scramble(index: usize) usize {
 }
 
 fn fbits(comptime T: type, regime: Regime, index: usize) Bits(T) {
-    const offset: usize = @as(usize, @intFromEnum(regime)) * slots_per_regime;
+    const offset: usize = @as(usize, @backingInt(regime)) * slots_per_regime;
     const slot = offset + scramble(index);
     // Each branch is the only one evaluated for a given `T`, so the table
     // lookup keeps the exact integer width of that format.
@@ -331,7 +331,7 @@ fn nanCase(comptime T: type, comptime regime: Regime) *const fn (usize) u64 {
     // `nan` takes no float operand, so the regime selects a different band of
     // the tag table instead: each regime still sees accepted and rejected
     // payloads, at different positions in the table.
-    const offset: usize = @as(usize, @intFromEnum(regime)) * 3;
+    const offset: usize = @as(usize, @backingInt(regime)) * 3;
     const Body = struct {
         noinline fn run(index: usize) u64 {
             const tag = nan_tags[(offset + index) % nan_tags.len];

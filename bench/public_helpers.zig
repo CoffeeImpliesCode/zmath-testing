@@ -95,7 +95,7 @@ const varied_exponents = [_]i32{
 
 comptime {
     if (rows.len != 14) @compileError("expected fourteen public helper timing rows");
-    if (@typeInfo(zmath.ieee.RoundMode).@"enum".fields.len != 4) {
+    if (@typeInfo(zmath.ieee.RoundMode).@"enum".field_names.len != 4) {
         @compileError("public helper benchmark must cover every RoundMode");
     }
     if (special_h.len != special_f.len or special_h.len != special_d.len or
@@ -264,7 +264,7 @@ fn mix(digest: u64, value: u64) u64 {
 
 fn digestInputs(comptime row: Row, samples: *const [sample_count]Sample) u64 {
     var digest: u64 = 0xcbf2_9ce4_8422_2325;
-    if (row.mode) |mode| digest = mix(digest, @intFromEnum(mode));
+    if (row.mode) |mode| digest = mix(digest, @backingInt(mode));
     for (samples) |sample| {
         digest = mix(digest, switch (row.operation) {
             .classifyh, .ulpDistanceh, .scaleBh, .roundIntegralh => @as(u16, @bitCast(sample.h)),
@@ -284,9 +284,9 @@ fn digestInputs(comptime row: Row, samples: *const [sample_count]Sample) u64 {
 
 fn evaluate(comptime row: Row, sample: *const Sample) u64 {
     return switch (row.operation) {
-        .classifyh => @intFromEnum(zmath.ieee.classifyh(sample.h)),
-        .classifyf => @intFromEnum(zmath.ieee.classifyf(sample.f)),
-        .classifyd => @intFromEnum(zmath.ieee.classifyd(sample.d)),
+        .classifyh => @backingInt(zmath.ieee.classifyh(sample.h)),
+        .classifyf => @backingInt(zmath.ieee.classifyf(sample.f)),
+        .classifyd => @backingInt(zmath.ieee.classifyd(sample.d)),
         .ulpDistanceh => zmath.scalar.ulpDistanceh(sample.h, sample.peer_h),
         .ulpDistancef => zmath.scalar.ulpDistancef(sample.f, sample.peer_f),
         .ulpDistanced => zmath.scalar.ulpDistanced(sample.d, sample.peer_d),

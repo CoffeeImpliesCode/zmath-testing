@@ -732,8 +732,7 @@ fn MultivectorOps(comptime A: type) type {
         fn cases() [count]common.Case {
             var list: [count]common.Case = undefined;
             var slot: usize = 0;
-            inline for (std.meta.fields(Op)) |field| {
-                const op: Op = @enumFromInt(field.value);
+            inline for (std.meta.tags(Op)) |op| {
                 if (comptime applicable(A.family, op)) {
                     list[slot] = .{
                         .name = tag ++ "." ++ methodName(op) ++ foldedSuffix(op),
@@ -796,8 +795,7 @@ fn MultivectorOps(comptime A: type) type {
         /// declarations, plus the refusal paths.
         const count = blk: {
             var total: usize = 0;
-            for (std.meta.fields(Op)) |field| {
-                const op: Op = @enumFromInt(field.value);
+            for (std.meta.tags(Op)) |op| {
                 if (applicable(A.family, op)) {
                     total += 1;
                     if (isSparseOp(op)) total += 1;

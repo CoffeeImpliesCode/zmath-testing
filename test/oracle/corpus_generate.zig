@@ -2888,7 +2888,7 @@ fn generateDefinition(
     defer allocator.free(artifact_path);
 
     var record_count: u64 = 0;
-    var artifact_hash: Digest = [_]u8{0} ** std.crypto.hash.sha2.Sha256.digest_length;
+    var artifact_hash: Digest = @splat(0);
     if (should_generate) {
         if (cardinality == 0) return error.RecordCountMismatch;
         const artifact_source: ArtifactSource = if (reuse) |entry|
@@ -3090,8 +3090,8 @@ fn writeArtifact(
 }
 
 fn visitRecord(context: *RecordContext, visit: *const campaigns.RecordVisit) !void {
-    var input_bits: [max_arguments]u64 = [_]u64{0} ** max_arguments;
-    var input_tags: [max_arguments][]const u8 = [_][]const u8{""} ** max_arguments;
+    var input_bits: [max_arguments]u64 = @splat(0);
+    var input_tags: [max_arguments][]const u8 = @splat("");
     try encodeInputs(
         visit.function,
         visit.arguments.slice(),
@@ -3208,7 +3208,7 @@ fn encodeInputs(
             },
             .rounding => |value| {
                 if (descriptor.kind != .rounding) return error.InputEncoding;
-                input_bits[index] = @intFromEnum(value);
+                input_bits[index] = @backingInt(value);
             },
             // Deliberately a separate arm from `.rounding`, and deliberately
             // keyed on the stored field kind rather than on a numeric range.
@@ -3219,7 +3219,7 @@ fn encodeInputs(
             // satisfy a `.round_mode` descriptor.
             .round_mode => |value| {
                 if (descriptor.kind != .round_mode) return error.InputEncoding;
-                input_bits[index] = @intFromEnum(value);
+                input_bits[index] = @backingInt(value);
             },
             // A classification is a result-only shape. No `InputDescriptor`
             // names it, so a stored classification in an argument position is a
@@ -3522,7 +3522,7 @@ test "filtered plan owns probe paths and reports selected metadata" {
 
     var metadata: std.ArrayList(u8) = .empty;
     defer metadata.deinit(std.testing.allocator);
-    const descriptor_hash = [_]u8{0} ** std.crypto.hash.sha2.Sha256.digest_length;
+    const descriptor_hash: Digest = @splat(0);
     try appendMetadataHeader(
         std.testing.allocator,
         &metadata,
@@ -4360,7 +4360,7 @@ test "a range plan digest binds the profile, selection, interval, and piece" {
     try std.testing.expect(!std.mem.eql(u8, &baseline, &corpus_set.rangePlanDigest(other)));
 
     other = baseline_plan;
-    other.descriptor_digest = [_]u8{0x5a} ** @sizeOf(corpus_set.Digest);
+    other.descriptor_digest = @splat(0x5a);
     try std.testing.expect(!std.mem.eql(u8, &baseline, &corpus_set.rangePlanDigest(other)));
 }
 

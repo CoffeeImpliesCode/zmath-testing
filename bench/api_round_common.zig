@@ -183,12 +183,13 @@ fn hashValue(comptime T: type, ptr: *const T, seed: u64) u64 {
 
 fn hashStruct(comptime T: type, ptr: *const T, seed: u64) u64 {
     var acc = seed;
-    inline for (@typeInfo(T).@"struct".fields) |field| {
-        acc = if (comptime field.is_comptime)
+    const info = @typeInfo(T).@"struct";
+    inline for (info.field_names, info.field_types, info.field_attrs) |name, Field, attrs| {
+        acc = if (comptime attrs.@"comptime")
             // A `comptime` field has no runtime address to take.
-            hashByValue(field.type, @field(ptr.*, field.name), acc)
+            hashByValue(Field, @field(ptr.*, name), acc)
         else
-            hashValue(field.type, &@field(ptr.*, field.name), acc);
+            hashValue(Field, &@field(ptr.*, name), acc);
     }
     return acc;
 }
@@ -252,7 +253,7 @@ fn hashUnion(comptime T: type, ptr: *const T, seed: u64) u64 {
 
 /// Enums hash their integer tag. Tagged unions use the separate payload path.
 fn hashEnum(comptime T: type, ptr: *const T, seed: u64) u64 {
-    return hashInt(@typeInfo(T).@"enum".tag_type, @intFromEnum(ptr.*), seed);
+    return hashInt(@typeInfo(T).@"enum".tag_type, @backingInt(ptr.*), seed);
 }
 
 /// Hashes the active payload of a tagged union. The tag name

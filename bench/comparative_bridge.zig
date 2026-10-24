@@ -277,7 +277,7 @@ comptime {
     }
 
     for (std.enums.values(Operation), 0..) |operation, index| {
-        if (@intFromEnum(operation) != @as(u8, @intCast(index))) {
+        if (@backingInt(operation) != @as(u8, @intCast(index))) {
             @compileError("comparative operation IDs must remain contiguous and append-only");
         }
 

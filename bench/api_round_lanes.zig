@@ -984,10 +984,10 @@ fn widthSlot(comptime width: usize) usize {
 /// of the pattern, once per lane.
 fn chargeFor(comptime key: Charge, comptime width: usize) []const common.Charge {
     const rows = switch (key) {
-        inline else => |tag| charge_patterns[@intFromEnum(tag)],
+        inline else => |tag| charge_patterns[@backingInt(tag)],
     };
     if (rows.len == 0) return chargeNone();
-    const slot: *const ChargeSlot = &charge_pool[@intFromEnum(key) * widths.len + widthSlot(width)];
+    const slot: *const ChargeSlot = &charge_pool[@backingInt(key) * widths.len + widthSlot(width)];
     return slot.rows[0..rows.len];
 }
 
@@ -2442,19 +2442,19 @@ comptime {
 
     // Every charge tag is a charge some family actually reaches, so no pattern
     // is dead metadata.
-    var used = [_]bool{false} ** @typeInfo(Charge).@"enum".fields.len;
+    var used: [@typeInfo(Charge).@"enum".field_names.len]bool = @splat(false);
     for (families) |family| {
         if (family.fixed) {
-            used[@intFromEnum(chargeOfKernel(family.kernel))] = true;
+            used[@backingInt(chargeOfKernel(family.kernel))] = true;
         } else {
-            used[@intFromEnum(chargeOfKernel(kernelStem(family) ++ "h"))] = true;
-            used[@intFromEnum(chargeOfKernel(kernelStem(family) ++ "f"))] = true;
-            used[@intFromEnum(chargeOfKernel(kernelStem(family) ++ "d"))] = true;
+            used[@backingInt(chargeOfKernel(kernelStem(family) ++ "h"))] = true;
+            used[@backingInt(chargeOfKernel(kernelStem(family) ++ "f"))] = true;
+            used[@backingInt(chargeOfKernel(kernelStem(family) ++ "d"))] = true;
         }
     }
     for (used, 0..) |was, at| {
         if (!was) {
-            const key: Charge = @enumFromInt(at);
+            const key: Charge = @fromBackingInt(@intCast(at));
             @compileError("api_round_lanes: a charge tag no family reaches: " ++ @tagName(key));
         }
     }

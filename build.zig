@@ -360,6 +360,9 @@ fn addComparativeObject(
 }
 
 pub fn build(b: *std.Build) void {
+    // Reference SDK paths and compiler identity come from the environment.
+    // Reconfigure when the caller changes that environment.
+    b.graph.poisonCache();
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
     const bench_target_name = b.option(
@@ -383,7 +386,7 @@ pub fn build(b: *std.Build) void {
     const coverage_runtime = b.option([]const u8, "coverage-rt", "Path to zig-cov runtime object");
     const active_target = bench_info.target_triple;
     const active_cpu = target.result.cpu.model.name;
-    const active_mode = @tagName(optimize);
+    const active_mode = benchmark_target_info.modeName(optimize);
     const corpus_target = active_target;
     const corpus_cpu = active_cpu;
     const corpus_mode = active_mode;
@@ -694,7 +697,7 @@ pub fn build(b: *std.Build) void {
     generator_step.dependOn(&install_corpus_producer.step);
     const run_corpus_producer = b.addRunArtifact(corpus_producer);
     run_corpus_producer.addArg("test/corpus");
-    if (b.args) |args| run_corpus_producer.addArgs(args);
+    run_corpus_producer.addPassthruArgs();
     const corpus_producer_step = b.step(
         "generate-corpus",
         "Generate verified typed scalar corpus artifacts",
@@ -727,7 +730,7 @@ pub fn build(b: *std.Build) void {
     replay_build_step.dependOn(&install_corpus_replay.step);
     const run_corpus_replay = b.addRunArtifact(corpus_replay);
     run_corpus_replay.addArg("test/corpus");
-    if (b.args) |args| run_corpus_replay.addArgs(args);
+    run_corpus_replay.addPassthruArgs();
     const replay_step = b.step("replay-corpus", "Verify every published scalar corpus record");
     replay_step.dependOn(&run_corpus_replay.step);
     // The vector lane is a flag on this executable, not a second module or a
@@ -738,7 +741,7 @@ pub fn build(b: *std.Build) void {
     const run_vector_corpus_replay = b.addRunArtifact(corpus_replay);
     run_vector_corpus_replay.addArg("test/corpus");
     run_vector_corpus_replay.addArg("--vector");
-    if (b.args) |args| run_vector_corpus_replay.addArgs(args);
+    run_vector_corpus_replay.addPassthruArgs();
     const replay_vector_step = b.step(
         "replay-vector",
         "Verify every published corpus record through the vector lane",
@@ -888,7 +891,7 @@ pub fn build(b: *std.Build) void {
     scalar_bench_step.dependOn(&install_scalar_benchmark.step);
     const run_scalar_benchmark = b.addRunArtifact(scalar_benchmark);
     run_scalar_benchmark.addArg("test/corpus");
-    if (b.args) |args| run_scalar_benchmark.addArgs(args);
+    run_scalar_benchmark.addPassthruArgs();
     const run_scalar_bench_step = b.step("run-bench-scalar", "Benchmark typed scalar corpora");
     run_scalar_bench_step.dependOn(&run_scalar_benchmark.step);
 
@@ -921,7 +924,7 @@ pub fn build(b: *std.Build) void {
     vector_bench_step.dependOn(&install_vector_benchmark.step);
     const run_vector_benchmark = b.addRunArtifact(vector_benchmark);
     run_vector_benchmark.addArg("test/corpus");
-    if (b.args) |args| run_vector_benchmark.addArgs(args);
+    run_vector_benchmark.addPassthruArgs();
     const run_vector_bench_step = b.step("run-bench-vector", "Benchmark typed vector corpora");
     run_vector_bench_step.dependOn(&run_vector_benchmark.step);
 
@@ -941,7 +944,7 @@ pub fn build(b: *std.Build) void {
     bench_helpers_step.dependOn(&install_helpers.step);
     const run_helpers = b.addRunArtifact(helpers_executable);
     run_helpers.step.dependOn(&install_helpers.step);
-    if (b.args) |args| run_helpers.addArgs(args);
+    run_helpers.addPassthruArgs();
     const run_helpers_step = b.step("run-bench-helpers", "Benchmark public helper evaluators");
     run_helpers_step.dependOn(&run_helpers.step);
 
@@ -964,7 +967,7 @@ pub fn build(b: *std.Build) void {
 
     const run_power = b.addRunArtifact(power_executable);
     run_power.step.dependOn(&install_power.step);
-    if (b.args) |args| run_power.addArgs(args);
+    run_power.addPassthruArgs();
     const run_power_step = b.step("run-power", "Run the power resource benchmark");
     run_power_step.dependOn(&run_power.step);
 
@@ -993,7 +996,7 @@ pub fn build(b: *std.Build) void {
 
     const run_api_round = b.addRunArtifact(api_round_executable);
     run_api_round.step.dependOn(&install_api_round.step);
-    if (b.args) |args| run_api_round.addArgs(args);
+    run_api_round.addPassthruArgs();
     const run_api_round_step = b.step("run-api-round", "Run the zmath API round benchmark");
     run_api_round_step.dependOn(&run_api_round.step);
 
@@ -1047,8 +1050,8 @@ pub fn build(b: *std.Build) void {
     }) catch @panic("invalid comparative benchmark target");
     const compare_target = b.resolveTargetQuery(compare_target_query);
     const compare_optimize =
-        b.option(std.builtin.OptimizeMode, "compare-optimize", "Optimization mode for the comparative benchmark") orelse
-        .ReleaseSafe;
+        b.option(std.lang.Optimize, "compare-optimize", "Optimization mode for the comparative benchmark") orelse
+        .safe;
     const compare_zmath_dependency = b.dependency("zmath", .{
         .target = compare_target,
         .optimize = compare_optimize,
@@ -1112,7 +1115,7 @@ pub fn build(b: *std.Build) void {
         @panic("ZMATH_COMPARE_COREMATH_PATH must be absolute");
     }
     const compare_target_name = "x86_64-linux-haswell";
-    const compare_build_mode = @tagName(compare_optimize);
+    const compare_build_mode = benchmark_target_info.modeName(compare_optimize);
     const compare_cxx_flags_text =
         "-std=c++17 -O3 -march=haswell -ffp-contract=off -fno-builtin -fno-fast-math -fno-lto";
     const compare_c_flags = [_][]const u8{
@@ -1226,7 +1229,7 @@ pub fn build(b: *std.Build) void {
     const run_comparative = std.Build.Step.Run.create(b, "run zmath-compare");
     run_comparative.addFileArg(compare_binary);
     run_comparative.step.dependOn(&install_comparative.step);
-    if (b.args) |args| run_comparative.addArgs(args);
+    run_comparative.addPassthruArgs();
     const run_compare_step = b.step("run-compare", "Run the comparative benchmark");
     run_compare_step.dependOn(&run_comparative.step);
 }

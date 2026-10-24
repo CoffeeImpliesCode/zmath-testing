@@ -29,14 +29,24 @@ pub fn isApprovedCorpusCpu(target: std.Target) bool {
     return target.cpu.features.eql(canonical_cpu.features);
 }
 
-pub fn isApprovedCorpusMode(optimize: std.builtin.OptimizeMode) bool {
-    return std.mem.eql(u8, @tagName(optimize), approved_corpus_mode);
+pub fn isApprovedCorpusMode(optimize: std.lang.Optimize) bool {
+    return optimize == .safe;
+}
+
+/// Preserve the mode names stored in corpus metadata.
+pub fn modeName(optimize: std.lang.Optimize) []const u8 {
+    return switch (optimize) {
+        .debug => "Debug",
+        .safe => "ReleaseSafe",
+        .fast => "ReleaseFast",
+        .small => "ReleaseSmall",
+    };
 }
 
 pub fn resolve(
     b: *std.Build,
     target: std.Build.ResolvedTarget,
-    optimize: std.builtin.OptimizeMode,
+    optimize: std.lang.Optimize,
 ) Info {
     const target_triple = target.result.zigTriple(b.allocator) catch @panic("OOM");
     var cpu_features: std.ArrayList(u8) = .empty;
@@ -53,7 +63,7 @@ pub fn resolve(
     return .{
         .target_triple = target_triple,
         .cpu_features = cpu_features.items,
-        .optimize = @tagName(optimize),
+        .optimize = modeName(optimize),
     };
 }
 
@@ -66,7 +76,7 @@ test "corpus target qualification accepts exact glibc and CPU identity" {
 
     try std.testing.expect(isApprovedCorpusTarget(target));
     try std.testing.expect(isApprovedCorpusCpu(target));
-    try std.testing.expect(isApprovedCorpusMode(.ReleaseSafe));
+    try std.testing.expect(isApprovedCorpusMode(.safe));
 }
 
 test "corpus target qualification rejects an added haswell feature" {
@@ -112,5 +122,5 @@ test "corpus target qualification rejects a non-approved CPU" {
 }
 
 test "corpus target qualification rejects a non-approved optimize mode" {
-    try std.testing.expect(!isApprovedCorpusMode(.ReleaseFast));
+    try std.testing.expect(!isApprovedCorpusMode(.fast));
 }

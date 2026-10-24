@@ -722,7 +722,7 @@ pub const ResultDescriptor = union(enum) {
 
     pub fn oracleStructureKind(descriptor: ResultDescriptor) OracleStructureKind {
         return switch (descriptor) {
-            .structure => |structure| @enumFromInt(structure.kind.oracleCode()),
+            .structure => |structure| @fromBackingInt(@intCast(structure.kind.oracleCode())),
             else => .none,
         };
     }
@@ -1184,7 +1184,7 @@ pub const CorpusRecord = struct {
         for (options.provenance) |provenance| {
             if (provenance == .zmath_core_math) return error.InvalidProvenance;
             if (record.provenance.count != 0 and
-                @intFromEnum(provenance) <= @intFromEnum(
+                @backingInt(provenance) <= @backingInt(
                     record.provenance.values[record.provenance.count - 1],
                 ))
             {
@@ -1322,7 +1322,7 @@ const CorpusWriter = struct {
 };
 
 fn corpusFormatCode(format: Format) u8 {
-    return @intFromEnum(format);
+    return @backingInt(format);
 }
 
 fn parseCorpusFormat(code: u8) CorpusRecordError!Format {
@@ -1343,7 +1343,7 @@ fn parseCorpusProvenance(code: u8) CorpusRecordError!Provenance {
 }
 
 fn corpusIntegerTypeCode(integer_type: IntegerType) u8 {
-    return @intFromEnum(integer_type) + 1;
+    return @backingInt(integer_type) + 1;
 }
 
 fn parseCorpusIntegerType(code: u8) CorpusRecordError!IntegerType {
@@ -1362,7 +1362,7 @@ fn parseCorpusIntegerType(code: u8) CorpusRecordError!IntegerType {
 }
 
 fn corpusFieldClassCode(class: FieldClass) u8 {
-    return @intFromEnum(class);
+    return @backingInt(class);
 }
 
 fn parseCorpusFieldClass(code: u8) CorpusRecordError!FieldClass {
@@ -1379,7 +1379,7 @@ fn parseCorpusFieldClass(code: u8) CorpusRecordError!FieldClass {
 }
 
 fn corpusRoundingCode(rounding: FromFpRound) u8 {
-    return @intFromEnum(rounding);
+    return @backingInt(rounding);
 }
 
 fn parseCorpusRounding(code: u8) CorpusRecordError!FromFpRound {
@@ -1394,7 +1394,7 @@ fn parseCorpusRounding(code: u8) CorpusRecordError!FromFpRound {
 }
 
 fn corpusRoundModeCode(mode: RoundMode) u8 {
-    return @intFromEnum(mode);
+    return @backingInt(mode);
 }
 
 fn parseCorpusRoundMode(code: u8) CorpusRecordError!RoundMode {
@@ -1408,7 +1408,7 @@ fn parseCorpusRoundMode(code: u8) CorpusRecordError!RoundMode {
 }
 
 fn corpusClassificationCode(classification: Classification) u8 {
-    return @intFromEnum(classification);
+    return @backingInt(classification);
 }
 
 fn parseCorpusClassification(code: u8) CorpusRecordError!Classification {
@@ -1752,7 +1752,7 @@ fn decodeCorpusField(
         } },
         1 => blk: {
             const integer_type = try parseCorpusIntegerType(type_code);
-            if (@intFromEnum(integer_type) > @intFromEnum(IntegerType.i64)) {
+            if (@backingInt(integer_type) > @backingInt(IntegerType.i64)) {
                 return error.ResultFieldMismatch;
             }
             break :blk .{ .signed_integer = .{
@@ -1830,7 +1830,7 @@ pub fn encodeCorpusRecord(
     try writer.writeU64(record.max_ulp);
     try encodeCorpusResultDescriptor(&writer, record.result_descriptor);
     try writer.bytes(record.operation);
-    for (record.provenance.slice()) |provenance| try writer.writeU8(@intFromEnum(provenance));
+    for (record.provenance.slice()) |provenance| try writer.writeU8(@backingInt(provenance));
     for (record.arguments.slice()) |field| try encodeCorpusField(&writer, field);
     for (record.results.slice()) |field| try encodeCorpusField(&writer, field);
     if (writer.index != length) return error.InvalidRecordLength;
@@ -1887,8 +1887,8 @@ pub fn decodeCorpusRecord(source: []const u8) CorpusRecordError!CorpusRecord {
     var provenance: ProvenanceList = .empty;
     for (0..provenance_count) |_| {
         const parsed = try parseCorpusProvenance(try reader.readU8());
-        if (provenance.count != 0 and @intFromEnum(parsed) <=
-            @intFromEnum(provenance.values[provenance.count - 1]))
+        if (provenance.count != 0 and @backingInt(parsed) <=
+            @backingInt(provenance.values[provenance.count - 1]))
         {
             if (parsed == provenance.values[provenance.count - 1]) {
                 return error.DuplicateProvenance;
@@ -2016,7 +2016,7 @@ fn compareCorpusField(previous: CorpusField, current: CorpusField) std.math.Orde
 fn compareProvenance(previous: ProvenanceList, current: ProvenanceList) std.math.Order {
     const common = @min(previous.count, current.count);
     for (previous.values[0..common], current.values[0..common]) |left, right| {
-        const order = std.math.order(@intFromEnum(left), @intFromEnum(right));
+        const order = std.math.order(@backingInt(left), @backingInt(right));
         if (order != .eq) return order;
     }
     return std.math.order(previous.count, current.count);
@@ -3036,7 +3036,7 @@ fn validateRootField(
     value: []const u8,
 ) ValidationError!void {
     const key = parseRootKey(name) orelse return error.UnknownRootKey;
-    const key_index: usize = @intFromEnum(key);
+    const key_index: usize = @backingInt(key);
     if (root_seen[key_index]) return error.DuplicateRootKey;
     root_seen[key_index] = true;
 
@@ -3091,7 +3091,7 @@ fn validateFunctionField(
 ) ValidationError!void {
     const key = std.meta.stringToEnum(FunctionKey, name) orelse
         return error.UnknownFunctionKey;
-    const key_index: usize = @intFromEnum(key);
+    const key_index: usize = @backingInt(key);
     if (function.seen[key_index]) return error.DuplicateFunctionKey;
     if (key_index != function.next_key) return error.UnorderedFunctionKey;
     function.seen[key_index] = true;
@@ -3203,8 +3203,8 @@ fn compareFunctions(previous: Function, current: Function) i8 {
     const operation_order = std.mem.order(u8, previous.op, current.op);
     if (operation_order == .lt) return -1;
     if (operation_order == .gt) return 1;
-    const previous_format = @intFromEnum(functionFormat(previous) orelse .h);
-    const current_format = @intFromEnum(functionFormat(current) orelse .h);
+    const previous_format = @backingInt(functionFormat(previous) orelse .h);
+    const current_format = @backingInt(functionFormat(current) orelse .h);
     if (previous_format < current_format) return -1;
     if (previous_format > current_format) return 1;
     return 0;
@@ -3310,7 +3310,7 @@ fn parseProvenanceInfo(value: []const u8) ValidationError!ParsedProvenance {
         else
             return error.InvalidProvenance;
         if (previous) |prior| {
-            if (@intFromEnum(parsed) <= @intFromEnum(prior)) return error.InvalidProvenance;
+            if (@backingInt(parsed) <= @backingInt(prior)) return error.InvalidProvenance;
         }
         values.values[values.count] = parsed;
         values.count += 1;
@@ -3526,13 +3526,13 @@ fn isSpecial(output_class: OutputClass) bool {
 }
 
 fn validateSorted(previous: SortKey, current: SortKey) ValidationError!void {
-    const previous_operation = @intFromEnum(previous.operation);
-    const current_operation = @intFromEnum(current.operation);
+    const previous_operation = @backingInt(previous.operation);
+    const current_operation = @backingInt(current.operation);
     if (current_operation < previous_operation) return error.UnsortedCorpusRow;
     if (current_operation > previous_operation) return;
 
-    const previous_format = @intFromEnum(previous.format);
-    const current_format = @intFromEnum(current.format);
+    const previous_format = @backingInt(previous.format);
+    const current_format = @backingInt(current.format);
     if (current_format < previous_format) return error.UnsortedCorpusRow;
     if (current_format > previous_format) return;
 

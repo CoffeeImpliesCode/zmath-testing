@@ -194,7 +194,7 @@ fn computeHarnessDigest() u64 {
 /// requested names, so one case is selected once, published once and charged
 /// once however often it was named.
 const CaseSelection = struct {
-    names: [case_names_cap][]const u8 = [_][]const u8{""} ** case_names_cap,
+    names: [case_names_cap][]const u8 = @splat(""),
     len: usize = 0,
 
     /// Records one `--case=name`. Past `case_names_cap` names the request is
@@ -245,7 +245,7 @@ const CaseSelection = struct {
 const Unpublished = struct {
     const listed = 8;
 
-    names: [case_names_cap][]const u8 = [_][]const u8{""} ** case_names_cap,
+    names: [case_names_cap][]const u8 = @splat(""),
     len: usize = 0,
 
     fn isEmpty(self: *const Unpublished) bool {
@@ -316,7 +316,7 @@ fn parseOptions(args: []const []const u8) !Options {
             saw_slices = true;
             const labels = argument["--slice=".len..];
             if (labels.len == 0) return error.InvalidArguments;
-            var selected = [_]bool{false} ** bundles.len;
+            var selected: [bundles.len]bool = @splat(false);
             var parts = std.mem.splitScalar(u8, labels, ',');
             while (parts.next()) |label| {
                 var matched = false;

@@ -205,7 +205,7 @@ pub fn descriptorEntryHash(
     hasher.update(function.op);
     hasher.update(&[_]u8{0});
     for (function.provenance.slice()) |provenance| {
-        hasher.update(&[_]u8{@intFromEnum(provenance)});
+        hasher.update(&[_]u8{@backingInt(provenance)});
     }
     hashU32(&hasher, @intCast(function.arity));
     for (function.arguments()) |argument| {
@@ -836,12 +836,12 @@ fn signatureMatchesFunction(
     if (arity != function.arguments().len) return false;
     if (result_count != function.result.oracleFieldCount()) return false;
     if (@as(u32, @intCast(signature.result_layout)) !=
-        @intFromEnum(function.result.oracleLayout()))
+        @backingInt(function.result.oracleLayout()))
     {
         return false;
     }
     if (@as(u32, @intCast(signature.structure_kind)) !=
-        @intFromEnum(function.result.oracleStructureKind()))
+        @backingInt(function.result.oracleStructureKind()))
     {
         return false;
     }
@@ -878,9 +878,9 @@ fn cDescriptorMatches(
     actual: oracle_abi.zmath_testing_oracle_field_descriptor,
     expected: corpus.OracleFieldDescriptor,
 ) bool {
-    return actual.kind == @intFromEnum(expected.kind) and
+    return actual.kind == @backingInt(expected.kind) and
         actual.value_bits == expected.value_bits and
-        actual.format.code == @intFromEnum(expected.format.code) and
+        actual.format.code == @backingInt(expected.format.code) and
         actual.format.storage_bits == expected.format.storage_bits and
         actual.format.exponent_bits == expected.format.exponent_bits and
         actual.format.fraction_bits == expected.format.fraction_bits and
@@ -1922,7 +1922,7 @@ fn validateRangeRow(
     if (row.range_high > max_raw_binary32_inputs) return error.InvalidRangeRow;
     if (row.records != row.range_high - row.range_low) return error.RangeRecordCountMismatch;
     if (row.input_argument != 0) return error.RangeInputDescriptorMismatch;
-    if (std.mem.eql(u8, &row.artifact_sha256, &([_]u8{0} ** @sizeOf(Digest)))) {
+    if (std.mem.eql(u8, &row.artifact_sha256, &@as(Digest, @splat(0)))) {
         return error.InvalidRangeRow;
     }
     if (!artifactPathMatches(row.artifact, run_root, row.signature_index, row.operation)) {
@@ -2071,7 +2071,7 @@ pub fn loadReusable(
     var set: ReuseSet = .{
         .source = source,
         .entries = undefined,
-        .available = [_]bool{false} ** corpus.max_function_count,
+        .available = @splat(false),
         .source_descriptor_count = 0,
         .reusable_count = 0,
     };

@@ -5639,13 +5639,13 @@ pub fn exactRecord(definition: *const CampaignDefinition, index: usize) Campaign
     }
 }
 fn formatShapeCode(format: corpus.Format) u64 {
-    return @as(u64, @intFromEnum(format)) + 1;
+    return @as(u64, @backingInt(format)) + 1;
 }
 
 fn argumentShapeCode(argument: corpus.InputDescriptor) u64 {
     return switch (argument) {
         .float => |format| formatShapeCode(format),
-        .integer => |integer_type| 4 + @as(u64, @intFromEnum(integer_type)),
+        .integer => |integer_type| 4 + @as(u64, @backingInt(integer_type)),
         .tag => 13,
         .fromfp_round => 14,
         // round_mode is a distinct argument kind from fromfp_round: four IEEE
@@ -5658,7 +5658,7 @@ fn argumentShapeCode(argument: corpus.InputDescriptor) u64 {
 fn resultShapeCode(result: corpus.ResultDescriptor) u64 {
     return switch (result) {
         .float => |format| formatShapeCode(format),
-        .integer => |integer_type| 4 + @as(u64, @intFromEnum(integer_type)),
+        .integer => |integer_type| 4 + @as(u64, @backingInt(integer_type)),
         .boolean => 13,
         // A six-value class enumeration, not an integer. Code 14 is unused in
         // the result space and 16 upward is the structure block.
@@ -5961,9 +5961,9 @@ fn buildFloatPool(comptime format: corpus.Format, comptime unary: bool) BitPool 
 
 const integer_pools = pools: {
     @setEvalBranchQuota(200_000);
-    var values: [std.meta.fields(corpus.IntegerType).len]BitPool = undefined;
+    var values: [@typeInfo(corpus.IntegerType).@"enum".field_names.len]BitPool = undefined;
     for (std.meta.tags(corpus.IntegerType)) |integer_type| {
-        values[@intFromEnum(integer_type)] = buildIntegerPool(integer_type);
+        values[@backingInt(integer_type)] = buildIntegerPool(integer_type);
     }
     break :pools values;
 };
@@ -6000,7 +6000,7 @@ fn addIntegerValue(pool: *BitPool, value: i128, signed: bool) void {
 }
 
 fn floatPool(function: corpus.Function, format: corpus.Format) *const BitPool {
-    return &float_pools[@intFromBool(function.arity == 1)][@intFromEnum(format)];
+    return &float_pools[@intFromBool(function.arity == 1)][@backingInt(format)];
 }
 
 fn fieldPoolValue(function: corpus.Function, argument: corpus.InputDescriptor, index: u64) corpus.CorpusField {
@@ -6013,27 +6013,27 @@ fn fieldPoolValue(function: corpus.Function, argument: corpus.InputDescriptor, i
         .integer => |integer_type| switch (integer_type) {
             .i2, .i8, .i16, .i32, .i64 => .{ .signed_integer = .{
                 .integer_type = integer_type,
-                .value = @bitCast(integer_pools[@intFromEnum(integer_type)].values[@intCast(index)] ^
+                .value = @bitCast(integer_pools[@backingInt(integer_type)].values[@intCast(index)] ^
                     (@as(u64, 1) << 63)),
             } },
             .u8, .u16, .u32, .u64 => .{ .unsigned_integer = .{
                 .integer_type = integer_type,
-                .value = integer_pools[@intFromEnum(integer_type)].values[@intCast(index)],
+                .value = integer_pools[@backingInt(integer_type)].values[@intCast(index)],
             } },
         },
         .tag => special_tag_values[@intCast(index)],
-        .fromfp_round => .{ .rounding = @enumFromInt(index) },
-        .round_mode => .{ .round_mode = @enumFromInt(index) },
+        .fromfp_round => .{ .rounding = @fromBackingInt(@intCast(index)) },
+        .round_mode => .{ .round_mode = @fromBackingInt(@intCast(index)) },
     };
 }
 
 fn finitePoolLength(function: corpus.Function, argument: corpus.InputDescriptor) u64 {
     return switch (argument) {
         .float => |format| floatPool(function, format).count,
-        .integer => |integer_type| integer_pools[@intFromEnum(integer_type)].count,
+        .integer => |integer_type| integer_pools[@backingInt(integer_type)].count,
         .tag => special_tag_values.len,
-        .fromfp_round => std.meta.fields(corpus.FromFpRound).len,
-        .round_mode => std.meta.fields(corpus.RoundMode).len,
+        .fromfp_round => @typeInfo(corpus.FromFpRound).@"enum".field_names.len,
+        .round_mode => @typeInfo(corpus.RoundMode).@"enum".field_names.len,
     };
 }
 

@@ -220,7 +220,7 @@ let
   # this repository could run. Only scripts.coverage consumes this, and only as a
   # PATH prefix, so resolving it from the locked nixpkgs makes the devshell
   # buildable without touching the main toolchain. The project toolchain stays
-  # the 0.16.0 that build.zig.zon asks for as .minimum_zig_version.
+  # the 0.17.0 that build.zig.zon asks for as .minimum_zig_version.
   coverageZig = pkgs.zig;
 in
 rec {
@@ -286,7 +286,7 @@ rec {
   # the `zig build published-tools` step, which would have left the blind spot
   # this step closes alive exactly where it was added.
   scripts.gate.exec = ''
-    zig build published-tools -Dtarget=x86_64-linux-gnu.2.38 -Dcpu=haswell -Doptimize=ReleaseSafe &&
+    zig build published-tools -Dtarget=x86_64-linux-gnu.2.38 -Dcpu=haswell -Doptimize=safe &&
       GATE_EXCLUDE="./bench/results/ ./.devenv/ ./graphify-out/" zig-gate
   '';
 

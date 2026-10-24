@@ -716,12 +716,12 @@ fn evaluateNumeric(case: NumericCase) !NumericEvaluation {
         if (tableRow(case) != null) return error.OperationLayoutMismatch;
         return error.OperationRowMissing;
     };
-    var fields = [_]c.zmath_testing_oracle_result_field{.{
+    var fields: [MaxFields]c.zmath_testing_oracle_result_field = @splat(.{
         .descriptor = case.result_fields[0],
         .value_bits = 0xdead_beef_dead_beef,
         .class_code = c.ZMATH_TESTING_ORACLE_CLASS_NONE,
         .reserved = 0,
-    }} ** MaxFields;
+    });
     var result: c.zmath_testing_oracle_result = .{
         .status = c.ZMATH_TESTING_ORACLE_ERROR,
         .reserved = 0,

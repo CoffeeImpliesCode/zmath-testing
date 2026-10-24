@@ -836,7 +836,7 @@ fn matBinaryInvoke(
     const Impl = struct {
         noinline fn invoke(index: usize) u64 {
             const a = matAt(M, regime, index, 0x68bc_21eb_1f5d_3b1a);
-            const Second = @typeInfo(@TypeOf(op)).@"fn".params[1].type.?;
+            const Second = @typeInfo(@TypeOf(op)).@"fn".param_types[1].?;
             const b = if (comptime Second == M.Element)
                 entryAt(M.Element, regime, index, 0x02e5_be93_c86b_a26b)
             else
@@ -2201,7 +2201,7 @@ const factorMatrixTypes = [_]type{
 /// because the entry the Cholesky substitution multiplies by stays finite even
 /// where the stored factor does not.
 fn expectedOverflowClasses(comptime n: usize) [n]SolvedClass {
-    var out = [_]SolvedClass{.nan} ** n;
+    var out: [n]SolvedClass = @splat(.nan);
     if (n == 2) {
         out[0] = .positive_infinity;
         out[1] = .negative_infinity;

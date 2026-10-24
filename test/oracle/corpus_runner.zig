@@ -695,7 +695,7 @@ fn entryMatchesFunction(entry: RuntimeEntry, function: Function) bool {
 
 fn emptyRawRuntimeResult() RawRuntimeResult {
     return .{
-        .values = [_]u64{0} ** max_oracle_fields,
+        .values = @splat(0),
         .field_count = 0,
     };
 }
@@ -875,9 +875,9 @@ fn makeFromFpInvoker(
     const Adapter = struct {
         fn invoke(inputs: *const [max_oracle_fields]OracleInputField) RawRuntimeResult {
             const input = decodeFloat(format, inputs[0].value_bits);
-            const direction: zmath.FromFpRound = @enumFromInt(
+            const direction: zmath.FromFpRound = @fromBackingInt(@intCast(
                 @as(u32, @intCast(inputs[1].value_bits)),
-            );
+            ));
             const width: u32 = @intCast(inputs[2].value_bits);
             const output: FloatType(format) = @call(
                 .auto,
@@ -1750,7 +1750,7 @@ fn makeEntry(
     return .{
         .operation = operation,
         .input_descriptors = input_descriptors,
-        .input_count = @typeInfo(@TypeOf(arguments)).@"struct".fields.len,
+        .input_count = @typeInfo(@TypeOf(arguments)).@"struct".field_names.len,
         .result_descriptors = result_descriptors,
         .result_count = result.oracleFieldCount(),
         .result_layout = result.oracleLayout(),
@@ -2440,7 +2440,7 @@ fn laneFunction(
     comptime result: corpus.ResultDescriptor,
 ) Function {
     var inputs: corpus.ArgumentList = .{};
-    inputs.count = @typeInfo(@TypeOf(arguments)).@"struct".fields.len;
+    inputs.count = @typeInfo(@TypeOf(arguments)).@"struct".field_names.len;
     inline for (arguments, 0..) |argument, index| {
         inputs.descriptors[index] = argument;
     }

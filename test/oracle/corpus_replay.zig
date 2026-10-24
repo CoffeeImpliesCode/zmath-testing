@@ -395,17 +395,31 @@ fn replayEntry(
     function: *const corpus.Function,
 ) !u64 {
     var record_index: u64 = 0;
-    errdefer |replay_error| std.debug.print(
-        "corpus replay entry failed: signature={} operation={s} artifact={s} " ++
-            "record_index={} error={s}\n",
-        .{
-            entry.signature_index,
-            entry.operation,
-            entry.artifact,
-            record_index,
-            @errorName(replay_error),
-        },
-    );
+    return replayEntryInner(io, directory, entry, function, &record_index) catch |replay_error| {
+        std.debug.print(
+            "corpus replay entry failed: signature={} operation={s} artifact={s} " ++
+                "record_index={} error={s}\n",
+            .{
+                entry.signature_index,
+                entry.operation,
+                entry.artifact,
+                record_index,
+                @errorName(replay_error),
+            },
+        );
+        return replay_error;
+    };
+}
+
+fn replayEntryInner(
+    io: std.Io,
+    directory: std.Io.Dir,
+    entry: *const corpus_set.Entry,
+    function: *const corpus.Function,
+    failed_index: *u64,
+) !u64 {
+    var record_index: u64 = 0;
+    defer failed_index.* = record_index;
     if (entry.records == 0) return error.EmptyCorpus;
     const prepared = try runner.prepareRuntime(function.*);
 
@@ -489,12 +503,17 @@ fn replayRecord(
     record_index: u64,
     record: *const corpus.CorpusRecord,
 ) !void {
-    errdefer |replay_error| logRecordFailure(
-        entry,
-        record_index,
-        record,
-        replay_error,
-    );
+    replayRecordInner(function, prepared, record) catch |replay_error| {
+        logRecordFailure(entry, record_index, record, replay_error);
+        return replay_error;
+    };
+}
+
+fn replayRecordInner(
+    function: *const corpus.Function,
+    prepared: *const runner.PreparedRuntime,
+    record: *const corpus.CorpusRecord,
+) !void {
     try validateRecordSignature(function, record);
 
     var inputs: [max_arguments]corpus.OracleInputField = undefined;
@@ -612,7 +631,7 @@ fn encodeInput(
                 .rounding => |rounding| rounding,
                 else => return error.CorpusSignatureMismatch,
             };
-            const word = std.math.cast(u32, @intFromEnum(value)) orelse
+            const word = std.math.cast(u32, @backingInt(value)) orelse
                 return error.InputBitsOutOfRange;
             return .{ .word = word, .tag = "" };
         },
@@ -628,7 +647,7 @@ fn encodeInput(
                 .round_mode => |mode| mode,
                 else => return error.CorpusSignatureMismatch,
             };
-            const word = std.math.cast(u32, @intFromEnum(value)) orelse
+            const word = std.math.cast(u32, @backingInt(value)) orelse
                 return error.InputBitsOutOfRange;
             return .{ .word = word, .tag = "" };
         },
@@ -789,17 +808,32 @@ fn replayVectorEntry(
     prepared: *const runner.PreparedVectorRuntime,
 ) !u64 {
     var record_index: u64 = 0;
-    errdefer |replay_error| std.debug.print(
-        "vector corpus replay entry failed: signature={} operation={s} artifact={s} " ++
-            "record_index={} error={s}\n",
-        .{
-            entry.signature_index,
-            entry.operation,
-            entry.artifact,
-            record_index,
-            @errorName(replay_error),
-        },
-    );
+    return replayVectorEntryInner(io, directory, entry, function, prepared, &record_index) catch |replay_error| {
+        std.debug.print(
+            "vector corpus replay entry failed: signature={} operation={s} artifact={s} " ++
+                "record_index={} error={s}\n",
+            .{
+                entry.signature_index,
+                entry.operation,
+                entry.artifact,
+                record_index,
+                @errorName(replay_error),
+            },
+        );
+        return replay_error;
+    };
+}
+
+fn replayVectorEntryInner(
+    io: std.Io,
+    directory: std.Io.Dir,
+    entry: *const corpus_set.Entry,
+    function: *const corpus.Function,
+    prepared: *const runner.PreparedVectorRuntime,
+    failed_index: *u64,
+) !u64 {
+    var record_index: u64 = 0;
+    defer failed_index.* = record_index;
     if (entry.records == 0) return error.EmptyCorpus;
 
     const file = try directory.openFile(io, entry.artifact, .{});
@@ -908,7 +942,7 @@ fn replayVectorGroup(
     var batch: runner.VectorBatch = .{
         .groups = @splat(pending[0].inputs),
         .lane_count = lane_count,
-        .values = [_]u64{0} ** corpus.max_argument_count,
+        .values = @splat(0),
     };
     for (0..lane_count) |lane| batch.groups[lane] = pending[lane].inputs;
     for (batch.groups[lane_count..]) |*lane| {
@@ -926,17 +960,21 @@ fn replayVectorGroup(
     );
     if (lanes != lane_count) return error.RuntimeShapeMismatch;
     for (0..lane_count) |lane| {
-        errdefer |lane_error| logVectorLaneFailure(
-            entry,
-            lane,
-            &pending[lane].record,
-            lane_error,
-        );
-        const stored = pending[lane].record.results.slice();
-        if (stored.len > corpus.max_result_field_count) return error.RuntimeShapeMismatch;
-        for (actual[lane][0..stored.len], stored) |actual_field, stored_field| {
-            if (!std.meta.eql(actual_field, stored_field)) return error.RuntimeMismatch;
-        }
+        compareVectorLane(&actual[lane], &pending[lane].record) catch |lane_error| {
+            logVectorLaneFailure(entry, lane, &pending[lane].record, lane_error);
+            return lane_error;
+        };
+    }
+}
+
+fn compareVectorLane(
+    actual: *const [corpus.max_result_field_count]corpus.CorpusField,
+    record: *const corpus.CorpusRecord,
+) !void {
+    const stored = record.results.slice();
+    if (stored.len > corpus.max_result_field_count) return error.RuntimeShapeMismatch;
+    for (actual[0..stored.len], stored) |actual_field, stored_field| {
+        if (!std.meta.eql(actual_field, stored_field)) return error.RuntimeMismatch;
     }
 }
 

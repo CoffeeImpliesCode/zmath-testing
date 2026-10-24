@@ -102,7 +102,7 @@ const component_names = [4][]const u8{ "x", "y", "z", "w" };
 
 /// The component type of a `Vec*` value type.
 fn Component(comptime V: type) type {
-    return @typeInfo(V).@"struct".fields[0].type;
+    return @typeInfo(V).@"struct".field_types[0];
 }
 
 /// The declared component count of a `Vec*` value type. The return type is
@@ -113,12 +113,12 @@ fn Component(comptime V: type) type {
 /// takes two arguments rather than three. A `usize` result would leave the
 /// comparison a run-time branch and every arm would have to be valid.
 fn width(comptime V: type) comptime_int {
-    return @typeInfo(V).@"struct".fields.len;
+    return @typeInfo(V).@"struct".field_names.len;
 }
 
 /// The component type of a raw quaternion type.
 fn Scalar(comptime Q: type) type {
-    return @typeInfo(Q).@"struct".fields[0].type;
+    return @typeInfo(Q).@"struct".field_types[0];
 }
 
 /// The validated type that wraps the raw quaternion type `Q`.

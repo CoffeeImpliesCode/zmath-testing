@@ -126,11 +126,11 @@ fn regimeSpread(comptime T: type, regime: Regime) f64 {
 }
 
 fn componentCount(comptime X: type) comptime_int {
-    return std.meta.fields(X).len;
+    return @typeInfo(X).@"struct".field_names.len;
 }
 
 fn elementOf(comptime X: type) type {
-    return std.meta.fields(X)[0].type;
+    return @typeInfo(X).@"struct".field_types[0];
 }
 
 fn zeros(comptime n: usize) [n]f64 {
@@ -181,7 +181,7 @@ fn timesAll(comptime n: usize, a: anytype, factor: anytype) [n]f64 {
 /// non-finite value has to store one instead of constructing one.
 fn poisonedValue(comptime X: type, comptime T: type) X {
     var out = std.mem.zeroes(X);
-    inline for (std.meta.fields(X)) |field| @field(out, field.name) = std.math.inf(T);
+    inline for (@typeInfo(X).@"struct".field_names) |name| @field(out, name) = std.math.inf(T);
     return out;
 }
 
@@ -317,12 +317,12 @@ fn outcomes(index: usize, comptime count: usize, values: anytype) u64 {
 /// `runRay`.
 fn Bound(comptime Impl: type, comptime entry: []const u8, comptime arg: anytype) type {
     const Runner = @field(Impl, entry);
-    const Arg = @typeInfo(@TypeOf(Runner)).@"fn".params[1].type.?;
+    const Arg = @typeInfo(@TypeOf(Runner)).@"fn".param_types[1].?;
     const bound_arg: Arg = blk: {
         if (@typeInfo(Arg) == .@"struct") {
             var value: Arg = undefined;
-            for (std.meta.fields(Arg)) |field| {
-                @field(value, field.name) = @field(arg, field.name);
+            for (@typeInfo(Arg).@"struct".field_names) |name| {
+                @field(value, name) = @field(arg, name);
             }
             break :blk value;
         }

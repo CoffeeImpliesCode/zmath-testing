@@ -63,7 +63,7 @@ fn decode(comptime format: corpus.Format, bits: u64) FloatType(format) {
 }
 
 fn singleResult(comptime format: corpus.Format, value: FloatType(format)) runner.RawRuntimeResult {
-    var values = [_]u64{0} ** corpus.max_argument_count;
+    var values: [corpus.max_argument_count]u64 = @splat(0);
     values[0] = @intCast(@as(BitsType(format), @bitCast(value)));
     return .{ .values = values, .field_count = 1 };
 }

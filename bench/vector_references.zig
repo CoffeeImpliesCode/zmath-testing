@@ -189,7 +189,7 @@ fn laneResults(
     comptime lane_width: u32,
     lanes: @Vector(lane_width, FloatType(format)),
 ) runner.RawRuntimeResult {
-    var values = [_]u64{0} ** corpus.max_argument_count;
+    var values: [corpus.max_argument_count]u64 = @splat(0);
     inline for (0..lane_width) |lane| {
         values[lane] = encodeLane(format, lanes[lane]);
     }
