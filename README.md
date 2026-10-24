@@ -17,6 +17,7 @@ and benchmarks. The runtime library does not link the oracle libraries.
 the manifest selects the compiler version. For a custom reference installation,
 set the include and library search paths. `ZMATH_ORACLE_HOST_PREFIX` supplies an
 optional runtime library prefix with libraries under `lib64`.
+The optional coverage script requires `zig-cov` on `PATH`.
 
 ## Build and test
 

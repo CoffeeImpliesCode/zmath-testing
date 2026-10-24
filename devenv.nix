@@ -215,13 +215,6 @@ let
     };
   };
 
-  # This used to fetch a 0.17.0-dev tarball from ziglang.org, which upstream has
-  # since removed; the 404 made the whole devshell unbuildable, so nothing in
-  # this repository could run. Only scripts.coverage consumes this, and only as a
-  # PATH prefix, so resolving it from the locked nixpkgs makes the devshell
-  # buildable without touching the main toolchain. The project toolchain stays
-  # the 0.17.0 that build.zig.zon asks for as .minimum_zig_version.
-  coverageZig = pkgs.zig;
 in
 rec {
   packages = with pkgs; [
@@ -291,10 +284,7 @@ rec {
   '';
 
 
-  # `zig-cov` is hardcoded to another machine's home directory and does not
-  # exist here, so this script cannot run on this host. It is left as the
-  # upstream contract rather than silently repointed.
   scripts.coverage.exec = ''
-    PATH=${coverageZig}:$PATH ~/tools/zcov/zig-out/bin/zig-cov test
+    zig-cov test
   '';
 }
