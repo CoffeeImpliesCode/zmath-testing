@@ -9,6 +9,8 @@ test/corpus/generated/records/
 test/corpus/generated/probes/
 test/corpus/generated/.incomplete
 test/corpus/generated/*.tmp
+test/corpus/generated/replay.txt
+test/corpus/generated/benchmark.txt
 
 # A `--shard` run leaves one record tree per shard under the output root. They
 # are working state for a merge, not publication, and a campaign produces
@@ -17,21 +19,13 @@ test/corpus/shards/
 test/corpus/ranges/
 test/corpus/range-shards/
 
-# `bench/results/` mixes the published deliverables of the 2026-10-03 API
-# surface round with regenerable work: per-target build outputs, install
-# prefixes and raw sample streams that a campaign produces in gigabytes.
-# The pattern ignores the entries rather than the directory itself, because
-# git never descends into an excluded directory and so could never reach a
-# negated path inside it. Only the three paths the "API-surface round
-# 2026-10-03" section of docs/reference-performance-analysis.md links to are
-# re-included here.
-bench/results/*
-!bench/results/api-surface-20261003-coverage.csv
-!bench/results/api-surface-20261003-focused.csv
-!bench/results/api-surface-20261003-final-v4
-!bench/results/api-surface-20261003-final-v4/**
+bench/results/
 .ruff_cache/
 __pycache__/
 .zig-global-cache/
 graphify-out/
 codedb.snapshot
+zig-pkg/
+*.o
+*.pyc
+result*
