@@ -77,5 +77,4 @@ python3 -m unittest discover -s bench -p 'test_*runner.py'
 
 ## License
 
-This checkout does not include a license grant. See zmath for the runtime library's
-license; its terms do not establish a license for this repository.
+MIT, see [LICENSE](LICENSE).

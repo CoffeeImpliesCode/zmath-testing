@@ -11,5 +11,6 @@
         "build.zig.zon",
         "test",
         "bench",
+        "LICENSE",
     },
 }
